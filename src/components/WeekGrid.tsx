@@ -24,6 +24,15 @@ export function WeekGrid({
   const [sel, setSel] = useState<CellSel>(null);
   const [newHabit, setNewHabit] = useState("");
   const [adding, setAdding] = useState(false);
+  // Gelecek kareye dokunulduğunda kısa beyaz parlama
+  const [flash, setFlash] = useState<{ habitId: string; day: number } | null>(
+    null
+  );
+
+  function flashCell(habitId: string, day: number) {
+    setFlash({ habitId, day });
+    window.setTimeout(() => setFlash(null), 450);
+  }
 
   const todayISO = toISODate(new Date());
   const days = DAY_LABELS.map((label, i) => {
@@ -51,26 +60,6 @@ export function WeekGrid({
     setMinutes(habitId, day, cur + delta);
   }
 
-  function clearCell(habitId: string, day: number) {
-    if (confirm("Bu hücre sıfırlansın mı?")) setMinutes(habitId, day, 0);
-  }
-
-  // Mola dakikaları (week.breaks) düzenleme
-  function setBreakMinutes(habitId: string, day: number, value: number) {
-    const next = Math.max(0, value);
-    const row = (week.breaks[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
-    row[day] = next;
-    onChange({ ...week, breaks: { ...week.breaks, [habitId]: row } });
-  }
-
-  function addBreakMinutes(habitId: string, day: number, delta: number) {
-    const cur = week.breaks[habitId]?.[day] ?? 0;
-    if (delta < 0) {
-      if (!confirm(`${formatMinutes(Math.abs(delta))} mola çıkarılsın mı?`))
-        return;
-    }
-    setBreakMinutes(habitId, day, cur + delta);
-  }
 
   function addHabit() {
     const name = newHabit.trim();
@@ -179,23 +168,31 @@ export function WeekGrid({
                       ? "running"
                       : "pausedt"
                     : "";
-                  const tip =
-                    mins > 0 || brk > 0
-                      ? `Çalışma ${formatMinutes(mins)} · Ara ${formatMinutes(
-                          brk
-                        )}`
-                      : "boş";
+                  const isFuture = dayTypeOf(day) === "future";
+                  const isFlashing =
+                    flash && flash.habitId === h.id && flash.day === day;
+                  const tip = isFuture
+                    ? "Gelecek gün — henüz girilemez"
+                    : mins > 0 || brk > 0
+                    ? `Çalışma ${formatMinutes(mins)} · Ara ${formatMinutes(brk)}`
+                    : "boş";
                   return (
                     <td
                       key={day}
                       className={`cell-td ${days[day].isToday ? "today-col" : ""}`}
                     >
                       <button
-                        className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState}`}
+                        className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState} ${
+                          isFlashing ? "flash" : ""
+                        }`}
                         title={tip}
-                        onClick={() =>
-                          setSel(isSel ? null : { habitId: h.id, day })
-                        }
+                        onClick={() => {
+                          if (isFuture) {
+                            flashCell(h.id, day);
+                            return;
+                          }
+                          setSel(isSel ? null : { habitId: h.id, day });
+                        }}
                       >
                         {timer ? (
                           <span
@@ -269,8 +266,6 @@ export function WeekGrid({
                   setSel(null);
                 }}
                 onAddWork={(d) => addMinutes(h.id, sel.day, d)}
-                onAddBreak={(d) => addBreakMinutes(h.id, sel.day, d)}
-                onClearWork={() => clearCell(h.id, sel.day)}
                 onClose={() => setSel(null)}
               />
             );

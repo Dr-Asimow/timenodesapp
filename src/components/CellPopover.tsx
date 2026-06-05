@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { TimerConfig } from "../types";
-import { formatMinutes } from "../heat";
 import type { DayType } from "./WeekGrid";
 
 const FOCUS_MIN = 5;
@@ -25,8 +24,6 @@ export function CellPopover({
   timerState,
   onStartTimer,
   onAddWork,
-  onAddBreak,
-  onClearWork,
   onClose,
 }: {
   dayType: DayType;
@@ -37,16 +34,11 @@ export function CellPopover({
   timerState: "" | "running" | "pausedt";
   onStartTimer: (config: TimerConfig) => void;
   onAddWork: (deltaMin: number) => void;
-  onAddBreak: (deltaMin: number) => void;
-  onClearWork: () => void;
   onClose: () => void;
 }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal cell-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
         <div className="popover-head">
           <span className="popover-title">
             {habitName} · {dayLabel}
@@ -57,24 +49,53 @@ export function CellPopover({
         </div>
 
         {dayType === "today" ? (
-          <TimerSetup timerState={timerState} onStartTimer={onStartTimer} />
-        ) : (
-          <div className="past-note muted small">
-            {dayType === "past" ? "Geçmiş gün" : "İleri tarih"} · sayaç yok,
-            kayıt görüntüle / elle düzenle
-          </div>
-        )}
+          <>
+            <TimerSetup timerState={timerState} onStartTimer={onStartTimer} />
+            <div className="popover-divider" />
+          </>
+        ) : null}
 
-        <div className="popover-divider" />
-
-        <ManualEdit
-          workMin={workMin}
-          breakMin={breakMin}
-          onAddWork={onAddWork}
-          onAddBreak={onAddBreak}
-          onClearWork={onClearWork}
-        />
+        <BigStat workMin={workMin} breakMin={breakMin} />
+        <EditRow onAddWork={onAddWork} />
       </div>
+    </div>
+  );
+}
+
+// Büyük çalışma süresi + yanında mola
+function BigStat({ workMin, breakMin }: { workMin: number; breakMin: number }) {
+  return (
+    <div className="bigstat">
+      <span className="bigstat-num">
+        {workMin}
+        <span className="bigstat-unit">dk</span>
+      </span>
+      <span className="bigstat-break">{breakMin}dk mola</span>
+    </div>
+  );
+}
+
+// Tek satır: − [süre] + (boşken varsayılan 25dk)
+function EditRow({ onAddWork }: { onAddWork: (deltaMin: number) => void }) {
+  const [amt, setAmt] = useState("");
+  const amount = () => {
+    const n = parseInt(amt, 10);
+    return isNaN(n) || n <= 0 ? 25 : n;
+  };
+  return (
+    <div className="editrow">
+      <button className="editrow-minus" onClick={() => onAddWork(-amount())}>
+        −
+      </button>
+      <input
+        value={amt}
+        onChange={(e) => setAmt(e.target.value)}
+        placeholder="dk"
+        inputMode="numeric"
+      />
+      <button className="editrow-plus" onClick={() => onAddWork(amount())}>
+        +
+      </button>
     </div>
   );
 }
@@ -221,67 +242,6 @@ function Slider({
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
       />
-    </div>
-  );
-}
-
-function ManualEdit({
-  workMin,
-  breakMin,
-  onAddWork,
-  onAddBreak,
-  onClearWork,
-}: {
-  workMin: number;
-  breakMin: number;
-  onAddWork: (deltaMin: number) => void;
-  onAddBreak: (deltaMin: number) => void;
-  onClearWork: () => void;
-}) {
-  const [manual, setManual] = useState("");
-
-  return (
-    <div className="manual">
-      <div className="manual-stat">
-        <span className="muted small">Çalışma</span>
-        <strong>{formatMinutes(workMin)}</strong>
-      </div>
-      <div className="popover-row">
-        <button onClick={() => onAddWork(25)}>+25dk</button>
-        <button onClick={() => onAddWork(50)}>+50dk</button>
-        <button onClick={() => onAddWork(-25)}>−25dk</button>
-      </div>
-      <form
-        className="popover-manual"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const v = parseInt(manual, 10);
-          if (!isNaN(v)) onAddWork(v);
-          setManual("");
-        }}
-      >
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value)}
-          placeholder="±dk çalışma"
-          inputMode="numeric"
-        />
-        <button type="submit">Ekle</button>
-      </form>
-
-      <div className="manual-stat brk">
-        <span className="muted small">Ara (mola)</span>
-        <strong>{formatMinutes(breakMin)}</strong>
-      </div>
-      <div className="popover-row">
-        <button onClick={() => onAddBreak(5)}>+5dk</button>
-        <button onClick={() => onAddBreak(10)}>+10dk</button>
-        <button onClick={() => onAddBreak(-5)}>−5dk</button>
-      </div>
-
-      <button className="clear-link" onClick={onClearWork}>
-        Çalışmayı temizle
-      </button>
     </div>
   );
 }
