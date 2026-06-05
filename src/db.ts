@@ -13,53 +13,53 @@ const DEFAULT_HABITS = [
   "Egzersiz",
 ];
 
-// Kullanıcı adını geçerli bir e-posta local-part'ına sadeleştir
-// (Türkçe/aksanlı karakterler ASCII'ye, geçersizler atılır)
-const TR_MAP: Record<string, string> = {
-  ı: "i", İ: "i", ş: "s", Ş: "s", ç: "c", Ç: "c",
-  ö: "o", Ö: "o", ü: "u", Ü: "u", ğ: "g", Ğ: "g",
-};
-
-export function usernameSlug(username: string): string {
-  return username
-    .trim()
-    .replace(/[ıİşŞçÇöÖüÜğĞ]/g, (c) => TR_MAP[c] ?? c)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // aksan işaretlerini at (é→e)
-    .replace(/[^a-z0-9._-]/g, ""); // kalan geçersiz karakterleri at (@, boşluk…)
-}
-
-// Kullanıcı adını Supabase Auth e-postasına eşle (kullanıcı maili hiç görmez)
-function usernameToEmail(username: string): string {
-  return `${usernameSlug(username)}@timenodes.app`;
+// Auth kimliği için isimden BAĞIMSIZ, rastgele sabit sentetik mail.
+// Böylece kullanıcı adı değiştirilebilir/benzersiz olur, giriş bozulmaz.
+function syntheticEmail(): string {
+  return `tn_${crypto.randomUUID().replace(/-/g, "")}@timenodes.app`;
 }
 
 // --- Auth -------------------------------------------------------------
 
-// Auth kimliği kullanıcı adına bağlı (username ile giriş için sentetik mail).
-// Gerçek e-posta metadata'da saklanır (ileride doğrulama/şifre sıfırlama için).
 export async function signUp(
   username: string,
   password: string,
   email: string
 ) {
-  if (!usernameSlug(username))
-    throw new Error("Kullanıcı adı en az bir harf veya rakam içermeli.");
+  const uname = username.trim();
+  if (!uname) throw new Error("Kullanıcı adı boş olamaz.");
+
+  // Kullanıcı adı benzersiz olmalı (büyük/küçük harf duyarsız)
+  const { data: available, error: aErr } = await supabase.rpc(
+    "username_available",
+    { uname }
+  );
+  if (aErr) throw aErr;
+  if (!available) throw new Error("Bu kullanıcı adı zaten alınmış.");
+
+  // Gerçek e-posta yalnızca profilde saklanır (auth kimliği rastgele sentetik mail)
   const { error } = await supabase.auth.signUp({
-    email: usernameToEmail(username),
+    email: syntheticEmail(),
     password,
-    // 'email' anahtarı Supabase tarafından auth maili ile eziliyor → contact_email
-    options: { data: { username: username.trim(), contact_email: email.trim() } },
+    options: { data: { username: uname, contact_email: email.trim() } },
   });
   if (error) throw error;
 }
 
 export async function signIn(username: string, password: string) {
-  if (!usernameSlug(username))
-    throw new Error("Kullanıcı adı geçersiz.");
+  const uname = username.trim();
+  if (!uname) throw new Error("Kullanıcı adı boş olamaz.");
+
+  // Kullanıcı adından auth e-postasını çöz (RPC)
+  const { data: authEmail, error: rErr } = await supabase.rpc(
+    "auth_email_for_username",
+    { uname }
+  );
+  if (rErr) throw rErr;
+  if (!authEmail) throw new Error("Kullanıcı adı veya şifre hatalı.");
+
   const { error } = await supabase.auth.signInWithPassword({
-    email: usernameToEmail(username),
+    email: authEmail as string,
     password,
   });
   if (error) throw error;
