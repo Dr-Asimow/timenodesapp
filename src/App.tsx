@@ -22,6 +22,9 @@ import { WeekGrid } from "./components/WeekGrid";
 import { TimersStack } from "./components/TimerBar";
 import { MultiTaskModal } from "./components/MultiTaskModal";
 import { Brand, LoadingScreen } from "./components/Brand";
+import { Home, type View } from "./components/Home";
+import { Profile } from "./components/Profile";
+import { WeeksPage } from "./components/WeeksPage";
 
 const sameCell = (t: ActiveTimer, habitId: string, day: number) =>
   t.habitId === habitId && t.day === day;
@@ -51,6 +54,7 @@ export function App() {
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingStart | null>(null);
+  const [view, setView] = useState<View>("home");
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -233,11 +237,25 @@ export function App() {
   if (!session) return <Login />;
   if (!week) return <LoadingScreen />;
 
+  const weekTotalMin = week.habits.reduce(
+    (a, h) => a + (week.minutes[h.id] ?? []).reduce((s, m) => s + m, 0),
+    0
+  );
+  const coins = weekTotalMin; // placeholder: 1 dk = 1 time coin (gamify sonra)
+  const contactEmail =
+    (session.user.user_metadata?.contact_email as string) ?? "";
+
   return (
     <div className="app">
       <header className="topbar">
-        <Brand size="sm" tagline={false} />
+        <button className="brand-btn" onClick={() => setView("home")}>
+          <Brand size="sm" tagline={false} />
+        </button>
         <div className="topbar-right">
+          <div className="coin-hud" title="Time coin (yakında gamification)">
+            <span className="coin-ic">🪙</span>
+            <span className="coin-val">{coins}</span>
+          </div>
           <span className="user">@{username}</span>
           <button className="ghost-btn" onClick={() => signOut()}>
             Çıkış
@@ -248,30 +266,57 @@ export function App() {
       {err ? <div className="banner-err">⚠️ {err}</div> : null}
 
       <TimersStack
-            timers={timers}
-            week={week}
-            onPause={pauseTimer}
-            onResume={(t) =>
-              requestStart(t.habitId, t.day, {
-                workTargetMs: t.workTargetMs,
-                plannedBreakMs: t.plannedBreakMs,
-              })
-            }
-            onStartBreak={startBreak}
-            onResumeWork={resumeWork}
-            onAck={ackAlarm}
-            onUpdate={updateTimer}
-            onFinish={finishTimer}
-            onCancel={cancelTimer}
-          />
+        timers={timers}
+        week={week}
+        onPause={pauseTimer}
+        onResume={(t) =>
+          requestStart(t.habitId, t.day, {
+            workTargetMs: t.workTargetMs,
+            plannedBreakMs: t.plannedBreakMs,
+          })
+        }
+        onStartBreak={startBreak}
+        onResumeWork={resumeWork}
+        onAck={ackAlarm}
+        onUpdate={updateTimer}
+        onFinish={finishTimer}
+        onCancel={cancelTimer}
+      />
 
       <main className="main">
-        <WeekGrid
-          week={week}
-          activeTimers={timers}
-          onChange={applyWeek}
-          onStartTimer={requestStart}
-        />
+        <div className="page">
+        {view !== "home" ? (
+          <button className="back-btn" onClick={() => setView("home")}>
+            ← Ana sayfa
+          </button>
+        ) : null}
+
+        {view === "home" ? (
+          <Home
+            username={username}
+            weekTotalMin={weekTotalMin}
+            coins={coins}
+            onNavigate={setView}
+          />
+        ) : view === "week" ? (
+          <WeekGrid
+            week={week}
+            activeTimers={timers}
+            onChange={applyWeek}
+            onStartTimer={requestStart}
+          />
+        ) : view === "weeks" ? (
+          <WeeksPage currentWeekNo={week.weekNumber} />
+        ) : (
+          <Profile
+            username={username}
+            displayName={username}
+            contactEmail={contactEmail}
+            weekTotalMin={weekTotalMin}
+            coins={coins}
+          />
+        )}
+        </div>
       </main>
 
       {pending && pendingOthers.length > 0 && week ? (
