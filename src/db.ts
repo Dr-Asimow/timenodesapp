@@ -13,9 +13,26 @@ const DEFAULT_HABITS = [
   "Egzersiz",
 ];
 
+// Kullanıcı adını geçerli bir e-posta local-part'ına sadeleştir
+// (Türkçe/aksanlı karakterler ASCII'ye, geçersizler atılır)
+const TR_MAP: Record<string, string> = {
+  ı: "i", İ: "i", ş: "s", Ş: "s", ç: "c", Ç: "c",
+  ö: "o", Ö: "o", ü: "u", Ü: "u", ğ: "g", Ğ: "g",
+};
+
+export function usernameSlug(username: string): string {
+  return username
+    .trim()
+    .replace(/[ıİşŞçÇöÖüÜğĞ]/g, (c) => TR_MAP[c] ?? c)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // aksan işaretlerini at (é→e)
+    .replace(/[^a-z0-9._-]/g, ""); // kalan geçersiz karakterleri at (@, boşluk…)
+}
+
 // Kullanıcı adını Supabase Auth e-postasına eşle (kullanıcı maili hiç görmez)
 function usernameToEmail(username: string): string {
-  return `${username.trim().toLowerCase()}@timenodes.app`;
+  return `${usernameSlug(username)}@timenodes.app`;
 }
 
 // --- Auth -------------------------------------------------------------
@@ -27,6 +44,8 @@ export async function signUp(
   password: string,
   email: string
 ) {
+  if (!usernameSlug(username))
+    throw new Error("Kullanıcı adı en az bir harf veya rakam içermeli.");
   const { error } = await supabase.auth.signUp({
     email: usernameToEmail(username),
     password,
@@ -37,6 +56,8 @@ export async function signUp(
 }
 
 export async function signIn(username: string, password: string) {
+  if (!usernameSlug(username))
+    throw new Error("Kullanıcı adı geçersiz.");
   const { error } = await supabase.auth.signInWithPassword({
     email: usernameToEmail(username),
     password,
