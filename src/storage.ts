@@ -1,6 +1,4 @@
-import type { ActiveTimer, AppState, Habit, WeekData } from "./types";
-
-const KEY = "timenodes.state.v1";
+import type { ActiveTimer, Habit } from "./types";
 
 // --- Hafta / tarih yardımcıları ---------------------------------------
 
@@ -35,78 +33,37 @@ export function addDays(iso: string, n: number): Date {
   return d;
 }
 
-// --- Varsayılan durum -------------------------------------------------
-
-let idCounter = 0;
+// Alışkanlık id'leri Postgres uuid sütunuyla uyumlu olmalı
 export function newId(): string {
-  return `h${Date.now().toString(36)}${(idCounter++).toString(36)}`;
+  return crypto.randomUUID();
 }
 
-const DEFAULT_HABITS: string[] = [
-  "Çizim",
-  "Japonca",
-  "İngilizce",
-  "Kitap",
-  "Maneviyat",
-  "Freelance",
-  "Proje",
-  "Egzersiz",
-];
-
+type Minutesish = Record<string, number[]>;
 export function emptyMinutes(habits: Habit[]): Minutesish {
   const m: Minutesish = {};
   for (const h of habits) m[h.id] = [0, 0, 0, 0, 0, 0, 0];
   return m;
 }
-type Minutesish = Record<string, number[]>;
 
-export function defaultWeek(): WeekData {
-  const today = new Date();
-  const monday = mondayOf(today);
-  const habits: Habit[] = DEFAULT_HABITS.map((name) => ({ id: newId(), name }));
-  return {
-    weekNumber: isoWeekNumber(today),
-    year: monday.getFullYear(),
-    startDate: toISODate(monday),
-    habits,
-    minutes: emptyMinutes(habits),
-    breaks: emptyMinutes(habits),
-  };
-}
+// --- Sayaç kalıcılığı (cihaz-yerel; canlı sayaç device'a bağlıdır) ----
+// Kullanıcı başına ayrı anahtar, aynı tarayıcıda farklı kullanıcılar çakışmasın.
 
-export function defaultState(username: string): AppState {
-  return { username, week: defaultWeek() };
-}
+const timersKey = (userId: string) => `timenodes.timers.${userId}`;
 
-// --- Kalıcılık --------------------------------------------------------
-
-export function loadState(): AppState | null {
+export function loadTimers(userId: string): ActiveTimer[] {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const state = JSON.parse(raw) as AppState & { timer?: ActiveTimer | null };
-    // Eski tek-sayaç biçimini çoklu-sayaç dizisine taşı
-    if (!state.timers) {
-      state.timers = state.timer ? [state.timer] : [];
-    }
-    delete state.timer;
-    // Eski sayaç alanlarını yeni (evre/hedef) biçime normalize et
-    state.timers = state.timers.map(normalizeTimer);
-    // Mola dakikaları haritası eski kayıtlarda olmayabilir
-    if (!state.week.breaks) {
-      state.week.breaks = emptyMinutes(state.week.habits);
-    } else {
-      for (const h of state.week.habits) {
-        if (!state.week.breaks[h.id]) state.week.breaks[h.id] = [0, 0, 0, 0, 0, 0, 0];
-      }
-    }
-    return state;
+    const raw = localStorage.getItem(timersKey(userId));
+    if (!raw) return [];
+    return (JSON.parse(raw) as ActiveTimer[]).map(normalizeTimer);
   } catch {
-    return null;
+    return [];
   }
 }
 
-// Eski {startedAt, accumulatedMs} biçimini yeni evre/hedef alanlarına taşır
+export function saveTimers(userId: string, timers: ActiveTimer[]): void {
+  localStorage.setItem(timersKey(userId), JSON.stringify(timers));
+}
+
 function normalizeTimer(
   t: ActiveTimer & {
     accumulatedMs?: number;
@@ -127,12 +84,4 @@ function normalizeTimer(
     workAlarmAck: t.workAlarmAck ?? t.workAlarmFired ?? false,
     breakAlarmAck: t.breakAlarmAck ?? t.breakAlarmFired ?? false,
   };
-}
-
-export function saveState(state: AppState): void {
-  localStorage.setItem(KEY, JSON.stringify(state));
-}
-
-export function clearState(): void {
-  localStorage.removeItem(KEY);
 }
