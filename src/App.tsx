@@ -21,6 +21,7 @@ import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
 import { TimersStack } from "./components/TimerBar";
 import { MultiTaskModal } from "./components/MultiTaskModal";
+import { Brand, LoadingScreen } from "./components/Brand";
 
 const sameCell = (t: ActiveTimer, habitId: string, day: number) =>
   t.habitId === habitId && t.day === day;
@@ -48,7 +49,6 @@ export function App() {
   const [authReady, setAuthReady] = useState(false);
   const [week, setWeek] = useState<WeekData | null>(null);
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingStart | null>(null);
 
@@ -82,7 +82,6 @@ export function App() {
     }
     setTimers(loadTimers(userId));
     let cancel = false;
-    setLoading(true);
     setErr(null);
     (async () => {
       try {
@@ -90,8 +89,6 @@ export function App() {
         if (!cancel) setWeek(w);
       } catch (e) {
         if (!cancel) setErr(e instanceof Error ? e.message : "Yükleme hatası");
-      } finally {
-        if (!cancel) setLoading(false);
       }
     })();
     return () => {
@@ -232,15 +229,14 @@ export function App() {
     : [];
 
   // --- Render ---
-  if (!authReady) return <CenterMsg text="Yükleniyor…" />;
+  if (!authReady) return <LoadingScreen />;
   if (!session) return <Login />;
+  if (!week) return <LoadingScreen />;
 
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="logo">◳</span> TimeNodes
-        </div>
+        <Brand size="sm" tagline={false} />
         <div className="topbar-right">
           <span className="user">@{username}</span>
           <button className="ghost-btn" onClick={() => signOut()}>
@@ -251,11 +247,7 @@ export function App() {
 
       {err ? <div className="banner-err">⚠️ {err}</div> : null}
 
-      {!week || loading ? (
-        <CenterMsg text="Veriler yükleniyor…" />
-      ) : (
-        <>
-          <TimersStack
+      <TimersStack
             timers={timers}
             week={week}
             onPause={pauseTimer}
@@ -273,16 +265,14 @@ export function App() {
             onCancel={cancelTimer}
           />
 
-          <main className="main">
-            <WeekGrid
-              week={week}
-              activeTimers={timers}
-              onChange={applyWeek}
-              onStartTimer={requestStart}
-            />
-          </main>
-        </>
-      )}
+      <main className="main">
+        <WeekGrid
+          week={week}
+          activeTimers={timers}
+          onChange={applyWeek}
+          onStartTimer={requestStart}
+        />
+      </main>
 
       {pending && pendingOthers.length > 0 && week ? (
         <MultiTaskModal
@@ -301,8 +291,4 @@ export function App() {
       ) : null}
     </div>
   );
-}
-
-function CenterMsg({ text }: { text: string }) {
-  return <div className="center-msg muted">{text}</div>;
 }

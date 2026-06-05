@@ -20,11 +20,18 @@ function usernameToEmail(username: string): string {
 
 // --- Auth -------------------------------------------------------------
 
-export async function signUp(username: string, password: string) {
+// Auth kimliği kullanıcı adına bağlı (username ile giriş için sentetik mail).
+// Gerçek e-posta metadata'da saklanır (ileride doğrulama/şifre sıfırlama için).
+export async function signUp(
+  username: string,
+  password: string,
+  email: string
+) {
   const { error } = await supabase.auth.signUp({
     email: usernameToEmail(username),
     password,
-    options: { data: { username: username.trim() } },
+    // 'email' anahtarı Supabase tarafından auth maili ile eziliyor → contact_email
+    options: { data: { username: username.trim(), contact_email: email.trim() } },
   });
   if (error) throw error;
 }

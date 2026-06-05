@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { signIn, signUp } from "../db";
+import { Brand } from "./Brand";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function Login() {
   const [mode, setMode] = useState<"in" | "up">("in");
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,8 +20,11 @@ export function Login() {
     setErr(null);
     try {
       if (mode === "up") {
-        if (password.length < 6) throw new Error("Şifre en az 6 karakter olmalı.");
-        await signUp(u, password);
+        if (!EMAIL_RE.test(email.trim()))
+          throw new Error("Geçerli bir e-posta gir.");
+        if (password.length < 6)
+          throw new Error("Şifre en az 6 karakter olmalı.");
+        await signUp(u, password, email);
       } else {
         await signIn(u, password);
       }
@@ -29,41 +36,49 @@ export function Login() {
     }
   }
 
+  function switchMode(m: "in" | "up") {
+    setMode(m);
+    setErr(null);
+  }
+
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <div className="brand big">
-          <span className="logo">◳</span> TimeNodes
-        </div>
-        <p className="muted">Haftalık zaman takip</p>
+        <Brand />
 
         <div className="mode-toggle">
           <button
             type="button"
             className={mode === "in" ? "on" : ""}
-            onClick={() => {
-              setMode("in");
-              setErr(null);
-            }}
+            onClick={() => switchMode("in")}
           >
             Giriş
           </button>
           <button
             type="button"
             className={mode === "up" ? "on" : ""}
-            onClick={() => {
-              setMode("up");
-              setErr(null);
-            }}
+            onClick={() => switchMode("up")}
           >
             Kayıt ol
           </button>
         </div>
 
+        {mode === "up" ? (
+          <label>
+            E-posta
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ornek@mail.com"
+              autoCapitalize="none"
+            />
+          </label>
+        ) : null}
+
         <label>
           Kullanıcı adı
           <input
-            autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="kullanıcı adı"
@@ -86,8 +101,9 @@ export function Login() {
           {busy ? "..." : mode === "up" ? "Hesap oluştur" : "Giriş yap"}
         </button>
         <p className="hint">
-          Mail doğrulama yok — kullanıcı adı + şifre yeter. Verilerin Supabase'de
-          güvenli (RLS) saklanır, başka cihazdan da giriş yapabilirsin.
+          {mode === "up"
+            ? "E-posta şimdilik sadece hesabına kaydedilir (doğrulama yok). Giriş kullanıcı adı + şifre ile."
+            : "Verilerin Supabase'de güvenli (RLS) saklanır, başka cihazdan da giriş yapabilirsin."}
         </p>
       </form>
     </div>
