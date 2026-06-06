@@ -38,6 +38,19 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
+// Bir yılın ISO haftaları (hafta = Perşembe'sinin yılı o yıl olan hafta)
+export function weeksOfYear(year: number): { weekNumber: number; startISO: string }[] {
+  const firstMonday = mondayOf(new Date(year, 0, 4)); // 4 Ocak hep 1. haftadadır
+  const weeks: { weekNumber: number; startISO: string }[] = [];
+  for (let i = 0; i < 53; i++) {
+    const monday = addDays(toISODate(firstMonday), i * 7);
+    const thursday = addDays(toISODate(monday), 3);
+    if (thursday.getFullYear() !== year) continue;
+    weeks.push({ weekNumber: isoWeekNumber(monday), startISO: toISODate(monday) });
+  }
+  return weeks;
+}
+
 type Minutesish = Record<string, number[]>;
 export function emptyMinutes(habits: Habit[]): Minutesish {
   const m: Minutesish = {};

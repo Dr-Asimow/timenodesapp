@@ -8,6 +8,24 @@ import {
   emptyNotes,
 } from "./storage";
 
+// Bir yılın hafta numarasına göre toplam çalışma dakikaları (Haftalar sayfası özeti)
+export async function loadYearTotals(
+  year: number
+): Promise<Record<number, number>> {
+  const { data, error } = await supabase
+    .from("entries")
+    .select("day,work_min")
+    .gte("day", `${year}-01-01`)
+    .lte("day", `${year}-12-31`);
+  if (error) throw error;
+  const map: Record<number, number> = {};
+  for (const r of (data as { day: string; work_min: number }[]) ?? []) {
+    const wk = isoWeekNumber(new Date(r.day + "T00:00:00"));
+    map[wk] = (map[wk] ?? 0) + r.work_min;
+  }
+  return map;
+}
+
 const DEFAULT_HABITS = [
   "Çizim",
   "Japonca",

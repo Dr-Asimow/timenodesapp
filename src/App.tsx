@@ -16,7 +16,9 @@ import {
   addDays,
   loadTimers,
   saveTimers,
+  weeksOfYear,
 } from "./storage";
+import { loadYearTotals } from "./db";
 import { isRunning, settle, workMinutes, breakTotalMs } from "./timer";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
@@ -56,6 +58,11 @@ export function App() {
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingStart | null>(null);
   const [view, setView] = useState<View>("home");
+  // Güncel hafta dışında bir hafta görüntülenirken o haftanın verisi (null=güncel)
+  const [viewedWeek, setViewedWeek] = useState<WeekData | null>(null);
+  const [yearTotals, setYearTotals] = useState<Record<number, number> | null>(
+    null
+  );
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -100,6 +107,15 @@ export function App() {
       cancel = true;
     };
   }, [userId]);
+
+  // Haftalar sayfasına girince yıl toplamlarını çek
+  useEffect(() => {
+    if (view === "weeks" && week) {
+      loadYearTotals(week.year)
+        .then(setYearTotals)
+        .catch(() => {});
+    }
+  }, [view, week?.year]);
 
   // Sayaçları (cihaz-yerel) değiştikçe localStorage'a yaz
   useEffect(() => {
@@ -154,11 +170,39 @@ export function App() {
       .catch((e) => setErr(e instanceof Error ? e.message : "Kayıt hatası"));
   }
 
-  // Hafta değişimini uygula: ekranı güncelle + DB'ye yaz
+  // Hafta değişimini uygula: doğru haftayı (güncel ya da görüntülenen) güncelle + DB'ye yaz
   function applyWeek(newWeek: WeekData) {
-    const old = week;
-    setWeek(newWeek);
-    if (old) persist(old, newWeek);
+    if (week && newWeek.startDate === week.startDate) {
+      const old = week;
+      setWeek(newWeek);
+      persist(old, newWeek);
+    } else {
+      const old = viewedWeek;
+      setViewedWeek(newWeek);
+      if (old) persist(old, newWeek);
+    }
+  }
+
+  // Haftalar sayfasından bir haftayı aç
+  async function openWeek(startISO: string) {
+    if (week && startISO === week.startDate) {
+      setViewedWeek(null); // güncel hafta
+      setView("week");
+      return;
+    }
+    try {
+      const w = await loadWeek(startISO);
+      setViewedWeek(w);
+      setView("week");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Hafta yüklenemedi");
+    }
+  }
+
+  // Menü gezinmesi: "week"e gidince hep güncel haftayı göster
+  function navigate(v: View) {
+    if (v === "week") setViewedWeek(null);
+    setView(v);
   }
 
   // --- Sayaç işlemleri (cihaz-yerel) ---
@@ -262,6 +306,10 @@ export function App() {
   const contactEmail =
     (session.user.user_metadata?.contact_email as string) ?? "";
 
+  // Hafta görünümünde gösterilen hafta (güncel ya da Haftalar'dan seçilen)
+  const shownWeek = viewedWeek ?? week;
+  const viewingOther = viewedWeek !== null;
+
   return (
     <div className="app">
       <header className="topbar">
@@ -313,17 +361,38 @@ export function App() {
             username={username}
             weekTotalMin={weekTotalMin}
             coins={coins}
-            onNavigate={setView}
+            onNavigate={navigate}
           />
         ) : view === "week" ? (
-          <WeekGrid
-            week={week}
-            activeTimers={timers}
-            onChange={applyWeek}
-            onStartTimer={requestStart}
-          />
+          <>
+            {viewingOther ? (
+              <div className="viewing-banner">
+                <span>
+                  {shownWeek.weekNumber}. hafta görüntüleniyor (geçmiş kayıt)
+                </span>
+                <button
+                  className="ghost-btn small"
+                  onClick={() => setViewedWeek(null)}
+                >
+                  Güncel haftaya dön
+                </button>
+              </div>
+            ) : null}
+            <WeekGrid
+              week={shownWeek}
+              activeTimers={viewingOther ? [] : timers}
+              onChange={applyWeek}
+              onStartTimer={requestStart}
+            />
+          </>
         ) : view === "weeks" ? (
-          <WeeksPage currentWeekNo={week.weekNumber} />
+          <WeeksPage
+            year={week.year}
+            weeks={weeksOfYear(week.year)}
+            totals={yearTotals}
+            currentStartISO={week.startDate}
+            onOpenWeek={openWeek}
+          />
         ) : (
           <Profile
             username={username}

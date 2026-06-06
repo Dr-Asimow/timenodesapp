@@ -279,6 +279,80 @@ body {
   margin: 6px 0;
 }
 
+/* --- Haftalar sayfası ------------------------------------------------- */
+.weeks-head {
+  margin-bottom: 16px;
+}
+.weeks-head h2 {
+  margin: 0 0 2px;
+}
+.weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+}
+.wk-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.12s;
+}
+.wk-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.wk-tile.future {
+  opacity: 0.55;
+}
+.wk-tile.current {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(57, 211, 83, 0.16), var(--panel));
+}
+.wk-no {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.wk-range {
+  font-size: 11px;
+}
+.wk-total {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 2px;
+}
+.wk-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+/* Başka hafta görüntüleme bandı */
+.viewing-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(47, 129, 247, 0.12);
+  border: 1px solid rgba(47, 129, 247, 0.4);
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
 /* --- Profil ----------------------------------------------------------- */
 .profile {
   max-width: 520px;
