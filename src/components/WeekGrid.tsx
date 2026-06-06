@@ -24,15 +24,8 @@ export function WeekGrid({
   const [sel, setSel] = useState<CellSel>(null);
   const [newHabit, setNewHabit] = useState("");
   const [adding, setAdding] = useState(false);
-  // Gelecek kareye dokunulduğunda kısa beyaz parlama
-  const [flash, setFlash] = useState<{ habitId: string; day: number } | null>(
-    null
-  );
-
-  function flashCell(habitId: string, day: number) {
-    setFlash({ habitId, day });
-    window.setTimeout(() => setFlash(null), 450);
-  }
+  // Gün notu modalı için seçili gün (0..6) ya da null
+  const [dayNoteSel, setDayNoteSel] = useState<number | null>(null);
 
   const todayISO = toISODate(new Date());
   const days = DAY_LABELS.map((label, i) => {
@@ -50,6 +43,20 @@ export function WeekGrid({
     const row = (week.minutes[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
     row[day] = next;
     onChange({ ...week, minutes: { ...week.minutes, [habitId]: row } });
+  }
+
+  function setActivityNote(habitId: string, day: number, note: string) {
+    const row = (
+      week.notes[habitId] ?? [null, null, null, null, null, null, null]
+    ).slice();
+    row[day] = note.trim() ? note : null;
+    onChange({ ...week, notes: { ...week.notes, [habitId]: row } });
+  }
+
+  function setDayNoteAt(day: number, note: string) {
+    const row = week.dayNotes.slice();
+    row[day] = note.trim() ? note : null;
+    onChange({ ...week, dayNotes: row });
   }
 
   function addMinutes(habitId: string, day: number, delta: number) {
@@ -70,6 +77,10 @@ export function WeekGrid({
       habits: [...week.habits, h],
       minutes: { ...week.minutes, [h.id]: [0, 0, 0, 0, 0, 0, 0] },
       breaks: { ...week.breaks, [h.id]: [0, 0, 0, 0, 0, 0, 0] },
+      notes: {
+        ...week.notes,
+        [h.id]: [null, null, null, null, null, null, null],
+      },
     });
     setNewHabit("");
     setAdding(false);
@@ -86,13 +97,16 @@ export function WeekGrid({
     if (!confirm(`"${h?.name}" alışkanlığı silinsin mi?`)) return;
     const minutes = { ...week.minutes };
     const breaks = { ...week.breaks };
+    const notes = { ...week.notes };
     delete minutes[habitId];
     delete breaks[habitId];
+    delete notes[habitId];
     onChange({
       ...week,
       habits: week.habits.filter((x) => x.id !== habitId),
       minutes,
       breaks,
+      notes,
     });
   }
 
@@ -129,8 +143,15 @@ export function WeekGrid({
               {days.map((d, i) => (
                 <th key={i} className={`day-col ${d.isToday ? "today" : ""}`}>
                   {d.isToday ? <span className="today-dot" /> : null}
-                  <div className="day-label">{d.label}</div>
-                  <div className="day-date">{d.date}</div>
+                  <button
+                    className="day-head-btn"
+                    title="Gün notu ekle/gör"
+                    onClick={() => setDayNoteSel(i)}
+                  >
+                    <span className="day-label">{d.label}</span>
+                    <span className="day-date">{d.date}</span>
+                    {week.dayNotes[i] ? <span className="note-dot" /> : null}
+                  </button>
                 </th>
               ))}
               <th className="total-col">(+)</th>
@@ -169,10 +190,11 @@ export function WeekGrid({
                       : "pausedt"
                     : "";
                   const isFuture = dayTypeOf(day) === "future";
-                  const isFlashing =
-                    flash && flash.habitId === h.id && flash.day === day;
-                  const tip = isFuture
-                    ? "Gelecek gün — henüz girilemez"
+                  const hasNote = !!week.notes[h.id]?.[day];
+                  const tip = hasNote
+                    ? `📝 ${week.notes[h.id]![day]}`
+                    : isFuture
+                    ? "Gelecek gün — plan/not bırakabilirsin"
                     : mins > 0 || brk > 0
                     ? `Çalışma ${formatMinutes(mins)} · Ara ${formatMinutes(brk)}`
                     : "boş";
@@ -182,17 +204,11 @@ export function WeekGrid({
                       className={`cell-td ${days[day].isToday ? "today-col" : ""}`}
                     >
                       <button
-                        className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState} ${
-                          isFlashing ? "flash" : ""
-                        }`}
+                        className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState}`}
                         title={tip}
-                        onClick={() => {
-                          if (isFuture) {
-                            flashCell(h.id, day);
-                            return;
-                          }
-                          setSel(isSel ? null : { habitId: h.id, day });
-                        }}
+                        onClick={() =>
+                          setSel(isSel ? null : { habitId: h.id, day })
+                        }
                       >
                         {timer ? (
                           <span
@@ -201,6 +217,7 @@ export function WeekGrid({
                             }`}
                           />
                         ) : null}
+                        {hasNote ? <span className="cell-note-dot" /> : null}
                       </button>
                     </td>
                   );
@@ -260,17 +277,29 @@ export function WeekGrid({
                 habitName={h.name}
                 workMin={week.minutes[h.id]?.[sel.day] ?? 0}
                 breakMin={week.breaks[h.id]?.[sel.day] ?? 0}
+                note={week.notes[h.id]?.[sel.day] ?? null}
                 timerState={timingState}
                 onStartTimer={(config) => {
                   onStartTimer(h.id, sel.day, config);
                   setSel(null);
                 }}
                 onAddWork={(d) => addMinutes(h.id, sel.day, d)}
+                onSetNote={(note) => setActivityNote(h.id, sel.day, note)}
                 onClose={() => setSel(null)}
               />
             );
           })()
         : null}
+
+      {dayNoteSel !== null ? (
+        <DayNoteModal
+          dayLabel={DAY_LABELS[dayNoteSel]}
+          dateNum={days[dayNoteSel].date}
+          note={week.dayNotes[dayNoteSel] ?? ""}
+          onSave={(note) => setDayNoteAt(dayNoteSel, note)}
+          onClose={() => setDayNoteSel(null)}
+        />
+      ) : null}
 
       {adding ? (
         <div
@@ -314,6 +343,53 @@ export function WeekGrid({
           </form>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function DayNoteModal({
+  dayLabel,
+  dateNum,
+  note,
+  onSave,
+  onClose,
+}: {
+  dayLabel: string;
+  dateNum: number;
+  note: string;
+  onSave: (note: string) => void;
+  onClose: () => void;
+}) {
+  const [val, setVal] = useState(note);
+  function close() {
+    if ((val ?? "") !== (note ?? "")) onSave(val);
+    onClose();
+  }
+  return (
+    <div className="modal-overlay" onClick={close}>
+      <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="popover-head">
+          <span className="popover-title">
+            Gün notu · {dayLabel} {dateNum}
+          </span>
+          <button className="modal-x" onClick={close} aria-label="Kapat">
+            ×
+          </button>
+        </div>
+        <div className="notefield">
+          <textarea
+            className="note-area"
+            autoFocus
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            placeholder="Bu güne dair genel notun…"
+            rows={4}
+          />
+        </div>
+        <button className="primary-btn" onClick={close}>
+          Kaydet
+        </button>
+      </div>
     </div>
   );
 }

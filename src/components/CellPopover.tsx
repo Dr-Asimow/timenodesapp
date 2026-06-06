@@ -21,9 +21,11 @@ export function CellPopover({
   habitName,
   workMin,
   breakMin,
+  note,
   timerState,
   onStartTimer,
   onAddWork,
+  onSetNote,
   onClose,
 }: {
   dayType: DayType;
@@ -31,11 +33,14 @@ export function CellPopover({
   habitName: string;
   workMin: number;
   breakMin: number;
+  note: string | null;
   timerState: "" | "running" | "pausedt";
   onStartTimer: (config: TimerConfig) => void;
   onAddWork: (deltaMin: number) => void;
+  onSetNote: (note: string) => void;
   onClose: () => void;
 }) {
+  const isFuture = dayType === "future";
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
@@ -48,16 +53,56 @@ export function CellPopover({
           </button>
         </div>
 
-        {dayType === "today" ? (
+        {isFuture ? (
+          <p className="future-note muted small">
+            İleri tarih — burada zaman takibi yok, ama plan/aktivite notu
+            bırakabilirsin.
+          </p>
+        ) : (
           <>
-            <TimerSetup timerState={timerState} onStartTimer={onStartTimer} />
+            {dayType === "today" ? (
+              <>
+                <TimerSetup
+                  timerState={timerState}
+                  onStartTimer={onStartTimer}
+                />
+                <div className="popover-divider" />
+              </>
+            ) : null}
+            <BigStat workMin={workMin} breakMin={breakMin} />
+            <EditRow onAddWork={onAddWork} />
             <div className="popover-divider" />
           </>
-        ) : null}
+        )}
 
-        <BigStat workMin={workMin} breakMin={breakMin} />
-        <EditRow onAddWork={onAddWork} />
+        <NoteField note={note} onSetNote={onSetNote} />
       </div>
+    </div>
+  );
+}
+
+// Aktivite notu (blur'da kaydeder)
+function NoteField({
+  note,
+  onSetNote,
+}: {
+  note: string | null;
+  onSetNote: (note: string) => void;
+}) {
+  const [val, setVal] = useState(note ?? "");
+  return (
+    <div className="notefield">
+      <span className="popover-label">Aktivite notu</span>
+      <textarea
+        className="note-area"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={() => {
+          if ((val ?? "") !== (note ?? "")) onSetNote(val);
+        }}
+        placeholder="Bugün ne yaptın / ne yapacaksın?"
+        rows={3}
+      />
     </div>
   );
 }

@@ -45,6 +45,12 @@ export function emptyMinutes(habits: Habit[]): Minutesish {
   return m;
 }
 
+export function emptyNotes(habits: Habit[]): Record<string, (string | null)[]> {
+  const m: Record<string, (string | null)[]> = {};
+  for (const h of habits) m[h.id] = [null, null, null, null, null, null, null];
+  return m;
+}
+
 // --- Sayaç kalıcılığı (cihaz-yerel; canlı sayaç device'a bağlıdır) ----
 // Kullanıcı başına ayrı anahtar, aynı tarayıcıda farklı kullanıcılar çakışmasın.
 

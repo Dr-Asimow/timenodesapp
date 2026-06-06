@@ -1,6 +1,12 @@
 import { supabase } from "./supabase";
 import type { Habit, WeekData } from "./types";
-import { isoWeekNumber, toISODate, addDays, emptyMinutes } from "./storage";
+import {
+  isoWeekNumber,
+  toISODate,
+  addDays,
+  emptyMinutes,
+  emptyNotes,
+} from "./storage";
 
 const DEFAULT_HABITS = [
   "Çizim",
@@ -84,7 +90,9 @@ type EntryRow = {
   day: string;
   work_min: number;
   break_min: number;
+  note: string | null;
 };
+type DayNoteRow = { day: string; note: string | null };
 
 // Belirtilen haftanın (Pazartesi ISO) verisini WeekData olarak yükler.
 // Yeni kullanıcıda alışkanlık yoksa varsayılanları tohumlar.
@@ -116,18 +124,33 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
   const endISO = toISODate(addDays(startDateISO, 6));
   const { data: entryRows, error: eErr } = await supabase
     .from("entries")
-    .select("habit_id,day,work_min,break_min")
+    .select("habit_id,day,work_min,break_min,note")
     .gte("day", startDateISO)
     .lte("day", endISO);
   if (eErr) throw eErr;
 
   const minutes = emptyMinutes(habits);
   const breaks = emptyMinutes(habits);
+  const notes = emptyNotes(habits);
   for (const e of (entryRows as EntryRow[]) ?? []) {
     const idx = dayIndex(startDateISO, e.day);
     if (idx < 0 || idx > 6) continue;
     if (minutes[e.habit_id]) minutes[e.habit_id][idx] = e.work_min;
     if (breaks[e.habit_id]) breaks[e.habit_id][idx] = e.break_min;
+    if (notes[e.habit_id]) notes[e.habit_id][idx] = e.note ?? null;
+  }
+
+  // Gün notları
+  const { data: dayNoteRows, error: dErr } = await supabase
+    .from("day_notes")
+    .select("day,note")
+    .gte("day", startDateISO)
+    .lte("day", endISO);
+  if (dErr) throw dErr;
+  const dayNotes: (string | null)[] = [null, null, null, null, null, null, null];
+  for (const d of (dayNoteRows as DayNoteRow[]) ?? []) {
+    const idx = dayIndex(startDateISO, d.day);
+    if (idx >= 0 && idx <= 6) dayNotes[idx] = d.note ?? null;
   }
 
   const monday = new Date(startDateISO + "T00:00:00");
@@ -138,6 +161,8 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
     habits,
     minutes,
     breaks,
+    notes,
+    dayNotes,
   };
 }
 
@@ -165,18 +190,38 @@ export async function deleteHabit(id: string) {
   if (error) throw error;
 }
 
-// Bir hücreyi (habit + tarih) yazar. work/break 0 ise satır yine de upsert edilir.
+// Bir hücreyi (habit + tarih) yazar: çalışma, mola ve aktivite notu.
 export async function upsertEntry(
   habitId: string,
   dayISO: string,
   workMin: number,
-  breakMin: number
+  breakMin: number,
+  note: string | null
+) {
+  const { error } = await supabase.from("entries").upsert(
+    {
+      habit_id: habitId,
+      day: dayISO,
+      work_min: workMin,
+      break_min: breakMin,
+      note,
+    },
+    { onConflict: "habit_id,day" }
+  );
+  if (error) throw error;
+}
+
+// Gün notu (tarih bazında) yaz
+export async function setDayNote(
+  userId: string,
+  dayISO: string,
+  note: string
 ) {
   const { error } = await supabase
-    .from("entries")
+    .from("day_notes")
     .upsert(
-      { habit_id: habitId, day: dayISO, work_min: workMin, break_min: breakMin },
-      { onConflict: "habit_id,day" }
+      { user_id: userId, day: dayISO, note },
+      { onConflict: "user_id,day" }
     );
   if (error) throw error;
 }

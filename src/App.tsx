@@ -8,6 +8,7 @@ import {
   insertHabit,
   deleteHabit,
   upsertEntry,
+  setDayNote,
 } from "./db";
 import {
   mondayOf,
@@ -119,16 +120,32 @@ export function App() {
       for (const h of oldW.habits) {
         if (!newIds.has(h.id)) await deleteHabit(h.id);
       }
-      // değişen hücreler
+      // değişen hücreler (çalışma / mola / aktivite notu)
       for (const h of newW.habits) {
         for (let d = 0; d < 7; d++) {
           const nw = newW.minutes[h.id]?.[d] ?? 0;
           const nb = newW.breaks[h.id]?.[d] ?? 0;
+          const nn = newW.notes[h.id]?.[d] ?? null;
           const ow = oldW.minutes[h.id]?.[d] ?? 0;
           const ob = oldW.breaks[h.id]?.[d] ?? 0;
-          if (nw !== ow || nb !== ob) {
-            await upsertEntry(h.id, toISODate(addDays(newW.startDate, d)), nw, nb);
+          const on = oldW.notes[h.id]?.[d] ?? null;
+          if (nw !== ow || nb !== ob || (nn ?? "") !== (on ?? "")) {
+            await upsertEntry(
+              h.id,
+              toISODate(addDays(newW.startDate, d)),
+              nw,
+              nb,
+              nn
+            );
           }
+        }
+      }
+      // değişen gün notları
+      for (let d = 0; d < 7; d++) {
+        const nn = newW.dayNotes[d] ?? "";
+        const on = oldW.dayNotes[d] ?? "";
+        if (nn !== on && userId) {
+          await setDayNote(userId, toISODate(addDays(newW.startDate, d)), nn);
         }
       }
     };

@@ -15,6 +15,9 @@ export type WeekData = {
   // minutes = çalışma dakikaları, breaks = mola dakikaları (hücre bazında)
   minutes: Minutes;
   breaks: Minutes;
+  // notes = aktivite notları (habit+gün); dayNotes = gün notları (7 gün)
+  notes: Record<string, (string | null)[]>;
+  dayNotes: (string | null)[];
 };
 
 export type TimerPhase = "work" | "break";
