@@ -648,8 +648,9 @@ button {
   border-radius: 8px;
 }
 .day-date {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
 }
 .total-col {
   color: var(--muted);
