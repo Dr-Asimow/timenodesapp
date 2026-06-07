@@ -212,6 +212,15 @@ export async function deleteHabit(id: string) {
   if (error) throw error;
 }
 
+// Bir alışkanlığın sıralama pozisyonunu güncelle (sürükle-bırak yeniden sıralama)
+export async function updateHabitPosition(id: string, position: number) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ position })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // Bir hücreyi (habit + tarih) yazar: çalışma, mola ve aktivite notu.
 export async function upsertEntry(
   habitId: string,

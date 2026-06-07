@@ -26,6 +26,9 @@ export function WeekGrid({
   const [adding, setAdding] = useState(false);
   // Gün notu modalı için seçili gün (0..6) ya da null
   const [dayNoteSel, setDayNoteSel] = useState<number | null>(null);
+  // Sürükle-bırak yeniden sıralama
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
   const todayISO = toISODate(new Date());
   const days = DAY_LABELS.map((label, i) => {
@@ -84,6 +87,15 @@ export function WeekGrid({
     });
     setNewHabit("");
     setAdding(false);
+  }
+
+  // Alışkanlık satırını from→to konumuna taşı (tüm satır verisi habit.id'ye bağlı, sadece sıra değişir)
+  function moveHabit(from: number, to: number) {
+    if (from === to || from < 0 || to < 0) return;
+    const habits = week.habits.slice();
+    const [moved] = habits.splice(from, 1);
+    habits.splice(to, 0, moved);
+    onChange({ ...week, habits });
   }
 
   function dayTypeOf(day: number): DayType {
@@ -158,9 +170,42 @@ export function WeekGrid({
             </tr>
           </thead>
           <tbody>
-            {week.habits.map((h) => (
-              <tr key={h.id}>
+            {week.habits.map((h, hIdx) => (
+              <tr
+                key={h.id}
+                className={`${dragIdx === hIdx ? "dragging" : ""} ${
+                  overIdx === hIdx && dragIdx !== null && dragIdx !== hIdx
+                    ? "drag-over"
+                    : ""
+                }`}
+                onDragOver={(e) => {
+                  if (dragIdx === null) return;
+                  e.preventDefault();
+                  if (overIdx !== hIdx) setOverIdx(hIdx);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIdx !== null) moveHabit(dragIdx, hIdx);
+                  setDragIdx(null);
+                  setOverIdx(null);
+                }}
+              >
                 <th className="habit-name">
+                  <span
+                    className="drag-handle"
+                    title="Sürükleyerek sırala"
+                    draggable
+                    onDragStart={(e) => {
+                      setDragIdx(hIdx);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => {
+                      setDragIdx(null);
+                      setOverIdx(null);
+                    }}
+                  >
+                    ⠿
+                  </span>
                   <button
                     className="habit-link"
                     title="Alışkanlık sayfası (yakında)"

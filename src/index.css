@@ -698,6 +698,34 @@ button {
   color: var(--danger);
 }
 
+/* Sürükle-bırak tutamacı + yeniden sıralama */
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.35;
+  user-select: none;
+  transition: opacity 0.15s, color 0.15s;
+  padding: 2px;
+}
+.habit-name:hover .drag-handle {
+  opacity: 1;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.drag-handle:hover {
+  color: var(--accent);
+}
+tr.dragging {
+  opacity: 0.4;
+}
+tr.drag-over td,
+tr.drag-over th {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
 /* --- Hücre ------------------------------------------------------------ */
 .cell-td {
   position: relative;

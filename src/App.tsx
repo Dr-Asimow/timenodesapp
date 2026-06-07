@@ -7,6 +7,7 @@ import {
   loadWeek,
   insertHabit,
   deleteHabit,
+  updateHabitPosition,
   upsertEntry,
   setDayNote,
 } from "./db";
@@ -135,6 +136,15 @@ export function App() {
       // silinen alışkanlıklar
       for (const h of oldW.habits) {
         if (!newIds.has(h.id)) await deleteHabit(h.id);
+      }
+      // yeniden sıralama: sıra değiştiyse mevcut alışkanlıkların pozisyonunu güncelle
+      const oldOrder = oldW.habits.map((h) => h.id).join(",");
+      const newOrder = newW.habits.map((h) => h.id).join(",");
+      if (oldOrder !== newOrder) {
+        for (let i = 0; i < newW.habits.length; i++) {
+          const h = newW.habits[i];
+          if (oldIds.has(h.id)) await updateHabitPosition(h.id, i);
+        }
       }
       // değişen hücreler (çalışma / mola / aktivite notu)
       for (const h of newW.habits) {
