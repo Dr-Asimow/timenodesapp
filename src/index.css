@@ -727,6 +727,33 @@ tr.drag-over th {
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
+/* --- Crosshair + zebra (kutu yerini tek bakışta bulmak için) ---------- */
+/* Zebra: alışkanlık satırları bir açık/bir koyu */
+.grid tbody tr:nth-child(even):not(.add-habit-row) > th,
+.grid tbody tr:nth-child(even):not(.add-habit-row) > td {
+  background-color: rgba(255, 255, 255, 0.022);
+}
+/* Satır hover: tüm satır hafif yeşil + alışkanlık adı accent */
+.grid tbody tr:not(.add-habit-row):hover > th,
+.grid tbody tr:not(.add-habit-row):hover > td {
+  background-color: rgba(57, 211, 83, 0.08);
+}
+.grid tbody tr:not(.add-habit-row):hover .habit-link {
+  color: var(--accent);
+}
+/* Sütun hover (JS ile): gün hücreleri + başlık */
+.grid td.col-hl {
+  background-color: rgba(57, 211, 83, 0.08);
+}
+.grid th.col-hl-head {
+  background-color: rgba(57, 211, 83, 0.08);
+  border-radius: 8px 8px 0 0;
+}
+.grid th.col-hl-head .day-label,
+.grid th.col-hl-head .day-date {
+  color: var(--accent);
+}
+
 /* --- Hücre ------------------------------------------------------------ */
 .cell-td {
   position: relative;

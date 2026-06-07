@@ -29,6 +29,8 @@ export function WeekGrid({
   // Sürükle-bırak yeniden sıralama
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  // Crosshair: imlecin üzerinde olduğu sütun (gün). Satır CSS :hover ile.
+  const [hoverDay, setHoverDay] = useState<number | null>(null);
 
   const todayISO = toISODate(new Date());
   const days = DAY_LABELS.map((label, i) => {
@@ -148,12 +150,17 @@ export function WeekGrid({
       </div>
 
       <div className="grid-scroll">
-        <table className="grid">
+        <table className="grid" onMouseLeave={() => setHoverDay(null)}>
           <thead>
             <tr>
               <th className="habit-col">Alışkanlık</th>
               {days.map((d, i) => (
-                <th key={i} className={`day-col ${d.isToday ? "today" : ""}`}>
+                <th
+                  key={i}
+                  className={`day-col ${d.isToday ? "today" : ""} ${
+                    hoverDay === i ? "col-hl-head" : ""
+                  }`}
+                >
                   {d.isToday ? <span className="today-dot" /> : null}
                   <button
                     className="day-head-btn"
@@ -246,7 +253,10 @@ export function WeekGrid({
                   return (
                     <td
                       key={day}
-                      className={`cell-td ${days[day].isToday ? "today-col" : ""}`}
+                      className={`cell-td ${days[day].isToday ? "today-col" : ""} ${
+                        hoverDay === day ? "col-hl" : ""
+                      }`}
+                      onMouseEnter={() => setHoverDay(day)}
                     >
                       <button
                         className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState}`}
@@ -284,7 +294,10 @@ export function WeekGrid({
               {days.map((_, day) => (
                 <td
                   key={day}
-                  className={`total-td ${days[day].isToday ? "today-col" : ""}`}
+                  className={`total-td ${days[day].isToday ? "today-col" : ""} ${
+                    hoverDay === day ? "col-hl" : ""
+                  }`}
+                  onMouseEnter={() => setHoverDay(day)}
                 >
                   {formatHours(colTotal(day))}
                 </td>
