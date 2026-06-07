@@ -315,6 +315,13 @@ body {
   border-color: var(--accent);
   background: linear-gradient(135deg, rgba(57, 211, 83, 0.16), var(--panel));
 }
+.wk-top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
 .wk-no {
   font-size: 20px;
   font-weight: 800;
@@ -324,10 +331,21 @@ body {
   font-size: 11px;
 }
 .wk-total {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--accent);
-  margin-top: 2px;
+}
+/* Mini ısı haritası (7 gün) */
+.wk-mini-heat {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px;
+}
+.wk-mini-cell {
+  flex: 1;
+  height: 7px;
+  border-radius: 2px;
 }
 .wk-tag {
   position: absolute;

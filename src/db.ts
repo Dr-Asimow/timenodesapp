@@ -8,20 +8,24 @@ import {
   emptyNotes,
 } from "./storage";
 
-// Bir yılın hafta numarasına göre toplam çalışma dakikaları (Haftalar sayfası özeti)
+// Bir yılın hafta numarasına göre gün bazında çalışma dakikaları (Haftalar sayfası ısı haritası)
+// Dönüş: { [haftaNo]: [Pzt, Sal, Çar, Per, Cum, Cmt, Paz] } (dakika)
 export async function loadYearTotals(
   year: number
-): Promise<Record<number, number>> {
+): Promise<Record<number, number[]>> {
   const { data, error } = await supabase
     .from("entries")
     .select("day,work_min")
     .gte("day", `${year}-01-01`)
     .lte("day", `${year}-12-31`);
   if (error) throw error;
-  const map: Record<number, number> = {};
+  const map: Record<number, number[]> = {};
   for (const r of (data as { day: string; work_min: number }[]) ?? []) {
-    const wk = isoWeekNumber(new Date(r.day + "T00:00:00"));
-    map[wk] = (map[wk] ?? 0) + r.work_min;
+    const d = new Date(r.day + "T00:00:00");
+    const wk = isoWeekNumber(d);
+    if (!map[wk]) map[wk] = [0, 0, 0, 0, 0, 0, 0];
+    const dow = (d.getDay() + 6) % 7; // JS: 0=Paz → Pzt=0..Paz=6
+    map[wk][dow] += r.work_min;
   }
   return map;
 }

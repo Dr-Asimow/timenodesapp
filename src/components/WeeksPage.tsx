@@ -1,5 +1,5 @@
 import { addDays } from "../storage";
-import { formatHours } from "../heat";
+import { formatHours, heatLevel } from "../heat";
 
 const MONTHS = [
   "Oca", "Şub", "Mar", "Nis", "May", "Haz",
@@ -16,6 +16,8 @@ function rangeLabel(startISO: string): string {
     : `${a.getDate()} ${am} – ${b.getDate()} ${bm}`;
 }
 
+const DAY_LABELS = ["P", "S", "Ç", "P", "C", "C", "P"];
+
 export function WeeksPage({
   year,
   weeks,
@@ -25,7 +27,7 @@ export function WeeksPage({
 }: {
   year: number;
   weeks: { weekNumber: number; startISO: string }[];
-  totals: Record<number, number> | null;
+  totals: Record<number, number[]> | null;
   currentStartISO: string;
   onOpenWeek: (startISO: string) => void;
 }) {
@@ -40,7 +42,8 @@ export function WeeksPage({
 
       <div className="weeks-grid">
         {weeks.map((w) => {
-          const total = totals?.[w.weekNumber] ?? 0;
+          const days = totals?.[w.weekNumber] ?? null;
+          const total = days ? days.reduce((a, b) => a + b, 0) : 0;
           const state =
             w.startISO === currentStartISO
               ? "current"
@@ -54,11 +57,25 @@ export function WeeksPage({
               onClick={() => onOpenWeek(w.startISO)}
               title={rangeLabel(w.startISO)}
             >
-              <span className="wk-no">{w.weekNumber}</span>
+              <div className="wk-top-row">
+                <span className="wk-no">{w.weekNumber}</span>
+                {total > 0 ? (
+                  <span className="wk-total">{formatHours(total)}s</span>
+                ) : null}
+              </div>
               <span className="wk-range muted">{rangeLabel(w.startISO)}</span>
-              <span className="wk-total">
-                {total > 0 ? `${formatHours(total)} sa` : "—"}
-              </span>
+
+              {/* Mini ısı haritası: 7 gün */}
+              <div className="wk-mini-heat" aria-hidden="true">
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                  <div
+                    key={d}
+                    className={`wk-mini-cell lvl-${heatLevel(days?.[d] ?? 0)}`}
+                    title={`${DAY_LABELS[d]}: ${days?.[d] ?? 0}dk`}
+                  />
+                ))}
+              </div>
+
               {state === "current" ? (
                 <span className="wk-tag">bu hafta</span>
               ) : null}

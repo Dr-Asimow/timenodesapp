@@ -60,7 +60,7 @@ export function App() {
   const [view, setView] = useState<View>("home");
   // Güncel hafta dışında bir hafta görüntülenirken o haftanın verisi (null=güncel)
   const [viewedWeek, setViewedWeek] = useState<WeekData | null>(null);
-  const [yearTotals, setYearTotals] = useState<Record<number, number> | null>(
+  const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
     null
   );
 
