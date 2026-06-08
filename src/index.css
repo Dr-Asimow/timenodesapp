@@ -401,10 +401,161 @@ body {
 
 /* --- Profil ----------------------------------------------------------- */
 .profile {
-  max-width: 560px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.profile-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+}
+.profile-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- Yaka kartı (badge) — 5 katman ---------------------------------- */
+.badge-card {
+  position: relative;
+  width: 212px;
+  flex: 0 0 212px;
+  aspect-ratio: 234 / 486;
+  isolation: isolate; /* blend modları karta hapset */
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.5));
+}
+/* 1) Frame (en alt) */
+.bc-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+/* Dinamik tint — frame şekline maskeli, SADECE renk tonu (color blend) */
+.bc-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  mix-blend-mode: color;
+  opacity: 0.7;
+  pointer-events: none;
+}
+/* Uygulama glass'ı — frame şekline maskeli (şeffaf alanları DOLDURMAZ) */
+.bc-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0) 38%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+/* 3+4+5) Kullanıcı görseli + gradient + bilgiler (iç pencere) */
+.bc-window {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 5px;
+  z-index: 4;
+}
+.bc-window.editable {
+  cursor: pointer;
+}
+.bc-userimg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bc-grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.45) 26%,
+    rgba(0, 0, 0, 0) 58%
+  );
+  pointer-events: none;
+}
+.bc-info {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 8px;
+}
+.bc-name {
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.08;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.bc-dot {
+  color: var(--accent);
+}
+.bc-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+.bc-cam {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 7px;
+  padding: 3px 6px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.bc-window.editable:hover .bc-cam {
+  opacity: 1;
+}
+/* 2) Clasp (en üst, frame ile aynı eksen) */
+.bc-clasp {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 6;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .profile-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+  .profile-side {
+    width: 100%;
+  }
 }
 .profile-top {
   display: flex;
