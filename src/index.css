@@ -489,44 +489,58 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 44px; /* strap + klips için yer */
+  padding-top: 42px; /* kartın üstündeki ip için yer */
   position: relative;
 }
-/* Kart ipi (strap) — açık gri, yukarıdan klipse iner; karta TAŞMAZ.
-   İleride farklı kozmetikler için temel (CSS değişkenleriyle). */
+/* İp/bandal — kartın üstünden gelir, kart kenarında "kaybolur" (margin'in
+   arkasına geçer), karttaki delikten tekrar görünür. İleride kozmetik. */
 .id-lanyard {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 38px;
-  height: 50px; /* klipse kadar iner, kart yüzüne sarkmaz */
-  background: linear-gradient(180deg, #d9dce2, #b7bcc6);
+  width: 32px;
+  height: 42px; /* tam kart üst kenarında biter (margin'in arkasına geçer) */
+  background: linear-gradient(180deg, #d9dce2, #bcc1cb);
   border: 1px solid rgba(0, 0, 0, 0.18);
-  border-radius: 7px;
+  border-radius: 8px 8px 3px 3px;
   z-index: 1;
 }
-/* Strap üzerinde ince dikiş (kozmetik temeli) */
 .id-lanyard::before {
   content: "";
   position: absolute;
   inset: 5px 6px;
-  border: 1px dashed rgba(0, 0, 0, 0.2);
+  border: 1px dashed rgba(0, 0, 0, 0.18);
   border-radius: 4px;
 }
-/* Siyah klips — kartın ÜST KENARINA oturur, strap'i tutar (önde) */
+/* KARTTAKI YATAY DELİK — kartın içinde (üst kenardan ~12px), ipten geniş.
+   Ortasından ip geçiyormuş gibi görünür (::after); uçları boşluk (recessed). */
 .id-slot {
   position: absolute;
-  top: 35px;
+  top: 54px;
   left: 50%;
   transform: translateX(-50%);
-  width: 66px;
-  height: 18px;
-  background: #0d1117;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  z-index: 2; /* strap'in önünde, onu tutuyor gibi */
+  width: 56px;
+  height: 13px;
+  background: #05070b;
+  border-radius: 999px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+  z-index: 2;
+  overflow: hidden;
+}
+/* Delikten geçen ip parçası */
+.id-slot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  background: linear-gradient(180deg, #cdd1d8, #aeb3bd);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.55);
 }
 .id-body {
   position: relative;
