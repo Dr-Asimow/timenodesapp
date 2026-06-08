@@ -87,6 +87,8 @@ export function App() {
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
+  // Gündeme otomatik eklenmekte olan alışkanlıklar (çift ekleme önler)
+  const autoAddingRef = useRef<Set<string>>(new Set());
 
   const userId = session?.user?.id ?? null;
   const username =
@@ -159,6 +161,37 @@ export function App() {
   useEffect(() => {
     if (userId) saveTimers(userId, timers);
   }, [timers, userId]);
+
+  // Bugüne ait bir sayaç (haftalıktan vb.) başlatıldıysa ve o alışkanlık
+  // gündemde yoksa otomatik gündeme ekle.
+  useEffect(() => {
+    if (!userId || !week) return;
+    const tISO = toISODate(new Date());
+    const tIdx = Math.round(
+      (Date.parse(tISO) - Date.parse(week.startDate)) / 86400000
+    );
+    if (tIdx < 0 || tIdx > 6) return;
+    const inAgenda = new Set(
+      todos.filter((t) => t.habitId).map((t) => t.habitId)
+    );
+    const seen = new Set<string>();
+    for (const tm of timers) {
+      if (tm.day !== tIdx || inAgenda.has(tm.habitId)) continue;
+      if (autoAddingRef.current.has(tm.habitId) || seen.has(tm.habitId)) continue;
+      const habit = week.habits.find((h) => h.id === tm.habitId);
+      if (!habit) continue;
+      seen.add(tm.habitId);
+      autoAddingRef.current.add(tm.habitId);
+      addTodo(userId, tISO, tm.habitId, habit.name, todos.length)
+        .then((item) =>
+          setTodos((cur) =>
+            cur.some((x) => x.habitId === item.habitId) ? cur : [...cur, item]
+          )
+        )
+        .catch(() => {})
+        .finally(() => autoAddingRef.current.delete(tm.habitId));
+    }
+  }, [timers, todos, userId, week]);
 
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
