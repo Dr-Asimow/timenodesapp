@@ -582,6 +582,7 @@ function Slider({
   step: number;
   onChange: (v: number) => void;
 }) {
+  const pct = ((value - min) / (max - min)) * 100;
   return (
     <div className="slider-row">
       <div className="slider-head">
@@ -597,6 +598,9 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        style={{
+          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--panel-2) ${pct}%, var(--panel-2) 100%)`,
+        }}
       />
     </div>
   );

@@ -1287,9 +1287,43 @@ tr.drag-over th {
   font-weight: 700;
 }
 .slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  accent-color: var(--accent);
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
   cursor: pointer;
+  outline: none;
+}
+/* WebKit: dolan kısım inline gradient ile (Slider'da set edilir) + özel thumb */
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+/* Firefox: dolan kısım için range-progress */
+.slider-row input[type="range"]::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.slider-row input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+}
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: #ffffff;
 }
 .cycles-row {
   display: flex;

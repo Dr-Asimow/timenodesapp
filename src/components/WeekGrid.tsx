@@ -6,6 +6,10 @@ import { heatLevel, formatMinutes, formatHours } from "../heat";
 import { CellPopover } from "./CellPopover";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+const MONTHS_TR = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
 
 type CellSel = { habitId: string; day: number } | null;
 export type DayType = "today" | "past" | "future";
@@ -347,7 +351,9 @@ export function WeekGrid({
             return (
               <CellPopover
                 dayType={dayTypeOf(sel.day)}
-                dayLabel={DAY_LABELS[sel.day]}
+                dayLabel={`${days[sel.day].date} ${
+                  MONTHS_TR[days[sel.day].iso.getMonth()]
+                } ${DAY_LABELS[sel.day]}`}
                 habitName={h.name}
                 workMin={week.minutes[h.id]?.[sel.day] ?? 0}
                 breakMin={week.breaks[h.id]?.[sel.day] ?? 0}
