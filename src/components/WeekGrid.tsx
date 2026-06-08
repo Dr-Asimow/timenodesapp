@@ -180,10 +180,8 @@ export function WeekGrid({
         </div>
       </div>
 
-      <div className="grid-scroll">
-        <div className="grid-stage">
-          <div className="grid-main-bg" />
-          <div className="grid-last-bg" />
+      <div className="grid-row">
+        <div className="grid-scroll">
           <table className="grid" onMouseLeave={() => setHoverDay(null)}>
           <thead>
             <tr>
@@ -210,7 +208,6 @@ export function WeekGrid({
                 toplam saat
                 <span className="muted small"> (+)</span>
               </th>
-              <th className="lastweek-col">geçen hafta</th>
             </tr>
           </thead>
           <tbody>
@@ -316,15 +313,10 @@ export function WeekGrid({
                   );
                 })}
                 <td className="total-td">{formatHours(rowTotal(h.id))}</td>
-                <td className="lastweek-td">
-                  {prevTotals
-                    ? formatHours(prevTotals[h.id] ?? 0)
-                    : "—"}
-                </td>
               </tr>
             ))}
             <tr className="add-habit-row">
-              <td colSpan={days.length + 3}>
+              <td colSpan={days.length + 2}>
                 <button className="add-habit-btn" onClick={() => setAdding(true)}>
                   + Alışkanlık ekle
                 </button>
@@ -346,13 +338,25 @@ export function WeekGrid({
                 </td>
               ))}
               <td className="total-td grand">{formatHours(grandTotal)}</td>
-              <td className="lastweek-td foot">
-                {prevTotals ? formatHours(prevGrand) : "—"}
-              </td>
             </tr>
           </tfoot>
           </table>
         </div>
+
+        <aside className="lw-hud">
+          <div className="lw-head">geçen hafta</div>
+          <div className="lw-list">
+            {week.habits.map((h) => (
+              <div className="lw-row" key={h.id}>
+                {prevTotals ? formatHours(prevTotals[h.id] ?? 0) : "—"}
+              </div>
+            ))}
+          </div>
+          <div className="lw-addspacer" />
+          <div className="lw-foot">
+            {prevTotals ? formatHours(prevGrand) : "—"}
+          </div>
+        </aside>
       </div>
 
       <div className="legend">

@@ -1588,45 +1588,76 @@ button {
 }
 
 /* --- Izgara ----------------------------------------------------------- */
+/* Hafta ızgarası + sağda "geçen hafta" HUD'u (arkadan devam eden çubuk) */
+.grid-row {
+  display: flex;
+  align-items: stretch;
+}
 .grid-scroll {
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
-}
-/* Sahne: ana panel + arkadaki "geçen hafta" kartı (ayraç gibi) */
-.grid-stage {
-  position: relative;
-  padding: 10px 8px 20px;
-}
-.grid-main-bg {
-  position: absolute;
-  left: 0;
-  top: 4px;
-  right: 80px;
-  bottom: 20px;
-  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 5px 0 14px rgba(0, 0, 0, 0.45);
-  z-index: 0;
-}
-/* Arkadan çıkan koyu kart — sağda + aşağı doğru peek */
-.grid-last-bg {
-  position: absolute;
-  right: 0;
-  top: 16px;
-  bottom: 2px;
-  width: 104px;
-  background: #0d1014;
-  border: 1px solid var(--border);
-  border-radius: 0 14px 14px 0;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
-  z-index: -1;
+  background: var(--panel);
+  padding: 8px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 6px 0 16px rgba(0, 0, 0, 0.4);
 }
 .grid {
-  position: relative;
-  z-index: 1;
   border-collapse: separate;
   border-spacing: 6px;
   width: 100%;
+}
+/* Geçen hafta HUD — ayrı çubuk, tablonun arkasından sağa doğru çıkar */
+.lw-hud {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+  margin-left: -20px;
+  padding: 8px 16px 8px 30px;
+  background: #0d1014;
+  border: 1px solid var(--border);
+  border-radius: 0 14px 14px 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.lw-head {
+  flex: 0 0 auto;
+  height: 43px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 11px;
+  padding-bottom: 6px;
+}
+.lw-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.lw-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.lw-addspacer {
+  flex: 0 0 auto;
+  height: 48px;
+}
+.lw-foot {
+  flex: 0 0 auto;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
 }
 .grid th,
 .grid td {
@@ -1682,22 +1713,6 @@ button {
 .total-col {
   color: var(--muted);
   font-size: 13px;
-}
-/* Geçen hafta sütunu (arkadaki koyu kartın üstünde, şeffaf hücreler) */
-.lastweek-col {
-  width: 88px;
-  color: var(--muted);
-  font-size: 11px;
-  text-transform: lowercase;
-}
-.lastweek-td {
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.lastweek-td.foot {
-  font-weight: 700;
 }
 
 .habit-name {
