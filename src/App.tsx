@@ -35,6 +35,7 @@ import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
 import { DayPanel } from "./components/DayPanel";
 import { MusicPlayer } from "./components/MusicPlayer";
+import { FlyParticles, type Burst } from "./components/Particles";
 import type { TodoItem } from "./types";
 
 const TR_MONTHS = [
@@ -85,6 +86,14 @@ export function App() {
   const [cellSel, setCellSel] = useState<{ habitId: string; day: number } | null>(
     null
   );
+  // "Bitir & kaydet" partikül efekti
+  const [bursts, setBursts] = useState<Burst[]>([]);
+  // Popup'tan bitirildiğinde: popup kapanınca patlat (kaynak = modal konumu)
+  const pendingBurstRef = useRef<{
+    fromRect: DOMRect;
+    habitId: string;
+    day: number;
+  } | null>(null);
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -162,6 +171,20 @@ export function App() {
   useEffect(() => {
     if (userId) saveTimers(userId, timers);
   }, [timers, userId]);
+
+  // Popup kapandığında (cellSel→null) bekleyen "bitir" partikülünü patlat
+  useEffect(() => {
+    if (cellSel === null && pendingBurstRef.current) {
+      const pb = pendingBurstRef.current;
+      pendingBurstRef.current = null;
+      // Popup kapanma animasyonu bitsin, hücre görünür olsun diye küçük gecikme
+      const t = setTimeout(
+        () => fireBurst(pb.fromRect, pb.habitId, pb.day),
+        60
+      );
+      return () => clearTimeout(t);
+    }
+  }, [cellSel]);
 
   // Bugüne ait bir sayaç (haftalıktan vb.) başlatıldıysa ve o alışkanlık
   // gündemde yoksa otomatik gündeme ekle.
@@ -347,7 +370,47 @@ export function App() {
     updateTimer({ ...s, phase: "work", startedAt: Date.now(), breakAlarmAck: true });
   };
 
+  // Kaynak dikdörtgenden hedef hücreye partikül patlat
+  const fireBurst = (fromRect: DOMRect, habitId: string, day: number) => {
+    const cell = document.querySelector(
+      `[data-cell-id="${habitId}:${day}"]`
+    ) as HTMLElement | null;
+    if (!cell) return;
+    const to = cell.getBoundingClientRect();
+    setBursts((b) => [
+      ...b,
+      {
+        id: Date.now() + Math.random(),
+        from: {
+          x: fromRect.left + fromRect.width / 2,
+          y: fromRect.top + fromRect.height / 2,
+        },
+        to: { x: to.left + to.width / 2, y: to.top + to.height / 2 },
+      },
+    ]);
+  };
+
   const finishTimer = (target: ActiveTimer) => {
+    // Partikül kaynağını yakala: popup açıksa modal, değilse üst çubuk
+    const popupOpen =
+      cellSel &&
+      cellSel.habitId === target.habitId &&
+      cellSel.day === target.day;
+    if (popupOpen) {
+      const modal = document.querySelector(".cell-modal") as HTMLElement | null;
+      if (modal)
+        pendingBurstRef.current = {
+          fromRect: modal.getBoundingClientRect(),
+          habitId: target.habitId,
+          day: target.day,
+        };
+    } else {
+      const bar = document.querySelector(
+        `[data-timer="${target.habitId}:${target.day}"]`
+      ) as HTMLElement | null;
+      if (bar) fireBurst(bar.getBoundingClientRect(), target.habitId, target.day);
+    }
+
     const mins = workMinutes(target);
     const brkMins = Math.round(breakTotalMs(target) / 60000);
     if (week && (mins > 0 || brkMins > 0)) {
@@ -618,6 +681,11 @@ export function App() {
           onCancel={() => setPending(null)}
         />
       ) : null}
+
+      <FlyParticles
+        bursts={bursts}
+        onDone={(id) => setBursts((b) => b.filter((x) => x.id !== id))}
+      />
     </div>
   );
 }

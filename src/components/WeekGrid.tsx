@@ -288,6 +288,7 @@ export function WeekGrid({
                       <button
                         className={`cell lvl-${lvl} ${isSel ? "sel" : ""} ${timingState}`}
                         title={tip}
+                        data-cell-id={`${h.id}:${day}`}
                         onClick={() =>
                           setSel(isSel ? null : { habitId: h.id, day })
                         }

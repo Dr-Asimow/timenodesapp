@@ -185,6 +185,7 @@ function TimerCard({
       className={`timer-bar ${running ? "running" : "paused"} ${
         onBreak ? "break" : "work"
       } ${ringing ? "ringing" : ""}`}
+      data-timer={`${timer.habitId}:${timer.day}`}
     >
       <span className={`pulse ${running ? "on" : ""} ${onBreak ? "brk" : ""}`} />
       <div className="timer-meta">
