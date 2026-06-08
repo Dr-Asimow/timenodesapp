@@ -390,6 +390,7 @@ body {
   font-size: 20px;
   font-weight: 800;
   line-height: 1;
+  color: #e8eaed; /* kırık beyaz */
 }
 .wk-range {
   font-size: 11px;
