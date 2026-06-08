@@ -424,10 +424,11 @@ body {
   width: 212px;
   flex: 0 0 212px;
   aspect-ratio: 234 / 486;
-  isolation: isolate; /* blend modları karta hapset */
-  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.5));
+  /* Dış glass: derinlik gölgesi + ince ışık halkası (frame alfa şekline uyar) */
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.18));
 }
-/* 1) Frame (en alt) */
+/* 1) Frame (en alt, kendi rengiyle) */
 .bc-frame {
   position: absolute;
   inset: 0;
@@ -436,28 +437,16 @@ body {
   object-fit: fill;
   z-index: 1;
 }
-/* Dinamik tint — frame şekline maskeli, SADECE renk tonu (color blend) */
-.bc-tint {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  mix-blend-mode: color;
-  opacity: 0.7;
-  pointer-events: none;
-}
-/* Uygulama glass'ı — frame şekline maskeli (şeffaf alanları DOLDURMAZ) */
+/* Glass parıltısı — frame şekline maskeli (şeffaf alanları DOLDURMAZ) */
 .bc-glass {
   position: absolute;
   inset: 0;
   z-index: 3;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(255, 255, 255, 0) 38%
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 24%,
+    rgba(255, 255, 255, 0) 46%
   );
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
