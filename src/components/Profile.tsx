@@ -140,7 +140,6 @@ export function Profile({
           )}
           <span className="id-status" />
           <div className="id-overlay" />
-          <div className="id-slot" />
           <div className="id-name" style={{ fontSize: nameSize }}>
             {cardName}
             <span className="id-name-dot">.</span>
@@ -159,6 +158,7 @@ export function Profile({
           />
         </label>
         <div className="id-lanyard" />
+        <div className="id-slot" />
       </div>
 
       {/* Sağ: hesap bilgileri + düzenleme */}
