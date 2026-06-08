@@ -15,6 +15,7 @@ export function DayPanel({
   onToggleTodo,
   onDeleteItem,
   onStartHabit,
+  onOpenHabit,
   onSetNote,
 }: {
   dateLabel: string;
@@ -29,6 +30,7 @@ export function DayPanel({
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
   onStartHabit: (habitId: string) => void;
+  onOpenHabit: (habitId: string) => void;
   onSetNote: (note: string) => void;
 }) {
   const [modal, setModal] = useState(false);
@@ -58,7 +60,12 @@ export function DayPanel({
                 : false;
               const mins = it.habitId ? todayMinutes[it.habitId] ?? 0 : 0;
               return (
-                <div className="agenda-item habit" key={it.id}>
+                <div
+                  className="agenda-item habit"
+                  key={it.id}
+                  title="Sayaç penceresini aç"
+                  onClick={() => it.habitId && onOpenHabit(it.habitId)}
+                >
                   <span className="agenda-title">{it.title}</span>
                   {mins > 0 ? (
                     <span className="agenda-min">{formatMinutes(mins)}</span>
@@ -68,7 +75,10 @@ export function DayPanel({
                   ) : (
                     <button
                       className="agenda-start"
-                      onClick={() => it.habitId && onStartHabit(it.habitId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        it.habitId && onStartHabit(it.habitId);
+                      }}
                     >
                       ▶ başla
                     </button>
@@ -76,7 +86,10 @@ export function DayPanel({
                   <button
                     className="agenda-del"
                     title="Kaldır"
-                    onClick={() => onDeleteItem(it.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteItem(it.id);
+                    }}
                   >
                     ×
                   </button>

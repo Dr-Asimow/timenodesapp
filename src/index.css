@@ -564,6 +564,11 @@ body {
 }
 .agenda-item.habit {
   border-left: 3px solid var(--accent);
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.agenda-item.habit:hover {
+  border-color: var(--accent);
 }
 .agenda-title {
   flex: 1;
@@ -659,32 +664,47 @@ body {
 /* Gündem ekleme modalı (iki kolon) */
 .agenda-modal {
   position: relative;
-  width: 640px;
+  width: 780px;
   max-width: calc(100vw - 32px);
   text-align: left;
+  padding: 30px 34px 34px;
+}
+.agenda-modal .modal-x {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  font-size: 24px;
+  z-index: 1;
 }
 .agenda-cols {
   display: flex;
-  gap: 28px;
+  gap: 40px;
 }
 .agenda-col {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }
+.agenda-col + .agenda-col {
+  border-left: 1px solid var(--border);
+  padding-left: 40px;
+  margin-left: -8px;
+}
 .agenda-col-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
-  margin: 0 0 2px;
+  margin: 0 0 4px;
 }
 .agenda-col-hint {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
+  line-height: 1.4;
 }
 .agenda-habit-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 320px;
+  gap: 10px;
+  max-height: 360px;
   overflow-y: auto;
+  padding-right: 6px;
 }
 .agenda-habit {
   display: flex;

@@ -27,14 +27,19 @@ export function WeekGrid({
   onChange,
   onStartTimer,
   timerActions,
+  sel,
+  onSelChange,
 }: {
   week: WeekData;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
   onStartTimer: (habitId: string, day: number, config: TimerConfig) => void;
   timerActions: TimerActions;
+  // Seçili hücre (popover) App'te tutulur ki DayPanel de açabilsin
+  sel: CellSel;
+  onSelChange: (sel: CellSel) => void;
 }) {
-  const [sel, setSel] = useState<CellSel>(null);
+  const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
   const [adding, setAdding] = useState(false);
   // Gün notu modalı için seçili gün (0..6) ya da null

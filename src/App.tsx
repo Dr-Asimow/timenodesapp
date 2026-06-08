@@ -80,6 +80,10 @@ export function App() {
   );
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  // Seçili hücre (popover) — hem ızgaradan hem gündemden açılabilsin diye App'te
+  const [cellSel, setCellSel] = useState<{ habitId: string; day: number } | null>(
+    null
+  );
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -228,6 +232,7 @@ export function App() {
 
   // Haftalar sayfasından bir haftayı aç
   async function openWeek(startISO: string) {
+    setCellSel(null);
     if (week && startISO === week.startDate) {
       setViewedWeek(null); // güncel hafta
       setView("week");
@@ -245,6 +250,7 @@ export function App() {
   // Menü gezinmesi: "week"e gidince hep güncel haftayı göster
   function navigate(v: View) {
     if (v === "week") setViewedWeek(null);
+    setCellSel(null);
     setView(v);
   }
 
@@ -399,9 +405,16 @@ export function App() {
     setTodos((cur) => cur.filter((t) => t.id !== id));
     deleteTodo(id).catch(() => {});
   };
+  // "başla": sayacı başlat VE kare popup'ını aç (haftalıktaki gibi açık kalsın)
   const startHabit = (habitId: string) => {
     if (!todayInWeek) return;
     requestStart(habitId, todayIndex, { workTargetMs: null, plannedBreakMs: null });
+    setCellSel({ habitId, day: todayIndex });
+  };
+  // Gündemdeki etkinliğe tekrar tıkla → o karenin (sayaç) popup'ını aç
+  const openHabit = (habitId: string) => {
+    if (!todayInWeek) return;
+    setCellSel({ habitId, day: todayIndex });
   };
   const setTodayNote = (note: string) => {
     if (!todayInWeek) return;
@@ -488,6 +501,8 @@ export function App() {
                   finish: finishTimer,
                   cancel: cancelTimer,
                 }}
+                sel={cellSel}
+                onSelChange={setCellSel}
               />
             );
             if (viewingOther) {
@@ -499,7 +514,10 @@ export function App() {
                     </span>
                     <button
                       className="ghost-btn small"
-                      onClick={() => setViewedWeek(null)}
+                      onClick={() => {
+                        setCellSel(null);
+                        setViewedWeek(null);
+                      }}
                     >
                       Güncel haftaya dön
                     </button>
@@ -523,6 +541,7 @@ export function App() {
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
                   onStartHabit={startHabit}
+                  onOpenHabit={openHabit}
                   onSetNote={setTodayNote}
                 />
                 <div className="week-main">{grid}</div>
