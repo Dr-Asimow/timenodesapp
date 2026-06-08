@@ -91,6 +91,23 @@ export async function loadYearStats(year: number): Promise<YearStats> {
   return { perWeek, perHabit, totalWork, totalBreak, activeDays, bestDay };
 }
 
+// Bir haftanın (Pazartesi ISO) alışkanlık bazında toplam çalışma dk'sı
+export async function loadHabitTotalsForWeek(
+  startDateISO: string
+): Promise<Record<string, number>> {
+  const endISO = toISODate(addDays(startDateISO, 6));
+  const { data, error } = await supabase
+    .from("entries")
+    .select("habit_id,work_min")
+    .gte("day", startDateISO)
+    .lte("day", endISO);
+  if (error) throw error;
+  const map: Record<string, number> = {};
+  for (const r of (data as { habit_id: string; work_min: number }[]) ?? [])
+    map[r.habit_id] = (map[r.habit_id] ?? 0) + r.work_min;
+  return map;
+}
+
 const DEFAULT_HABITS = [
   "Çizim",
   "Japonca",

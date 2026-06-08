@@ -23,7 +23,12 @@ import {
   saveTimers,
   weeksOfYear,
 } from "./storage";
-import { loadYearTotals, loadYearStats, type YearStats } from "./db";
+import {
+  loadYearTotals,
+  loadYearStats,
+  loadHabitTotalsForWeek,
+  type YearStats,
+} from "./db";
 import {
   isRunning,
   settle,
@@ -89,6 +94,10 @@ export function App() {
     null
   );
   const [yearStats, setYearStats] = useState<YearStats | null>(null);
+  // Gösterilen haftanın bir öncesinin alışkanlık-bazlı toplamları
+  const [prevTotals, setPrevTotals] = useState<Record<string, number> | null>(
+    null
+  );
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
   // Günlük (Not Defteri, tam ekran) — açık gün + etiket
@@ -180,6 +189,25 @@ export function App() {
         .catch(() => {});
     }
   }, [view, week?.year]);
+
+  // Gösterilen haftanın bir öncesinin (geçen hafta) alışkanlık toplamları
+  useEffect(() => {
+    const start = (viewedWeek ?? week)?.startDate;
+    if (!userId || !start) {
+      setPrevTotals(null);
+      return;
+    }
+    let cancel = false;
+    setPrevTotals(null);
+    loadHabitTotalsForWeek(toISODate(addDays(start, -7)))
+      .then((t) => {
+        if (!cancel) setPrevTotals(t);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [userId, viewedWeek?.startDate, week?.startDate]);
 
   // Bugünün gündemini (to-do'lar) yükle
   useEffect(() => {
@@ -665,6 +693,7 @@ export function App() {
                 sel={cellSel}
                 onSelChange={setCellSel}
                 onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
+                prevTotals={prevTotals}
               />
             );
             if (viewingOther) {

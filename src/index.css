@@ -1655,6 +1655,24 @@ button {
   color: var(--muted);
   font-size: 13px;
 }
+/* Geçen hafta sütunu (sağda, soluk, ayraçlı) */
+.lastweek-col {
+  width: 76px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: lowercase;
+  border-left: 1px solid var(--border);
+}
+.lastweek-td {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  border-left: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.lastweek-td.foot {
+  font-weight: 700;
+}
 
 .habit-name {
   text-align: left;

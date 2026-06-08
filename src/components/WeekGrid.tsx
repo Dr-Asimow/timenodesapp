@@ -35,6 +35,7 @@ export function WeekGrid({
   sel,
   onSelChange,
   onOpenDayNote,
+  prevTotals,
 }: {
   week: WeekData;
   activeTimers: ActiveTimer[];
@@ -46,6 +47,8 @@ export function WeekGrid({
   onSelChange: (sel: CellSel) => void;
   // O günün günlüğünü (Not Defteri) aç
   onOpenDayNote: (dayISO: string, label: string) => void;
+  // Geçen haftanın alışkanlık bazında toplam çalışma dk'sı (habitId→dk)
+  prevTotals: Record<string, number> | null;
 }) {
   const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
@@ -147,6 +150,10 @@ export function WeekGrid({
   const colTotal = (day: number) =>
     week.habits.reduce((a, h) => a + (week.minutes[h.id]?.[day] ?? 0), 0);
   const grandTotal = week.habits.reduce((a, h) => a + rowTotal(h.id), 0);
+  const prevGrand = week.habits.reduce(
+    (a, h) => a + (prevTotals?.[h.id] ?? 0),
+    0
+  );
 
   const rangeStart = days[0];
   const rangeEnd = days[6];
@@ -196,7 +203,11 @@ export function WeekGrid({
                   </button>
                 </th>
               ))}
-              <th className="total-col">(+)</th>
+              <th className="total-col">
+                toplam saat
+                <span className="muted small"> (+)</span>
+              </th>
+              <th className="lastweek-col">geçen hafta</th>
             </tr>
           </thead>
           <tbody>
@@ -302,10 +313,15 @@ export function WeekGrid({
                   );
                 })}
                 <td className="total-td">{formatHours(rowTotal(h.id))}</td>
+                <td className="lastweek-td">
+                  {prevTotals
+                    ? formatHours(prevTotals[h.id] ?? 0)
+                    : "—"}
+                </td>
               </tr>
             ))}
             <tr className="add-habit-row">
-              <td colSpan={days.length + 2}>
+              <td colSpan={days.length + 3}>
                 <button className="add-habit-btn" onClick={() => setAdding(true)}>
                   + Alışkanlık ekle
                 </button>
@@ -327,6 +343,9 @@ export function WeekGrid({
                 </td>
               ))}
               <td className="total-td grand">{formatHours(grandTotal)}</td>
+              <td className="lastweek-td foot">
+                {prevTotals ? formatHours(prevGrand) : "—"}
+              </td>
             </tr>
           </tfoot>
         </table>
