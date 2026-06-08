@@ -340,7 +340,9 @@ function DeltaPicker({
   onApply: (deltaMin: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ startY: number; startScroll: number } | null>(null);
   const [idx, setIdx] = useState(ZERO_INDEX);
+  const [dragging, setDragging] = useState(false);
   const delta = DELTA_STEPS[idx];
   const newTotal = Math.max(0, current + delta);
 
@@ -349,14 +351,47 @@ function DeltaPicker({
     if (ref.current) ref.current.scrollTop = ZERO_INDEX * ITEM_H;
   }, []);
 
+  function indexFromScroll(scrollTop: number) {
+    return Math.max(
+      0,
+      Math.min(DELTA_STEPS.length - 1, Math.round(scrollTop / ITEM_H))
+    );
+  }
+
   function onScroll() {
     const el = ref.current;
     if (!el) return;
-    const i = Math.max(
-      0,
-      Math.min(DELTA_STEPS.length - 1, Math.round(el.scrollTop / ITEM_H))
-    );
+    const i = indexFromScroll(el.scrollTop);
     if (i !== idx) setIdx(i);
+  }
+
+  // Fareyle (veya dokunmayla) basılı tutup yukarı/aşağı sürükleyerek seçim
+  function onPointerDown(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { startY: e.clientY, startScroll: el.scrollTop };
+    setDragging(true);
+    el.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!el || !drag.current) return;
+    el.scrollTop = drag.current.startScroll - (e.clientY - drag.current.startY);
+  }
+  function endDrag(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!drag.current) return;
+    drag.current = null;
+    setDragging(false);
+    if (el) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {
+        /* yoksay */
+      }
+      // Bırakınca en yakın değere yumuşakça otur
+      el.scrollTo({ top: indexFromScroll(el.scrollTop) * ITEM_H, behavior: "smooth" });
+    }
   }
 
   function apply() {
@@ -372,9 +407,13 @@ function DeltaPicker({
     <div className="delta-row">
       <div className="delta-picker-wrap" style={{ height: VISIBLE * ITEM_H }}>
         <div
-          className="delta-picker"
+          className={`delta-picker ${dragging ? "dragging" : ""}`}
           ref={ref}
           onScroll={onScroll}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
           style={{ height: VISIBLE * ITEM_H }}
         >
           <div style={{ height: pad, flex: "none" }} />

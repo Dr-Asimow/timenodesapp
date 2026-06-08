@@ -1093,6 +1093,13 @@ tr.drag-over th {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.delta-picker.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 .delta-picker::-webkit-scrollbar {
   display: none;
