@@ -1590,12 +1590,40 @@ button {
 /* --- Izgara ----------------------------------------------------------- */
 .grid-scroll {
   overflow-x: auto;
+}
+/* Sahne: ana panel + arkadaki "geçen hafta" kartı (ayraç gibi) */
+.grid-stage {
+  position: relative;
+  padding: 10px 8px 20px;
+}
+.grid-main-bg {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  right: 80px;
+  bottom: 20px;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: var(--panel);
-  padding: 8px;
+  box-shadow: 5px 0 14px rgba(0, 0, 0, 0.45);
+  z-index: 0;
+}
+/* Arkadan çıkan koyu kart — sağda + aşağı doğru peek */
+.grid-last-bg {
+  position: absolute;
+  right: 0;
+  top: 16px;
+  bottom: 2px;
+  width: 104px;
+  background: #0d1014;
+  border: 1px solid var(--border);
+  border-radius: 0 14px 14px 0;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+  z-index: -1;
 }
 .grid {
+  position: relative;
+  z-index: 1;
   border-collapse: separate;
   border-spacing: 6px;
   width: 100%;
@@ -1655,19 +1683,17 @@ button {
   color: var(--muted);
   font-size: 13px;
 }
-/* Geçen hafta sütunu (sağda, soluk, ayraçlı) */
+/* Geçen hafta sütunu (arkadaki koyu kartın üstünde, şeffaf hücreler) */
 .lastweek-col {
-  width: 76px;
+  width: 88px;
   color: var(--muted);
   font-size: 11px;
   text-transform: lowercase;
-  border-left: 1px solid var(--border);
 }
 .lastweek-td {
   text-align: center;
   font-size: 13px;
   color: var(--muted);
-  border-left: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
 }
 .lastweek-td.foot {

@@ -181,7 +181,10 @@ export function WeekGrid({
       </div>
 
       <div className="grid-scroll">
-        <table className="grid" onMouseLeave={() => setHoverDay(null)}>
+        <div className="grid-stage">
+          <div className="grid-main-bg" />
+          <div className="grid-last-bg" />
+          <table className="grid" onMouseLeave={() => setHoverDay(null)}>
           <thead>
             <tr>
               <th className="habit-col">Alışkanlık</th>
@@ -348,7 +351,8 @@ export function WeekGrid({
               </td>
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
       </div>
 
       <div className="legend">
