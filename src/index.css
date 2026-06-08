@@ -433,9 +433,8 @@ body {
   height: 100%;
   object-fit: fill;
   z-index: 1;
-  /* derinlik + sadece ince 1px açık kenar (büyük glow YOK) */
-  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55))
-    drop-shadow(1px 0 0 rgba(255, 255, 255, 0.14))
+  /* Glow/gölge YOK — sadece ince 1px açık cam kenarı */
+  filter: drop-shadow(1px 0 0 rgba(255, 255, 255, 0.14))
     drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.14))
     drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08))
     drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.18));
