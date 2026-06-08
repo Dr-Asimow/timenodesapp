@@ -1,4 +1,5 @@
 import { formatHours } from "../heat";
+import { BadgeCard, uidFromId, dateDMY } from "./BadgeCard";
 
 export type View = "home" | "week" | "weeks" | "profile" | "stats";
 
@@ -11,66 +12,81 @@ export function initials(name: string): string {
 }
 
 export function Home({
+  userId,
   username,
   displayName,
   avatarUrl,
+  memberSince,
   weekTotalMin,
   coins,
   onNavigate,
 }: {
+  userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  memberSince: string;
   weekTotalMin: number;
   coins: number;
   onNavigate: (v: View) => void;
 }) {
   return (
     <div className="home">
-      <button
-        className="home-hero as-button"
-        onClick={() => onNavigate("profile")}
-        title="Profili aç"
-      >
-        <div className="avatar-lg">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="" />
-          ) : (
-            initials(displayName || username)
-          )}
-        </div>
-        <div className="home-hero-text">
-          <div className="home-hello">
-            Merhaba, <strong>{displayName || username}</strong>
-          </div>
-          <div className="muted small">
-            Bu hafta {formatHours(weekTotalMin)} sa · {coins} time coin
-          </div>
-        </div>
-        <div className="lvl-badge">Lv 1</div>
-        <span className="hero-arrow">→</span>
-      </button>
+      <div className="home-hello-line">
+        Merhaba, <strong>{displayName || username}</strong>
+        <span className="muted small">
+          {" "}
+          · bu hafta {formatHours(weekTotalMin)} sa · {coins} time coin
+        </span>
+      </div>
 
-      <div className="home-menu">
-        <MenuCard
-          primary
-          icon="📅"
-          title="Mevcut Hafta"
-          sub="Bu haftanın zaman takibini yap"
-          onClick={() => onNavigate("week")}
-        />
-        <MenuCard
-          icon="🗂️"
-          title="Haftalar"
-          sub="Geçmiş haftalara bak & karşılaştır"
-          onClick={() => onNavigate("weeks")}
-        />
-        <MenuCard
-          icon="📊"
-          title="İstatistikler"
-          sub="Zaman dağılımın, trendler, özet"
-          onClick={() => onNavigate("stats")}
-        />
+      <div className="home-split">
+        <div
+          className="home-card"
+          role="button"
+          tabIndex={0}
+          title="Profili aç"
+          onClick={() => onNavigate("profile")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") onNavigate("profile");
+          }}
+        >
+          <BadgeCard
+            name={displayName || username}
+            imageUrl={avatarUrl}
+            uid={uidFromId(userId)}
+            dateLabel={dateDMY(memberSince)}
+          />
+          <span className="home-card-hint muted small">Profili aç →</span>
+        </div>
+
+        <div className="home-menu">
+          <MenuCard
+            primary
+            icon="📅"
+            title="Mevcut Hafta"
+            sub="Bu haftanın zaman takibini yap"
+            onClick={() => onNavigate("week")}
+          />
+          <MenuCard
+            icon="🗂️"
+            title="Haftalar"
+            sub="Geçmiş haftalara bak & karşılaştır"
+            onClick={() => onNavigate("weeks")}
+          />
+          <MenuCard
+            icon="📊"
+            title="İstatistikler"
+            sub="Zaman dağılımın, trendler, özet"
+            onClick={() => onNavigate("stats")}
+          />
+          <MenuCard
+            icon="👤"
+            title="Profil"
+            sub="Kartın, hesap ve ayarlar"
+            onClick={() => onNavigate("profile")}
+          />
+        </div>
       </div>
     </div>
   );

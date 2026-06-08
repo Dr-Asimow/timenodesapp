@@ -589,9 +589,11 @@ export function App() {
 
         {view === "home" ? (
           <Home
+            userId={userId ?? ""}
             username={username}
             displayName={displayName}
             avatarUrl={avatarUrl}
+            memberSince={memberSince}
             weekTotalMin={weekTotalMin}
             coins={coins}
             onNavigate={navigate}

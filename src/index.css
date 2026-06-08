@@ -238,9 +238,43 @@ body {
   color: var(--accent);
 }
 
+/* Ana menü: sol profil kartı + sağ sayfa butonları */
+.home-hello-line {
+  font-size: 16px;
+}
+.home-split {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+}
+.home-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.home-card .badge-card {
+  transition: transform 0.12s;
+}
+.home-card:hover .badge-card {
+  transform: translateY(-3px);
+}
+.home-card-hint {
+  transition: color 0.12s;
+}
+.home-card:hover .home-card-hint {
+  color: var(--accent);
+}
+
 .home-menu {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 .menu-card {
@@ -259,8 +293,10 @@ body {
   transform: translateY(-2px);
   border-color: var(--accent);
 }
+.menu-card {
+  flex: 1;
+}
 .menu-card.primary {
-  grid-column: 1 / -1;
   background: linear-gradient(135deg, rgba(57, 211, 83, 0.14), var(--panel));
   border-color: rgba(57, 211, 83, 0.4);
 }
@@ -547,11 +583,13 @@ body {
 }
 
 @media (max-width: 600px) {
-  .profile-grid {
+  .profile-grid,
+  .home-split {
     flex-direction: column;
     align-items: center;
   }
-  .profile-side {
+  .profile-side,
+  .home-menu {
     width: 100%;
   }
 }

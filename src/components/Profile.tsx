@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatHours } from "../heat";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
-import { BadgeCard } from "./BadgeCard";
+import { BadgeCard, uidFromId, dateDMY } from "./BadgeCard";
 
 const MONTHS_TR = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -11,18 +11,6 @@ const MONTHS_TR = [
 function memberSinceLabel(iso: string): string {
   const d = new Date(iso);
   return `${d.getDate()} ${MONTHS_TR[d.getMonth()]} ${d.getFullYear()}`;
-}
-function dateDMY(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, "0")}.${String(
-    d.getMonth() + 1
-  ).padStart(2, "0")}.${d.getFullYear()}`;
-}
-// userId'den sabit 12 haneli UID
-function uidFromId(id: string): string {
-  const hex = (id.replace(/[^0-9a-f]/gi, "").slice(0, 15) || "0").toLowerCase();
-  const n = BigInt("0x" + hex) % 1000000000000n;
-  return n.toString().padStart(12, "0");
 }
 
 export function Profile({

@@ -17,6 +17,19 @@ export const DEFAULT_SKIN: CardSkin = {
   window: { top: 24.7, left: 5.13, right: 5.13, bottom: 2.47 },
 };
 
+// userId'den sabit 12 haneli UID
+export function uidFromId(id: string): string {
+  const hex = (id.replace(/[^0-9a-f]/gi, "").slice(0, 15) || "0").toLowerCase();
+  const n = BigInt("0x" + hex) % 1000000000000n;
+  return n.toString().padStart(12, "0");
+}
+export function dateDMY(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}.${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
 export function BadgeCard({
   name,
   imageUrl,
