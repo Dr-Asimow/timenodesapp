@@ -30,6 +30,67 @@ export async function loadYearTotals(
   return map;
 }
 
+// İstatistik sayfası için yıl bazında özet
+export type YearStats = {
+  perWeek: Record<number, number>; // hafta no → toplam çalışma dk
+  perHabit: { name: string; min: number }[]; // alışkanlık bazında çalışma dk (azalan)
+  totalWork: number;
+  totalBreak: number;
+  activeDays: number; // çalışma>0 olan farklı gün sayısı
+  bestDay: { day: string; min: number } | null;
+};
+
+export async function loadYearStats(year: number): Promise<YearStats> {
+  const { data: entries, error } = await supabase
+    .from("entries")
+    .select("habit_id,day,work_min,break_min")
+    .gte("day", `${year}-01-01`)
+    .lte("day", `${year}-12-31`);
+  if (error) throw error;
+
+  const { data: habitRows } = await supabase.from("habits").select("id,name");
+  const names = new Map<string, string>();
+  for (const h of (habitRows as { id: string; name: string }[]) ?? [])
+    names.set(h.id, h.name);
+
+  const perWeek: Record<number, number> = {};
+  const perHabitMin = new Map<string, number>();
+  const dayWork = new Map<string, number>();
+  let totalWork = 0;
+  let totalBreak = 0;
+
+  for (const e of (entries as {
+    habit_id: string;
+    day: string;
+    work_min: number;
+    break_min: number;
+  }[]) ?? []) {
+    totalWork += e.work_min;
+    totalBreak += e.break_min;
+    const wk = isoWeekNumber(new Date(e.day + "T00:00:00"));
+    perWeek[wk] = (perWeek[wk] ?? 0) + e.work_min;
+    perHabitMin.set(
+      e.habit_id,
+      (perHabitMin.get(e.habit_id) ?? 0) + e.work_min
+    );
+    dayWork.set(e.day, (dayWork.get(e.day) ?? 0) + e.work_min);
+  }
+
+  const perHabit = [...perHabitMin.entries()]
+    .map(([id, min]) => ({ name: names.get(id) ?? "—", min }))
+    .filter((x) => x.min > 0)
+    .sort((a, b) => b.min - a.min);
+
+  let activeDays = 0;
+  let bestDay: { day: string; min: number } | null = null;
+  for (const [day, min] of dayWork) {
+    if (min > 0) activeDays++;
+    if (!bestDay || min > bestDay.min) bestDay = { day, min };
+  }
+
+  return { perWeek, perHabit, totalWork, totalBreak, activeDays, bestDay };
+}
+
 const DEFAULT_HABITS = [
   "Çizim",
   "Japonca",

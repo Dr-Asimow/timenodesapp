@@ -23,7 +23,7 @@ import {
   saveTimers,
   weeksOfYear,
 } from "./storage";
-import { loadYearTotals } from "./db";
+import { loadYearTotals, loadYearStats, type YearStats } from "./db";
 import { isRunning, settle, workMinutes, breakTotalMs } from "./timer";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
@@ -33,6 +33,7 @@ import { Brand, LoadingScreen } from "./components/Brand";
 import { Home, type View } from "./components/Home";
 import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
+import { Stats } from "./components/Stats";
 import { DayPanel } from "./components/DayPanel";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { FlyParticles, type Burst } from "./components/Particles";
@@ -80,6 +81,7 @@ export function App() {
   const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
     null
   );
+  const [yearStats, setYearStats] = useState<YearStats | null>(null);
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
   // Seçili hücre (popover) — hem ızgaradan hem gündemden açılabilsin diye App'te
@@ -146,6 +148,16 @@ export function App() {
     if (view === "weeks" && week) {
       loadYearTotals(week.year)
         .then(setYearTotals)
+        .catch(() => {});
+    }
+  }, [view, week?.year]);
+
+  // İstatistikler sayfasına girince yıl istatistiklerini çek
+  useEffect(() => {
+    if (view === "stats" && week) {
+      setYearStats(null);
+      loadYearStats(week.year)
+        .then(setYearStats)
         .catch(() => {});
     }
   }, [view, week?.year]);
@@ -652,6 +664,13 @@ export function App() {
             totals={yearTotals}
             currentStartISO={week.startDate}
             onOpenWeek={openWeek}
+          />
+        ) : view === "stats" ? (
+          <Stats
+            year={week.year}
+            weekTotalMin={weekTotalMin}
+            currentWeek={week.weekNumber}
+            stats={yearStats}
           />
         ) : (
           <Profile

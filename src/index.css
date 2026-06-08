@@ -182,6 +182,28 @@ body {
   border-radius: 16px;
   padding: 20px 22px;
 }
+.home-hero.as-button {
+  width: 100%;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.12s, transform 0.1s;
+}
+.home-hero.as-button:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.hero-arrow {
+  color: var(--muted);
+  font-size: 18px;
+  margin-left: 4px;
+  transition: color 0.12s, transform 0.12s;
+}
+.home-hero.as-button:hover .hero-arrow {
+  color: var(--accent);
+  transform: translateX(3px);
+}
 .avatar-lg {
   width: 56px;
   height: 56px;
@@ -440,6 +462,106 @@ body {
 .profile-note {
   margin-top: 18px;
   line-height: 1.5;
+}
+.stat-sub {
+  margin-top: 2px;
+}
+
+/* --- İstatistikler sayfası ------------------------------------------- */
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.stats-head {
+  margin: 0;
+  font-size: 22px;
+}
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.stats-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 18px 20px;
+}
+.stats-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+/* Alışkanlık dağılımı barları */
+.habit-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.habit-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 64px;
+  align-items: center;
+  gap: 10px;
+}
+.habit-bar-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.habit-bar-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.habit-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f8f4a, var(--accent));
+  min-width: 3px;
+  transition: width 0.4s ease;
+}
+.habit-bar-val {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Haftalık çalışma mini bar grafiği */
+.week-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding-top: 6px;
+}
+.week-bar-wrap {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+.week-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--lvl-2);
+  transition: background 0.12s;
+}
+.week-bar-wrap:hover .week-bar {
+  background: var(--lvl-5);
+}
+.week-bar-wrap.current .week-bar {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(57, 211, 83, 0.6);
+}
+.week-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
 }
 
 .main {

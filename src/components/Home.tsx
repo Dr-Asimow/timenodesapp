@@ -1,6 +1,6 @@
 import { formatHours } from "../heat";
 
-export type View = "home" | "week" | "weeks" | "profile";
+export type View = "home" | "week" | "weeks" | "profile" | "stats";
 
 export function initials(name: string): string {
   const s = name.trim();
@@ -23,7 +23,11 @@ export function Home({
 }) {
   return (
     <div className="home">
-      <section className="home-hero">
+      <button
+        className="home-hero as-button"
+        onClick={() => onNavigate("profile")}
+        title="Profili aç"
+      >
         <div className="avatar-lg">{initials(username)}</div>
         <div className="home-hero-text">
           <div className="home-hello">
@@ -34,7 +38,8 @@ export function Home({
           </div>
         </div>
         <div className="lvl-badge">Lv 1</div>
-      </section>
+        <span className="hero-arrow">→</span>
+      </button>
 
       <div className="home-menu">
         <MenuCard
@@ -51,10 +56,10 @@ export function Home({
           onClick={() => onNavigate("weeks")}
         />
         <MenuCard
-          icon="👤"
-          title="Profil"
-          sub="Profilin, istatistikler, ayarlar"
-          onClick={() => onNavigate("profile")}
+          icon="📊"
+          title="İstatistikler"
+          sub="Zaman dağılımın, trendler, özet"
+          onClick={() => onNavigate("stats")}
         />
       </div>
     </div>
