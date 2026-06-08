@@ -153,6 +153,12 @@ export function WeekGrid({
 
   const rangeStart = days[0];
   const rangeEnd = days[6];
+  const startMonth = rangeStart.iso.getMonth();
+  const endMonth = rangeEnd.iso.getMonth();
+  const rangeLabel =
+    startMonth === endMonth
+      ? `${rangeStart.date} – ${rangeEnd.date} ${MONTHS_TR[endMonth]} ${week.year}`
+      : `${rangeStart.date} ${MONTHS_TR[startMonth]} – ${rangeEnd.date} ${MONTHS_TR[endMonth]} ${week.year}`;
 
   return (
     <div className="week">
@@ -162,7 +168,7 @@ export function WeekGrid({
           <span className="week-no-big">{week.weekNumber}</span>
         </div>
         <div className="week-range muted">
-          {rangeStart.date} – {rangeEnd.date} · {week.year}
+          {rangeLabel}
         </div>
         <div className="week-total">
           <span className="muted small">Toplam</span>
