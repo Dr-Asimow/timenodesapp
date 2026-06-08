@@ -49,6 +49,9 @@ export function MusicPlayer() {
   const [input, setInput] = useState("");
   const [playing, setPlaying] = useState(false);
   const [title, setTitle] = useState("");
+  const [videoId, setVideoId] = useState<string | null>(
+    () => target?.videoId ?? null
+  );
   const [err, setErr] = useState(false);
 
   targetRef.current = target;
@@ -95,6 +98,7 @@ export function MusicPlayer() {
           try {
             const d = playerRef.current?.getVideoData?.();
             if (d?.title) setTitle(d.title);
+            if (d?.video_id) setVideoId(d.video_id);
           } catch {
             /* yoksay */
           }
@@ -122,6 +126,7 @@ export function MusicPlayer() {
     }
     setErr(false);
     setTarget(parsed);
+    if (parsed.videoId) setVideoId(parsed.videoId);
     localStorage.setItem(LS_KEY, JSON.stringify(parsed));
     load(parsed);
     setInput("");
@@ -142,20 +147,25 @@ export function MusicPlayer() {
         <span className="music-title-lbl">Müzik</span>
       </div>
 
-      <div className="music-stage">
-        {/* YT.Player bu div'i iframe ile değiştirir */}
+      {/* Gizli YT iframe — sadece ses çalar, görünmez (off-screen) */}
+      <div className="music-yt-hidden" aria-hidden="true">
         <div ref={holderRef} />
-        {!target ? (
-          <div className="music-empty muted small">
-            Aşağıya bir YouTube / YouTube Music linki yapıştır
-          </div>
-        ) : null}
       </div>
 
       {target ? (
         <>
-          <div className="music-now" title={title}>
-            {title || "Yükleniyor…"}
+          <div className="music-row">
+            <div className="music-thumb">
+              {videoId ? (
+                <img
+                  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                  alt=""
+                />
+              ) : null}
+            </div>
+            <div className="music-now" title={title}>
+              {title || "Yükleniyor…"}
+            </div>
           </div>
           <div className="music-controls">
             <button onClick={prev} title="Önceki">
@@ -169,7 +179,11 @@ export function MusicPlayer() {
             </button>
           </div>
         </>
-      ) : null}
+      ) : (
+        <div className="music-empty muted small">
+          Aşağıya bir YouTube / YouTube Music linki yapıştır
+        </div>
+      )}
 
       <form className="music-form" onSubmit={submit}>
         <input
