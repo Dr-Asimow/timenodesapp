@@ -24,7 +24,13 @@ import {
   weeksOfYear,
 } from "./storage";
 import { loadYearTotals, loadYearStats, type YearStats } from "./db";
-import { isRunning, settle, workMinutes, breakTotalMs } from "./timer";
+import {
+  isRunning,
+  settle,
+  workMinutes,
+  workTotalMs,
+  breakTotalMs,
+} from "./timer";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
 import { TimersStack } from "./components/TimerBar";
@@ -107,6 +113,13 @@ export function App() {
   const chain = useRef<Promise<unknown>>(Promise.resolve());
   // Gündeme otomatik eklenmekte olan alışkanlıklar (çift ekleme önler)
   const autoAddingRef = useRef<Set<string>>(new Set());
+  // Veri yüklendiği takvim günü (gün dönünce otomatik yenileme için)
+  const dayRef = useRef<string>(toISODate(new Date()));
+  // Interval içinden güncel değerlere erişim için ref'ler
+  const timersRef = useRef<ActiveTimer[]>([]);
+  const finishTimerRef = useRef<(t: ActiveTimer) => void>(() => {});
+  // Günlük/modal açıkken otomatik yenilemeyi ertele (kullanıcıyı kesmesin)
+  const reloadBlockedRef = useRef(false);
 
   const userId = session?.user?.id ?? null;
   const username =
@@ -189,6 +202,33 @@ export function App() {
   useEffect(() => {
     if (userId) saveTimers(userId, timers);
   }, [timers, userId]);
+
+  // Gün dönümü + 8 saat sınırı (tek interval, ref'lerle güncel değerler):
+  // - Çalışan sayaç 8 saati aşarsa otomatik bitir.
+  // - Yeni güne geçildiyse: çalışan sayaç VARSA ertele (başladığı güne yazsın),
+  //   çalışan sayaç YOKSA sayfayı yenile → sonraki sayaçlar yeni günde başlar.
+  useEffect(() => {
+    if (!userId) return;
+    const EIGHT_H = 8 * 3600 * 1000;
+    const id = setInterval(() => {
+      const ts = timersRef.current;
+      const capped = ts.find(
+        (t) => isRunning(t) && workTotalMs(t) + breakTotalMs(t) >= EIGHT_H
+      );
+      if (capped) {
+        finishTimerRef.current(capped);
+        return;
+      }
+      if (
+        toISODate(new Date()) !== dayRef.current &&
+        !ts.some((t) => isRunning(t)) &&
+        !reloadBlockedRef.current
+      ) {
+        location.reload();
+      }
+    }, 20000);
+    return () => clearInterval(id);
+  }, [userId]);
 
   // Popup kapandığında (cellSel→null) bekleyen "bitir" partikülünü patlat
   useEffect(() => {
@@ -450,6 +490,11 @@ export function App() {
 
   const cancelTimer = (target: ActiveTimer) =>
     setTimers(timers.filter((t) => !sameCell(t, target.habitId, target.day)));
+
+  // Interval ref'lerini her render'da güncel tut
+  timersRef.current = timers;
+  finishTimerRef.current = finishTimer;
+  reloadBlockedRef.current = noteTarget !== null || pending !== null;
 
   const pendingOthers = pending
     ? timers.filter(
