@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ActiveTimer, TimerConfig } from "../types";
 import type { DayType } from "./WeekGrid";
+import { formatMinutes } from "../heat";
 import {
   isRunning,
   phaseTotalMs,
@@ -101,8 +102,10 @@ export function CellPopover({
                 <div className="popover-divider" />
               </>
             ) : null}
-            <BigStat workMin={workMin} breakMin={breakMin} />
-            <EditRow onAddWork={onAddWork} />
+            <div className="stat-edit-row">
+              <BigStat workMin={workMin} breakMin={breakMin} />
+              <DeltaPicker current={workMin} onApply={onAddWork} />
+            </div>
             <div className="popover-divider" />
           </>
         )}
@@ -308,27 +311,108 @@ function BigStat({ workMin, breakMin }: { workMin: number; breakMin: number }) {
   );
 }
 
-// Tek satır: − [süre] + (boşken varsayılan 25dk)
-function EditRow({ onAddWork }: { onAddWork: (deltaMin: number) => void }) {
-  const [amt, setAmt] = useState("");
-  const amount = () => {
-    const n = parseInt(amt, 10);
-    return isNaN(n) || n <= 0 ? 25 : n;
-  };
+// --- Dakika ekle/çıkar: dikey scroll slider (−4 saat … +4 saat) -------
+const STEP_MIN = 5; // 5dk adımlar (5-10-15… kalıpları)
+const MAX_MIN = 240; // ±4 saat
+const ITEM_H = 34; // px, her satır yüksekliği
+const VISIBLE = 5; // görünen satır sayısı (tek olmalı)
+
+// Üstte +4 saat, ortada 0, altta −4 saat
+const DELTA_STEPS: number[] = [];
+for (let v = MAX_MIN; v >= -MAX_MIN; v -= STEP_MIN) DELTA_STEPS.push(v);
+const ZERO_INDEX = DELTA_STEPS.indexOf(0);
+
+// Slider etiketi: <60dk → "5dk", ≥60dk → "1 saat" / "1,5 saat"
+function fmtDelta(min: number): string {
+  if (min === 0) return "0";
+  const sign = min > 0 ? "+" : "−";
+  const a = Math.abs(min);
+  if (a < 60) return `${sign}${a}dk`;
+  const h = Math.round((a / 60) * 10) / 10;
+  return `${sign}${String(h).replace(".", ",")} saat`;
+}
+
+function DeltaPicker({
+  current,
+  onApply,
+}: {
+  current: number;
+  onApply: (deltaMin: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [idx, setIdx] = useState(ZERO_INDEX);
+  const delta = DELTA_STEPS[idx];
+  const newTotal = Math.max(0, current + delta);
+
+  // Açılışta 0'a hizala (flicker olmadan)
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.scrollTop = ZERO_INDEX * ITEM_H;
+  }, []);
+
+  function onScroll() {
+    const el = ref.current;
+    if (!el) return;
+    const i = Math.max(
+      0,
+      Math.min(DELTA_STEPS.length - 1, Math.round(el.scrollTop / ITEM_H))
+    );
+    if (i !== idx) setIdx(i);
+  }
+
+  function apply() {
+    if (delta === 0) return;
+    onApply(delta);
+    setIdx(ZERO_INDEX);
+    if (ref.current) ref.current.scrollTop = ZERO_INDEX * ITEM_H;
+  }
+
+  const pad = ((VISIBLE - 1) / 2) * ITEM_H;
+
   return (
-    <div className="editrow">
-      <button className="editrow-minus" onClick={() => onAddWork(-amount())}>
-        −
-      </button>
-      <input
-        value={amt}
-        onChange={(e) => setAmt(e.target.value)}
-        placeholder="dk"
-        inputMode="numeric"
-      />
-      <button className="editrow-plus" onClick={() => onAddWork(amount())}>
-        +
-      </button>
+    <div className="delta-row">
+      <div className="delta-picker-wrap" style={{ height: VISIBLE * ITEM_H }}>
+        <div
+          className="delta-picker"
+          ref={ref}
+          onScroll={onScroll}
+          style={{ height: VISIBLE * ITEM_H }}
+        >
+          <div style={{ height: pad, flex: "none" }} />
+          {DELTA_STEPS.map((v, i) => {
+            const dist = Math.abs(i - idx);
+            return (
+              <div
+                key={v}
+                className={`delta-item ${i === idx ? "sel" : ""} ${
+                  dist === 1 ? "near" : ""
+                } ${v > 0 ? "pos" : v < 0 ? "neg" : ""}`}
+                style={{ height: ITEM_H }}
+              >
+                {fmtDelta(v)}
+              </div>
+            );
+          })}
+          <div style={{ height: pad, flex: "none" }} />
+        </div>
+        <div className="delta-center-band" />
+      </div>
+
+      <div className="delta-apply">
+        <button
+          className={`delta-btn ${delta < 0 ? "minus" : "plus"}`}
+          disabled={delta === 0}
+          onClick={apply}
+        >
+          {delta === 0
+            ? "Kaydır"
+            : delta > 0
+            ? `+ Ekle`
+            : `− Çıkar`}
+        </button>
+        <span className="delta-preview muted small">
+          {delta === 0 ? formatMinutes(current) : `→ ${formatMinutes(newTotal)}`}
+        </span>
+      </div>
     </div>
   );
 }

@@ -841,7 +841,7 @@ tr.drag-over th {
 
 /* Hücre modalı (ortalanmış, arka plan kararır) */
 .cell-modal {
-  width: 320px;
+  width: 372px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 80px);
   overflow-y: auto;
@@ -1038,28 +1038,137 @@ tr.drag-over th {
   margin-top: 8px;
 }
 
-/* --- Geçmiş gün: büyük süre göstergesi -------------------------------- */
+/* --- Mevcut süre göstergesi (dikey: büyük sayı + altında mola) -------- */
 .bigstat {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding: 4px 2px 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px 2px;
 }
 .bigstat-num {
-  font-size: 64px;
+  font-size: 56px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
   color: var(--accent);
 }
 .bigstat-unit {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
 }
 .bigstat-break {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--muted);
-  margin-left: auto;
+}
+
+/* --- Süre düzenleme satırı: [mevcut süre] [dikey slider] [Ekle] ------- */
+.stat-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stat-edit-row .bigstat {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.delta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.delta-picker-wrap {
+  position: relative;
+  width: 92px;
+}
+.delta-picker {
+  width: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.delta-picker::-webkit-scrollbar {
+  display: none;
+}
+.delta-item {
+  scroll-snap-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.22);
+  transition: color 0.12s, font-size 0.12s;
+  user-select: none;
+}
+.delta-item.near {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.delta-item.sel {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+.delta-item.sel.pos {
+  color: var(--accent);
+}
+.delta-item.sel.neg {
+  color: #ff6b6b;
+}
+/* Ortadaki seçim bandı */
+.delta-center-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 34px;
+  transform: translateY(-50%);
+  border-top: 1px solid rgba(57, 211, 83, 0.45);
+  border-bottom: 1px solid rgba(57, 211, 83, 0.45);
+  pointer-events: none;
+}
+.delta-apply {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.delta-btn {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #0a1f12;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.12s, opacity 0.12s;
+}
+.delta-btn.minus {
+  background: #ff6b6b;
+  border-color: #ff6b6b;
+  color: #2a0a0a;
+}
+.delta-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.delta-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.delta-preview {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Aktivite / gün notu alanı */

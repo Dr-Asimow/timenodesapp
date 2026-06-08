@@ -79,9 +79,7 @@ export function WeekGrid({
 
   function addMinutes(habitId: string, day: number, delta: number) {
     const cur = week.minutes[habitId]?.[day] ?? 0;
-    if (delta < 0 && cur + delta < cur) {
-      if (!confirm(`${formatMinutes(Math.abs(delta))} çıkarılsın mı?`)) return;
-    }
+    // 0'ın altına düşmez (setMinutes Math.max(0,...) ile clamp'ler)
     setMinutes(habitId, day, cur + delta);
   }
 
