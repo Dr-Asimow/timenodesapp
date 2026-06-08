@@ -20,6 +20,17 @@ export type WeekData = {
   dayNotes: (string | null)[];
 };
 
+// Günlük gündem öğesi: haftalık tablodan seçilen alışkanlık (habitId dolu)
+// ya da serbest yazılan yapılacak (todo). done sadece todo'larda kullanılır.
+export type TodoItem = {
+  id: string;
+  day: string; // ISO tarih (YYYY-MM-DD)
+  habitId: string | null;
+  title: string;
+  done: boolean;
+  position: number;
+};
+
 export type TimerPhase = "work" | "break";
 
 export type ActiveTimer = {

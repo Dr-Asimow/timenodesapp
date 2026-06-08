@@ -10,6 +10,10 @@ import {
   updateHabitPosition,
   upsertEntry,
   setDayNote,
+  loadDayTodos,
+  addTodo,
+  setTodoDone,
+  deleteTodo,
 } from "./db";
 import {
   mondayOf,
@@ -29,6 +33,16 @@ import { Brand, LoadingScreen } from "./components/Brand";
 import { Home, type View } from "./components/Home";
 import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
+import { DayPanel } from "./components/DayPanel";
+import type { TodoItem } from "./types";
+
+const TR_MONTHS = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
+const TR_DAYS = [
+  "PAZAR", "PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ",
+];
 
 const sameCell = (t: ActiveTimer, habitId: string, day: number) =>
   t.habitId === habitId && t.day === day;
@@ -64,6 +78,8 @@ export function App() {
   const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
     null
   );
+  // Bugünün gündemi (to-do + seçilen alışkanlıklar)
+  const [todos, setTodos] = useState<TodoItem[]>([]);
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -117,6 +133,23 @@ export function App() {
         .catch(() => {});
     }
   }, [view, week?.year]);
+
+  // Bugünün gündemini (to-do'lar) yükle
+  useEffect(() => {
+    if (!userId) {
+      setTodos([]);
+      return;
+    }
+    let cancel = false;
+    loadDayTodos(toISODate(new Date()))
+      .then((t) => {
+        if (!cancel) setTodos(t);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [userId]);
 
   // Sayaçları (cihaz-yerel) değiştikçe localStorage'a yaz
   useEffect(() => {
@@ -320,6 +353,63 @@ export function App() {
   const shownWeek = viewedWeek ?? week;
   const viewingOther = viewedWeek !== null;
 
+  // --- Bugün paneli (sol) için hesaplamalar ---
+  const today = new Date();
+  const todayISO = toISODate(today);
+  const todayIndex = Math.round(
+    (Date.parse(todayISO) - Date.parse(week.startDate)) / 86400000
+  );
+  const todayInWeek = todayIndex >= 0 && todayIndex <= 6;
+  const dateLabel = `${String(today.getDate()).padStart(2, "0")} ${
+    TR_MONTHS[today.getMonth()]
+  }`;
+  const dayName = TR_DAYS[today.getDay()];
+  const todayMinutes: Record<string, number> = {};
+  for (const h of week.habits)
+    todayMinutes[h.id] = todayInWeek ? week.minutes[h.id]?.[todayIndex] ?? 0 : 0;
+  const runningHabitIds = new Set(
+    timers.filter((t) => isRunning(t) && t.day === todayIndex).map((t) => t.habitId)
+  );
+  const todayNote = (todayInWeek ? week.dayNotes[todayIndex] : null) ?? "";
+
+  // Gündem handler'ları
+  const addHabitItem = async (habitId: string, habitName: string) => {
+    if (!userId || todos.some((t) => t.habitId === habitId)) return;
+    try {
+      const item = await addTodo(userId, todayISO, habitId, habitName, todos.length);
+      setTodos((cur) => [...cur, item]);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Gündem eklenemedi");
+    }
+  };
+  const addTodoItem = async (title: string) => {
+    if (!userId) return;
+    try {
+      const item = await addTodo(userId, todayISO, null, title, todos.length);
+      setTodos((cur) => [...cur, item]);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Yapılacak eklenemedi");
+    }
+  };
+  const toggleTodo = (id: string, done: boolean) => {
+    setTodos((cur) => cur.map((t) => (t.id === id ? { ...t, done } : t)));
+    setTodoDone(id, done).catch(() => {});
+  };
+  const deleteItem = (id: string) => {
+    setTodos((cur) => cur.filter((t) => t.id !== id));
+    deleteTodo(id).catch(() => {});
+  };
+  const startHabit = (habitId: string) => {
+    if (!todayInWeek) return;
+    requestStart(habitId, todayIndex, { workTargetMs: null, plannedBreakMs: null });
+  };
+  const setTodayNote = (note: string) => {
+    if (!todayInWeek) return;
+    const row = week.dayNotes.slice();
+    row[todayIndex] = note.trim() ? note : null;
+    applyWeek({ ...week, dayNotes: row });
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -359,7 +449,11 @@ export function App() {
       />
 
       <main className="main">
-        <div className="page">
+        <div
+          className={`page ${
+            view === "week" && !viewingOther ? "wide" : ""
+          }`}
+        >
         {view !== "home" ? (
           <button className="back-btn" onClick={() => setView("home")}>
             ← Ana sayfa
@@ -374,40 +468,67 @@ export function App() {
             onNavigate={navigate}
           />
         ) : view === "week" ? (
-          <>
-            {viewingOther ? (
-              <div className="viewing-banner">
-                <span>
-                  {shownWeek.weekNumber}. hafta görüntüleniyor (geçmiş kayıt)
-                </span>
-                <button
-                  className="ghost-btn small"
-                  onClick={() => setViewedWeek(null)}
-                >
-                  Güncel haftaya dön
-                </button>
+          (() => {
+            const grid = (
+              <WeekGrid
+                week={shownWeek}
+                activeTimers={viewingOther ? [] : timers}
+                onChange={applyWeek}
+                onStartTimer={requestStart}
+                timerActions={{
+                  pause: pauseTimer,
+                  resume: (t) =>
+                    requestStart(t.habitId, t.day, {
+                      workTargetMs: t.workTargetMs,
+                      plannedBreakMs: t.plannedBreakMs,
+                    }),
+                  startBreak: startBreak,
+                  resumeWork: resumeWork,
+                  ack: ackAlarm,
+                  finish: finishTimer,
+                  cancel: cancelTimer,
+                }}
+              />
+            );
+            if (viewingOther) {
+              return (
+                <>
+                  <div className="viewing-banner">
+                    <span>
+                      {shownWeek.weekNumber}. hafta görüntüleniyor (geçmiş kayıt)
+                    </span>
+                    <button
+                      className="ghost-btn small"
+                      onClick={() => setViewedWeek(null)}
+                    >
+                      Güncel haftaya dön
+                    </button>
+                  </div>
+                  {grid}
+                </>
+              );
+            }
+            return (
+              <div className="week-layout">
+                <DayPanel
+                  dateLabel={dateLabel}
+                  dayName={dayName}
+                  habits={week.habits}
+                  items={todos}
+                  todayMinutes={todayMinutes}
+                  runningHabitIds={runningHabitIds}
+                  note={todayNote}
+                  onAddHabit={addHabitItem}
+                  onAddTodo={addTodoItem}
+                  onToggleTodo={toggleTodo}
+                  onDeleteItem={deleteItem}
+                  onStartHabit={startHabit}
+                  onSetNote={setTodayNote}
+                />
+                <div className="week-main">{grid}</div>
               </div>
-            ) : null}
-            <WeekGrid
-              week={shownWeek}
-              activeTimers={viewingOther ? [] : timers}
-              onChange={applyWeek}
-              onStartTimer={requestStart}
-              timerActions={{
-                pause: pauseTimer,
-                resume: (t) =>
-                  requestStart(t.habitId, t.day, {
-                    workTargetMs: t.workTargetMs,
-                    plannedBreakMs: t.plannedBreakMs,
-                  }),
-                startBreak: startBreak,
-                resumeWork: resumeWork,
-                ack: ackAlarm,
-                finish: finishTimer,
-                cancel: cancelTimer,
-              }}
-            />
-          </>
+            );
+          })()
         ) : view === "weeks" ? (
           <WeeksPage
             year={week.year}

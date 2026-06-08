@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Habit, WeekData } from "./types";
+import type { Habit, TodoItem, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -239,6 +239,71 @@ export async function upsertEntry(
     },
     { onConflict: "habit_id,day" }
   );
+  if (error) throw error;
+}
+
+// --- Günlük gündem / yapılacaklar (to-do) ----------------------------
+
+type TodoRow = {
+  id: string;
+  day: string;
+  habit_id: string | null;
+  title: string;
+  done: boolean;
+  position: number;
+};
+
+const toTodo = (r: TodoRow): TodoItem => ({
+  id: r.id,
+  day: r.day,
+  habitId: r.habit_id,
+  title: r.title,
+  done: r.done,
+  position: r.position,
+});
+
+// Bir günün gündem öğelerini yükle (sıralı)
+export async function loadDayTodos(dayISO: string): Promise<TodoItem[]> {
+  const { data, error } = await supabase
+    .from("todos")
+    .select("id,day,habit_id,title,done,position")
+    .eq("day", dayISO)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data as TodoRow[]) ?? []).map(toTodo);
+}
+
+// Gündem öğesi ekle (alışkanlık bağlı: habitId dolu / serbest todo: title)
+export async function addTodo(
+  userId: string,
+  dayISO: string,
+  habitId: string | null,
+  title: string,
+  position: number
+): Promise<TodoItem> {
+  const { data, error } = await supabase
+    .from("todos")
+    .insert({
+      user_id: userId,
+      day: dayISO,
+      habit_id: habitId,
+      title,
+      position,
+    })
+    .select("id,day,habit_id,title,done,position")
+    .single();
+  if (error) throw error;
+  return toTodo(data as TodoRow);
+}
+
+export async function setTodoDone(id: string, done: boolean) {
+  const { error } = await supabase.from("todos").update({ done }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteTodo(id: string) {
+  const { error } = await supabase.from("todos").delete().eq("id", id);
   if (error) throw error;
 }
 
