@@ -662,9 +662,10 @@ body {
 }
 
 /* Gündem ekleme modalı (iki kolon) */
-.agenda-modal {
+/* .modal.agenda-modal → temel .modal (width:380) kuralını özgüllükle geçer */
+.modal.agenda-modal {
   position: relative;
-  width: 780px;
+  width: 820px;
   max-width: calc(100vw - 32px);
   text-align: left;
   padding: 30px 34px 34px;
@@ -1207,7 +1208,7 @@ tr.drag-over th {
 }
 
 /* Hücre modalı (ortalanmış, arka plan kararır) */
-.cell-modal {
+.modal.cell-modal {
   width: 372px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 80px);
