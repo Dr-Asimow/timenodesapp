@@ -34,6 +34,7 @@ export function WeekGrid({
   timerActions,
   sel,
   onSelChange,
+  onOpenDayNote,
 }: {
   week: WeekData;
   activeTimers: ActiveTimer[];
@@ -43,6 +44,8 @@ export function WeekGrid({
   // Seçili hücre (popover) App'te tutulur ki DayPanel de açabilsin
   sel: CellSel;
   onSelChange: (sel: CellSel) => void;
+  // O günün günlüğünü (Not Defteri) aç
+  onOpenDayNote: (dayISO: string, label: string) => void;
 }) {
   const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
@@ -79,12 +82,6 @@ export function WeekGrid({
     ).slice();
     row[day] = note.trim() ? note : null;
     onChange({ ...week, notes: { ...week.notes, [habitId]: row } });
-  }
-
-  function setDayNoteAt(day: number, note: string) {
-    const row = week.dayNotes.slice();
-    row[day] = note.trim() ? note : null;
-    onChange({ ...week, dayNotes: row });
   }
 
   function addMinutes(habitId: string, day: number, delta: number) {
@@ -191,12 +188,11 @@ export function WeekGrid({
                   {d.isToday ? <span className="today-dot" /> : null}
                   <button
                     className="day-head-btn"
-                    title="Gün notu ekle/gör"
+                    title="Gün özeti / günlük"
                     onClick={() => setDayNoteSel(i)}
                   >
                     <span className="day-label">{d.label}</span>
                     <span className="day-date">{d.date}</span>
-                    {week.dayNotes[i] ? <span className="note-dot" /> : null}
                   </button>
                 </th>
               ))}
@@ -406,8 +402,10 @@ export function WeekGrid({
             work: week.minutes[h.id]?.[dayNoteSel] ?? 0,
             brk: week.breaks[h.id]?.[dayNoteSel] ?? 0,
           }))}
-          note={week.dayNotes[dayNoteSel] ?? ""}
-          onSaveNote={(note) => setDayNoteAt(dayNoteSel, note)}
+          onOpenJournal={(dayISO, label) => {
+            setDayNoteSel(null);
+            onOpenDayNote(dayISO, label);
+          }}
           onClose={() => setDayNoteSel(null)}
         />
       ) : null}
@@ -465,20 +463,17 @@ function DaySummaryModal({
   dayLabel,
   dayISO,
   breakdown,
-  note,
-  onSaveNote,
+  onOpenJournal,
   onClose,
 }: {
   dayLabel: string;
   dayISO: string;
   breakdown: DayBreakdown[];
-  note: string;
-  onSaveNote: (note: string) => void;
+  onOpenJournal: (dayISO: string, label: string) => void;
   onClose: () => void;
 }) {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [val, setVal] = useState(note);
 
   useEffect(() => {
     let cancel = false;
@@ -498,10 +493,7 @@ function DaySummaryModal({
     };
   }, [dayISO]);
 
-  function close() {
-    if ((val ?? "") !== (note ?? "")) onSaveNote(val);
-    onClose();
-  }
+  const close = onClose;
 
   const habitItems = todos.filter((t) => t.habitId);
   const todoItems = todos.filter((t) => !t.habitId);
@@ -567,16 +559,12 @@ function DaySummaryModal({
           )}
         </section>
 
-        <section className="ds-section">
-          <h4 className="ds-title">Gün notu</h4>
-          <textarea
-            className="note-area"
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
-            placeholder="Bu güne dair genel notun…"
-            rows={3}
-          />
-        </section>
+        <button
+          className="notebook-btn ds-journal"
+          onClick={() => onOpenJournal(dayISO, dayLabel)}
+        >
+          📓 Günlüğü aç
+        </button>
       </div>
     </div>
   );

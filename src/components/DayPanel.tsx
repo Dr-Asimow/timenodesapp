@@ -123,7 +123,7 @@ export function DayPanel({
       </div>
 
       <button className="notebook-btn" onClick={onOpenNote}>
-        Not Defteri
+        📓 Günlük
       </button>
 
       {modal ? (

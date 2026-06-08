@@ -85,8 +85,11 @@ export function App() {
   const [yearStats, setYearStats] = useState<YearStats | null>(null);
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
-  // Not Defteri (tam ekran) açık mı
-  const [noteOpen, setNoteOpen] = useState(false);
+  // Günlük (Not Defteri, tam ekran) — açık gün + etiket
+  const [noteTarget, setNoteTarget] = useState<{
+    day: string;
+    label: string;
+  } | null>(null);
   // Seçili hücre (popover) — hem ızgaradan hem gündemden açılabilsin diye App'te
   const [cellSel, setCellSel] = useState<{ habitId: string; day: number } | null>(
     null
@@ -616,6 +619,7 @@ export function App() {
                 }}
                 sel={cellSel}
                 onSelChange={setCellSel}
+                onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
               />
             );
             if (viewingOther) {
@@ -654,7 +658,12 @@ export function App() {
                   onDeleteItem={deleteItem}
                   onStartHabit={startHabit}
                   onOpenHabit={openHabit}
-                  onOpenNote={() => setNoteOpen(true)}
+                  onOpenNote={() =>
+                    setNoteTarget({
+                      day: todayISO,
+                      label: `${dateLabel} ${dayName}`,
+                    })
+                  }
                 />
                 <div className="week-main">{grid}</div>
               </div>
@@ -714,12 +723,12 @@ export function App() {
       {/* Her zaman mount: sayfa değişse de müzik (iframe) durmaz */}
       <MusicPlayer />
 
-      {noteOpen && userId ? (
+      {noteTarget && userId ? (
         <NotePage
           userId={userId}
-          day={todayISO}
-          dateLabel={`${dateLabel} ${dayName}`}
-          onClose={() => setNoteOpen(false)}
+          day={noteTarget.day}
+          dateLabel={noteTarget.label}
+          onClose={() => setNoteTarget(null)}
         />
       ) : null}
     </div>

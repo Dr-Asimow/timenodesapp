@@ -80,7 +80,7 @@ export function NotePage({
         <button className="ghost-btn small" onClick={close}>
           ← Kapat
         </button>
-        <span className="note-day muted small">{dateLabel} · Not Defteri</span>
+        <span className="note-day muted small">{dateLabel} · Günlük</span>
         <span className="note-status muted small">
           {status === "saving"
             ? "Kaydediliyor…"

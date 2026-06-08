@@ -2889,6 +2889,12 @@ tr.drag-over th {
   border-color: var(--accent);
   color: var(--accent);
 }
+/* Gün özeti modalındaki "Günlüğü aç" — daha kompakt */
+.ds-journal {
+  margin-top: 4px;
+  padding: 13px 0;
+  font-size: 14px;
+}
 
 /* Tam ekran not sayfası */
 .note-overlay {
