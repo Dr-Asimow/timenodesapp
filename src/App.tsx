@@ -35,6 +35,7 @@ import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
 import { Stats } from "./components/Stats";
 import { DayPanel } from "./components/DayPanel";
+import { NotePage } from "./components/note/NotePage";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { FlyParticles, type Burst } from "./components/Particles";
 import type { TodoItem } from "./types";
@@ -84,6 +85,8 @@ export function App() {
   const [yearStats, setYearStats] = useState<YearStats | null>(null);
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  // Not Defteri (tam ekran) açık mı
+  const [noteOpen, setNoteOpen] = useState(false);
   // Seçili hücre (popover) — hem ızgaradan hem gündemden açılabilsin diye App'te
   const [cellSel, setCellSel] = useState<{ habitId: string; day: number } | null>(
     null
@@ -490,8 +493,6 @@ export function App() {
   const runningHabitIds = new Set(
     timers.filter((t) => isRunning(t) && t.day === todayIndex).map((t) => t.habitId)
   );
-  const todayNote = (todayInWeek ? week.dayNotes[todayIndex] : null) ?? "";
-
   // Gündem handler'ları
   const addHabitItem = async (habitId: string, habitName: string) => {
     if (!userId || todos.some((t) => t.habitId === habitId)) return;
@@ -529,12 +530,6 @@ export function App() {
   const openHabit = (habitId: string) => {
     if (!todayInWeek) return;
     setCellSel({ habitId, day: todayIndex });
-  };
-  const setTodayNote = (note: string) => {
-    if (!todayInWeek) return;
-    const row = week.dayNotes.slice();
-    row[todayIndex] = note.trim() ? note : null;
-    applyWeek({ ...week, dayNotes: row });
   };
 
   return (
@@ -653,14 +648,13 @@ export function App() {
                   items={todos}
                   todayMinutes={todayMinutes}
                   runningHabitIds={runningHabitIds}
-                  note={todayNote}
                   onAddHabit={addHabitItem}
                   onAddTodo={addTodoItem}
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
                   onStartHabit={startHabit}
                   onOpenHabit={openHabit}
-                  onSetNote={setTodayNote}
+                  onOpenNote={() => setNoteOpen(true)}
                 />
                 <div className="week-main">{grid}</div>
               </div>
@@ -719,6 +713,15 @@ export function App() {
 
       {/* Her zaman mount: sayfa değişse de müzik (iframe) durmaz */}
       <MusicPlayer />
+
+      {noteOpen && userId ? (
+        <NotePage
+          userId={userId}
+          day={todayISO}
+          dateLabel={`${dateLabel} ${dayName}`}
+          onClose={() => setNoteOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

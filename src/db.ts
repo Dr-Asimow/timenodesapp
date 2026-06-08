@@ -398,6 +398,48 @@ export async function deleteTodo(id: string) {
   if (error) throw error;
 }
 
+// --- Not sayfaları (Notion benzeri, blok-tabanlı / Tiptap JSON) -------
+
+export type PageDoc = Record<string, unknown>;
+export type Page = {
+  id: string;
+  title: string;
+  content: PageDoc | null;
+  day: string | null;
+};
+
+type PageRow = {
+  id: string;
+  title: string;
+  content: PageDoc | null;
+  day: string | null;
+};
+
+// Bir güne ait not sayfasını yükle (yoksa null)
+export async function loadDayPage(dayISO: string): Promise<Page | null> {
+  const { data, error } = await supabase
+    .from("pages")
+    .select("id,title,content,day")
+    .eq("day", dayISO)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as PageRow) ?? null;
+}
+
+// Bir güne ait not sayfasını kaydet (upsert: user_id+day tekil)
+export async function saveDayPage(
+  userId: string,
+  dayISO: string,
+  title: string,
+  content: PageDoc
+): Promise<void> {
+  const { error } = await supabase.from("pages").upsert(
+    { user_id: userId, day: dayISO, title, content },
+    { onConflict: "user_id,day" }
+  );
+  if (error) throw error;
+}
+
 // Gün notu (tarih bazında) yaz
 export async function setDayNote(
   userId: string,

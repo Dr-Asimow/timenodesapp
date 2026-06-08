@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Habit, TodoItem } from "../types";
 import { formatMinutes } from "../heat";
 
@@ -9,14 +9,13 @@ export function DayPanel({
   items,
   todayMinutes,
   runningHabitIds,
-  note,
   onAddHabit,
   onAddTodo,
   onToggleTodo,
   onDeleteItem,
   onStartHabit,
   onOpenHabit,
-  onSetNote,
+  onOpenNote,
 }: {
   dateLabel: string;
   dayName: string;
@@ -24,14 +23,13 @@ export function DayPanel({
   items: TodoItem[];
   todayMinutes: Record<string, number>;
   runningHabitIds: Set<string>;
-  note: string;
   onAddHabit: (habitId: string, habitName: string) => void;
   onAddTodo: (title: string) => void;
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
   onStartHabit: (habitId: string) => void;
   onOpenHabit: (habitId: string) => void;
-  onSetNote: (note: string) => void;
+  onOpenNote: () => void;
 }) {
   const [modal, setModal] = useState(false);
 
@@ -124,10 +122,9 @@ export function DayPanel({
         )}
       </div>
 
-      <div className="day-note">
-        <span className="day-note-label">Bugünün notu</span>
-        <NoteArea note={note} onSetNote={onSetNote} />
-      </div>
+      <button className="notebook-btn" onClick={onOpenNote}>
+        Not Defteri
+      </button>
 
       {modal ? (
         <AgendaModal
@@ -140,35 +137,6 @@ export function DayPanel({
         />
       ) : null}
     </aside>
-  );
-}
-
-// Bugünün notu (blur'da kaydeder) — haftalık dayNotes ile aynı veriye yazar
-function NoteArea({
-  note,
-  onSetNote,
-}: {
-  note: string;
-  onSetNote: (note: string) => void;
-}) {
-  const [val, setVal] = useState(note);
-  const ref = useRef<HTMLTextAreaElement>(null);
-  // Not dışarıdan değişirse (gün başlığı modalından) ve burada yazmıyorsak senkronla
-  useEffect(() => {
-    if (document.activeElement !== ref.current) setVal(note);
-  }, [note]);
-  return (
-    <textarea
-      ref={ref}
-      className="day-note-area"
-      value={val}
-      onChange={(e) => setVal(e.target.value)}
-      onBlur={() => {
-        if ((val ?? "") !== (note ?? "")) onSetNote(val);
-      }}
-      placeholder="Bugüne dair genel not… (haftalık görünüme de eklenir)"
-      rows={3}
-    />
   );
 }
 
