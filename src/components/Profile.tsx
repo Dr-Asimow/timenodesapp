@@ -2,6 +2,8 @@ import { useState } from "react";
 import { formatHours } from "../heat";
 import { initials } from "./Home";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
+import cardplaceUrl from "../assets/card/cardplace.png";
+import claspUrl from "../assets/card/clasp.png";
 
 const MONTHS_TR = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -130,19 +132,23 @@ export function Profile({
 
   return (
     <div className="profile">
-      {/* Sol: kimlik kartı */}
+      {/* Sol: kimlik kartı — hazır görseller (cardplace taban + clasp üstte) */}
       <div className="id-card">
         <label className="id-body" title="Kart görselini değiştir">
+          <img className="id-cardplace" src={cardplaceUrl} alt="" />
           {art ? (
-            <img className="id-art-img" src={art} alt="" />
+            <img className="id-art" src={art} alt="" />
           ) : (
             <div className="id-art-fallback">{initials(cardName)}</div>
           )}
-          <span className="id-status" />
           <div className="id-overlay" />
-          <div className="id-name" style={{ fontSize: nameSize }}>
-            {cardName}
-            <span className="id-name-dot">.</span>
+          <div className="id-info">
+            <div className="id-name" style={{ fontSize: nameSize }}>
+              {cardName}
+              <span className="id-name-dot">.</span>
+            </div>
+            <div className="id-handle">@{username}</div>
+            {contactEmail ? <div className="id-email">{contactEmail}</div> : null}
           </div>
           <div className="id-foot">
             <span>{dateDMY(memberSince)}</span>
@@ -157,8 +163,7 @@ export function Profile({
             disabled={busy === "avatar"}
           />
         </label>
-        <div className="id-lanyard" />
-        <div className="id-slot" />
+        <img className="id-clasp" src={claspUrl} alt="" aria-hidden="true" />
       </div>
 
       {/* Sağ: hesap bilgileri + düzenleme */}
