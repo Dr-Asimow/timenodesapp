@@ -704,7 +704,24 @@ body {
   gap: 10px;
   max-height: 360px;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 8px;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+/* WebKit (Chrome/Edge/Safari) — temaya uygun ince scrollbar */
+.agenda-habit-list::-webkit-scrollbar {
+  width: 8px;
+}
+.agenda-habit-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.agenda-habit-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+.agenda-habit-list::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 .agenda-habit {
   display: flex;
