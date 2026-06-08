@@ -642,7 +642,6 @@ export function App() {
                   onSetNote={setTodayNote}
                 />
                 <div className="week-main">{grid}</div>
-                <MusicPlayer />
               </div>
             );
           })()
@@ -686,6 +685,9 @@ export function App() {
         bursts={bursts}
         onDone={(id) => setBursts((b) => b.filter((x) => x.id !== id))}
       />
+
+      {/* Her zaman mount: sayfa değişse de müzik (iframe) durmaz */}
+      <MusicPlayer />
     </div>
   );
 }

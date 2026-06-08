@@ -53,6 +53,8 @@ export function MusicPlayer() {
     () => target?.videoId ?? null
   );
   const [err, setErr] = useState(false);
+  // Açılışta müzik yoksa küçük (collapsed) başla
+  const [collapsed, setCollapsed] = useState(() => !target);
 
   targetRef.current = target;
 
@@ -141,68 +143,94 @@ export function MusicPlayer() {
   const prev = () => playerRef.current?.previousVideo?.();
 
   return (
-    <aside className="music-player">
+    <aside className={`music-player floating ${collapsed ? "collapsed" : ""}`}>
       <div className="music-head">
         <span className="music-ic">♪</span>
-        <span className="music-title-lbl">Müzik</span>
+        <span className="music-title-lbl">
+          {collapsed ? title || "Müzik" : "Müzik"}
+        </span>
+        {collapsed && target ? (
+          <button
+            className="music-mini-play"
+            onClick={toggle}
+            title="Oynat/Duraklat"
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+        ) : null}
+        <button
+          className="music-min"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? "Aç" : "Küçült"}
+        >
+          {collapsed ? "▢" : "—"}
+        </button>
       </div>
 
-      {/* Gizli YT iframe — sadece ses çalar, görünmez (off-screen) */}
+      {/* Gizli YT iframe — DAİMA mount (collapsed olsa da ses çalsın), off-screen */}
       <div className="music-yt-hidden" aria-hidden="true">
         <div ref={holderRef} />
       </div>
 
-      {target ? (
+      {!collapsed ? (
         <>
-          <div className="music-row">
-            <div className="music-thumb">
-              {videoId ? (
-                <img
-                  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
-                  alt=""
-                />
-              ) : null}
+          {target ? (
+            <>
+              <div className="music-row">
+                <div className="music-thumb">
+                  {videoId ? (
+                    <img
+                      src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                      alt=""
+                    />
+                  ) : null}
+                </div>
+                <div className="music-now" title={title}>
+                  {title || "Yükleniyor…"}
+                </div>
+              </div>
+              <div className="music-controls">
+                <button onClick={prev} title="Önceki">
+                  ⏮
+                </button>
+                <button
+                  className="music-play"
+                  onClick={toggle}
+                  title="Oynat/Duraklat"
+                >
+                  {playing ? "❚❚" : "▶"}
+                </button>
+                <button onClick={next} title="Sonraki">
+                  ⏭
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="music-empty muted small">
+              Aşağıya bir YouTube / YouTube Music linki yapıştır
             </div>
-            <div className="music-now" title={title}>
-              {title || "Yükleniyor…"}
-            </div>
-          </div>
-          <div className="music-controls">
-            <button onClick={prev} title="Önceki">
-              ⏮
-            </button>
-            <button className="music-play" onClick={toggle} title="Oynat/Duraklat">
-              {playing ? "❚❚" : "▶"}
-            </button>
-            <button onClick={next} title="Sonraki">
-              ⏭
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="music-empty muted small">
-          Aşağıya bir YouTube / YouTube Music linki yapıştır
-        </div>
-      )}
+          )}
 
-      <form className="music-form" onSubmit={submit}>
-        <input
-          className={`music-input ${err ? "err" : ""}`}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            if (err) setErr(false);
-          }}
-          placeholder="YouTube linki / playlist…"
-        />
-        <button className="music-add" type="submit" title="Yükle">
-          +
-        </button>
-      </form>
-      {err ? (
-        <span className="music-err muted small">
-          Geçerli bir YouTube linki bulunamadı.
-        </span>
+          <form className="music-form" onSubmit={submit}>
+            <input
+              className={`music-input ${err ? "err" : ""}`}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (err) setErr(false);
+              }}
+              placeholder="YouTube linki / playlist…"
+            />
+            <button className="music-add" type="submit" title="Yükle">
+              +
+            </button>
+          </form>
+          {err ? (
+            <span className="music-err muted small">
+              Geçerli bir YouTube linki bulunamadı.
+            </span>
+          ) : null}
+        </>
       ) : null}
     </aside>
   );
