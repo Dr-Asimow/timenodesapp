@@ -208,6 +208,7 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
+  overflow: hidden;
   background: linear-gradient(135deg, var(--accent), #1f8f4a);
   color: #06180d;
   font-weight: 800;
@@ -215,6 +216,11 @@ body {
   display: grid;
   place-items: center;
   flex-shrink: 0;
+}
+.avatar-lg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .home-hero-text {
   flex: 1;
@@ -395,7 +401,16 @@ body {
 
 /* --- Profil ----------------------------------------------------------- */
 .profile {
-  max-width: 520px;
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+.profile-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .profile-top {
   display: flex;
@@ -460,11 +475,235 @@ body {
   color: var(--accent);
 }
 .profile-note {
-  margin-top: 18px;
+  margin-top: 4px;
   line-height: 1.5;
 }
 .stat-sub {
   margin-top: 2px;
+}
+
+/* --- Kimlik kartı (ID card) ------------------------------------------ */
+.id-card {
+  flex: 0 0 220px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 26px;
+  position: relative;
+}
+/* Kart ipi (lanyard) — ileride özelleştirilebilir */
+.id-lanyard {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 40px;
+  background: linear-gradient(180deg, #2a2f3a, #1a1d24);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+.id-clip {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 14px;
+  background: #11141a;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  z-index: 2;
+}
+.id-body {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 10 / 17;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel-2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  display: block;
+}
+.id-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.id-art-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--accent);
+  background: radial-gradient(120% 80% at 50% 20%, #1c2230, #0c0e13);
+}
+/* Alttan üste koyulaşan geçiş (isim okunsun) — ileride customable */
+.id-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.55) 28%,
+    rgba(0, 0, 0, 0) 62%
+  );
+  pointer-events: none;
+}
+.id-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(57, 211, 83, 0.8);
+}
+.id-name {
+  position: absolute;
+  left: 14px;
+  bottom: 34px;
+  right: 14px;
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.05;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.id-name-dot {
+  color: var(--accent);
+}
+.id-foot {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+.id-cam {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.id-body:hover .id-cam {
+  opacity: 1;
+}
+
+/* --- Hesap düzenleme ------------------------------------------------- */
+.profile-msg {
+  background: rgba(57, 211, 83, 0.12);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+.account-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.account-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.account-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.account-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.account-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-field input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 14px;
+}
+.account-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.file-btn {
+  cursor: pointer;
+}
+.account-pw {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.account-pw input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 14px;
+}
+.account-pw input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.account-pw-actions {
+  display: flex;
+  gap: 8px;
+}
+.account-static {
+  padding: 2px 0;
+}
+
+@media (max-width: 640px) {
+  .profile {
+    flex-direction: column;
+    align-items: center;
+  }
+  .profile-side {
+    width: 100%;
+  }
 }
 
 /* --- İstatistikler sayfası ------------------------------------------- */

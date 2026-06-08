@@ -158,6 +158,36 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+// Görünen adı güncelle (auth metadata → session anında yansır)
+export async function updateDisplayName(name: string) {
+  const { error } = await supabase.auth.updateUser({
+    data: { display_name: name.trim() },
+  });
+  if (error) throw error;
+}
+
+// Şifre değiştir (oturum açık kullanıcı)
+export async function updatePassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
+// Avatar/kart görselini Storage'a yükle → public URL'i metadata'ya yaz, URL döndür
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const path = `${userId}/avatar`; // sabit yol (upsert ile eski görsel ezilir)
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, cacheControl: "3600" });
+  if (error) throw error;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?t=${Date.now()}`; // önbellek kırıcı
+  const { error: e2 } = await supabase.auth.updateUser({
+    data: { avatar_url: url },
+  });
+  if (e2) throw e2;
+  return url;
+}
+
 export async function currentUsername(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   const u = data.user;

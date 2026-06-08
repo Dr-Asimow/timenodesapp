@@ -12,11 +12,15 @@ export function initials(name: string): string {
 
 export function Home({
   username,
+  displayName,
+  avatarUrl,
   weekTotalMin,
   coins,
   onNavigate,
 }: {
   username: string;
+  displayName: string;
+  avatarUrl: string | null;
   weekTotalMin: number;
   coins: number;
   onNavigate: (v: View) => void;
@@ -28,10 +32,16 @@ export function Home({
         onClick={() => onNavigate("profile")}
         title="Profili aç"
       >
-        <div className="avatar-lg">{initials(username)}</div>
+        <div className="avatar-lg">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" />
+          ) : (
+            initials(displayName || username)
+          )}
+        </div>
         <div className="home-hero-text">
           <div className="home-hello">
-            Merhaba, <strong>@{username}</strong>
+            Merhaba, <strong>{displayName || username}</strong>
           </div>
           <div className="muted small">
             Bu hafta {formatHours(weekTotalMin)} sa · {coins} time coin

@@ -463,6 +463,11 @@ export function App() {
   const coins = weekTotalMin; // placeholder: 1 dk = 1 time coin (gamify sonra)
   const contactEmail =
     (session.user.user_metadata?.contact_email as string) ?? "";
+  const displayName =
+    (session.user.user_metadata?.display_name as string) || username;
+  const avatarUrl =
+    (session.user.user_metadata?.avatar_url as string) || null;
+  const memberSince = session.user.created_at;
 
   // Hafta görünümünde gösterilen hafta (güncel ya da Haftalar'dan seçilen)
   const shownWeek = viewedWeek ?? week;
@@ -585,6 +590,8 @@ export function App() {
         {view === "home" ? (
           <Home
             username={username}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
             weekTotalMin={weekTotalMin}
             coins={coins}
             onNavigate={navigate}
@@ -674,9 +681,12 @@ export function App() {
           />
         ) : (
           <Profile
+            userId={userId ?? ""}
             username={username}
-            displayName={username}
+            displayName={displayName}
             contactEmail={contactEmail}
+            avatarUrl={avatarUrl}
+            memberSince={memberSince}
             weekTotalMin={weekTotalMin}
             coins={coins}
           />
