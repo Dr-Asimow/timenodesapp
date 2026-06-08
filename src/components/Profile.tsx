@@ -58,6 +58,18 @@ export function Profile({
   const [pw2, setPw2] = useState("");
 
   const uid = uidFromId(userId);
+  const cardName = name || username;
+  // İsim uzunluğuna göre font boyu (max 2 satır, min okunur boyut)
+  const nameSize =
+    cardName.length <= 8
+      ? 30
+      : cardName.length <= 12
+      ? 26
+      : cardName.length <= 16
+      ? 22
+      : cardName.length <= 22
+      ? 18
+      : 16;
 
   async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -120,18 +132,17 @@ export function Profile({
     <div className="profile">
       {/* Sol: kimlik kartı */}
       <div className="id-card">
-        <div className="id-lanyard" />
-        <div className="id-clip" />
         <label className="id-body" title="Kart görselini değiştir">
           {art ? (
             <img className="id-art-img" src={art} alt="" />
           ) : (
-            <div className="id-art-fallback">{initials(name || username)}</div>
+            <div className="id-art-fallback">{initials(cardName)}</div>
           )}
           <span className="id-status" />
           <div className="id-overlay" />
-          <div className="id-name">
-            {name || username}
+          <div className="id-slot" />
+          <div className="id-name" style={{ fontSize: nameSize }}>
+            {cardName}
             <span className="id-name-dot">.</span>
           </div>
           <div className="id-foot">
@@ -147,6 +158,7 @@ export function Profile({
             disabled={busy === "avatar"}
           />
         </label>
+        <div className="id-lanyard" />
       </div>
 
       {/* Sağ: hesap bilgileri + düzenleme */}
