@@ -76,7 +76,7 @@ export function App() {
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingStart | null>(null);
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>("week");
   // Güncel hafta dışında bir hafta görüntülenirken o haftanın verisi (null=güncel)
   const [viewedWeek, setViewedWeek] = useState<WeekData | null>(null);
   const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
