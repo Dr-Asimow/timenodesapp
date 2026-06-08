@@ -1745,6 +1745,102 @@ tr.drag-over th {
   margin: 4px 0 2px;
 }
 
+/* --- Gün özeti modalı (gün başlığına tıkla) -------------------------- */
+.modal.day-summary {
+  width: 430px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ds-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ds-title {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ds-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+.ds-item.habit {
+  border-left: 3px solid var(--accent);
+}
+.ds-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+.ds-check {
+  width: 16px;
+  text-align: center;
+  flex: none;
+  color: var(--accent);
+  font-weight: 700;
+}
+.ds-item.todo:not(.done) .ds-check {
+  color: var(--muted);
+}
+.ds-item.done .ds-item-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.ds-item-text {
+  flex: 1;
+  min-width: 0;
+}
+.ds-time {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.ds-time:last-child {
+  border-bottom: none;
+}
+.ds-time.total {
+  font-weight: 700;
+  color: var(--accent);
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  margin-top: 2px;
+  padding-top: 9px;
+}
+.ds-time-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-time-val {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Gelecek kareye dokununca kısa beyaz parlama (dokunulamaz uyarısı) */
 .cell.flash::after {
   content: "";

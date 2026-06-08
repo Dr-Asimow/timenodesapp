@@ -1,8 +1,9 @@
-import { useState } from "react";
-import type { ActiveTimer, Habit, TimerConfig, WeekData } from "../types";
+import { useEffect, useState } from "react";
+import type { ActiveTimer, Habit, TimerConfig, TodoItem, WeekData } from "../types";
 import { addDays, newId, toISODate } from "../storage";
 import { isRunning } from "../timer";
 import { heatLevel, formatMinutes, formatHours } from "../heat";
+import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
@@ -388,11 +389,18 @@ export function WeekGrid({
         : null}
 
       {dayNoteSel !== null ? (
-        <DayNoteModal
-          dayLabel={DAY_LABELS[dayNoteSel]}
-          dateNum={days[dayNoteSel].date}
+        <DaySummaryModal
+          dayLabel={`${days[dayNoteSel].date} ${
+            MONTHS_TR[days[dayNoteSel].iso.getMonth()]
+          } ${DAY_LABELS[dayNoteSel]}`}
+          dayISO={toISODate(addDays(week.startDate, dayNoteSel))}
+          breakdown={week.habits.map((h) => ({
+            name: h.name,
+            work: week.minutes[h.id]?.[dayNoteSel] ?? 0,
+            brk: week.breaks[h.id]?.[dayNoteSel] ?? 0,
+          }))}
           note={week.dayNotes[dayNoteSel] ?? ""}
-          onSave={(note) => setDayNoteAt(dayNoteSel, note)}
+          onSaveNote={(note) => setDayNoteAt(dayNoteSel, note)}
           onClose={() => setDayNoteSel(null)}
         />
       ) : null}
@@ -443,48 +451,125 @@ export function WeekGrid({
   );
 }
 
-function DayNoteModal({
+// Gün başlığına tıklayınca: o günün GÜNDEM özeti (yapılacaklar + süre dağılımı + not)
+type DayBreakdown = { name: string; work: number; brk: number };
+
+function DaySummaryModal({
   dayLabel,
-  dateNum,
+  dayISO,
+  breakdown,
   note,
-  onSave,
+  onSaveNote,
   onClose,
 }: {
   dayLabel: string;
-  dateNum: number;
+  dayISO: string;
+  breakdown: DayBreakdown[];
   note: string;
-  onSave: (note: string) => void;
+  onSaveNote: (note: string) => void;
   onClose: () => void;
 }) {
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [val, setVal] = useState(note);
+
+  useEffect(() => {
+    let cancel = false;
+    setLoading(true);
+    loadDayTodos(dayISO)
+      .then((t) => {
+        if (!cancel) {
+          setTodos(t);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancel) setLoading(false);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [dayISO]);
+
   function close() {
-    if ((val ?? "") !== (note ?? "")) onSave(val);
+    if ((val ?? "") !== (note ?? "")) onSaveNote(val);
     onClose();
   }
+
+  const habitItems = todos.filter((t) => t.habitId);
+  const todoItems = todos.filter((t) => !t.habitId);
+  const worked = breakdown.filter((b) => b.work > 0 || b.brk > 0);
+  const totalWork = breakdown.reduce((a, b) => a + b.work, 0);
+
   return (
     <div className="modal-overlay" onClick={close}>
-      <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal day-summary" onClick={(e) => e.stopPropagation()}>
         <div className="popover-head">
-          <span className="popover-title">
-            Gün notu · {dayLabel} {dateNum}
-          </span>
+          <span className="popover-title">{dayLabel}</span>
           <button className="modal-x" onClick={close} aria-label="Kapat">
             ×
           </button>
         </div>
-        <div className="notefield">
+
+        <section className="ds-section">
+          <h4 className="ds-title">Gündem</h4>
+          {loading ? (
+            <p className="muted small">Yükleniyor…</p>
+          ) : todos.length === 0 ? (
+            <p className="muted small">Bu güne gündem eklenmemiş.</p>
+          ) : (
+            <div className="ds-list">
+              {habitItems.map((it) => (
+                <div className="ds-item habit" key={it.id}>
+                  <span className="ds-dot" />
+                  <span className="ds-item-text">{it.title}</span>
+                </div>
+              ))}
+              {todoItems.map((it) => (
+                <div className={`ds-item todo ${it.done ? "done" : ""}`} key={it.id}>
+                  <span className="ds-check">{it.done ? "✓" : "○"}</span>
+                  <span className="ds-item-text">{it.title}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="ds-section">
+          <h4 className="ds-title">Süre dağılımı</h4>
+          {worked.length === 0 ? (
+            <p className="muted small">Bu gün kayıtlı süre yok.</p>
+          ) : (
+            <div className="ds-list">
+              {worked.map((b) => (
+                <div className="ds-time" key={b.name}>
+                  <span className="ds-time-name">{b.name}</span>
+                  <span className="ds-time-val">
+                    {formatMinutes(b.work)}
+                    {b.brk > 0 ? (
+                      <span className="muted"> · {formatMinutes(b.brk)} mola</span>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
+              <div className="ds-time total">
+                <span className="ds-time-name">Toplam</span>
+                <span className="ds-time-val">{formatMinutes(totalWork)}</span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="ds-section">
+          <h4 className="ds-title">Gün notu</h4>
           <textarea
             className="note-area"
-            autoFocus
             value={val}
             onChange={(e) => setVal(e.target.value)}
             placeholder="Bu güne dair genel notun…"
-            rows={4}
+            rows={3}
           />
-        </div>
-        <button className="primary-btn" onClick={close}>
-          Kaydet
-        </button>
+        </section>
       </div>
     </div>
   );
