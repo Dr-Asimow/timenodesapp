@@ -424,11 +424,8 @@ body {
   width: 212px;
   flex: 0 0 212px;
   aspect-ratio: 234 / 486;
-  /* Dış glass: derinlik gölgesi + ince ışık halkası (frame alfa şekline uyar) */
-  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 1px rgba(255, 255, 255, 0.18));
 }
-/* 1) Frame (en alt, kendi rengiyle) */
+/* 1) Frame (en alt, kendi rengiyle) + DIŞ GLASS KENARI (alfa şekline uyar) */
 .bc-frame {
   position: absolute;
   inset: 0;
@@ -436,6 +433,13 @@ body {
   height: 100%;
   object-fit: fill;
   z-index: 1;
+  /* derinlik + yumuşak glow + 1px açık kenar (üst kenar daha parlak) */
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 9px rgba(255, 255, 255, 0.09))
+    drop-shadow(1px 0 0 rgba(255, 255, 255, 0.18))
+    drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.18))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.1))
+    drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.24));
 }
 /* Glass parıltısı — frame şekline maskeli (şeffaf alanları DOLDURMAZ) */
 .bc-glass {
@@ -526,13 +530,20 @@ body {
 .bc-window.editable:hover .bc-cam {
   opacity: 1;
 }
-/* 2) Clasp (en üst, frame ile aynı eksen) */
+/* 2) Clasp — CSS ile çizilir (asset değil), tema rengini (--accent) alır.
+   Boyut/konum card_clasp asset'inden ölçüldü (üst orta, %24.8 × %20.2). */
 .bc-clasp {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24.8%;
+  height: 20.2%;
+  background: var(--accent);
+  border: 1px solid rgba(0, 0, 0, 0.32);
+  border-radius: 8px;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
   z-index: 6;
   pointer-events: none;
 }

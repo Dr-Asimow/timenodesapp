@@ -1,13 +1,11 @@
 import { useRef } from "react";
 import frameUrl from "../assets/card/card_frame.png";
-import claspUrl from "../assets/card/card_clasp.png";
 import defaultImageUrl from "../assets/card/card_image.png";
 
 // --- Skin tanımı (ileride market'ten değiştirilebilir) ---------------
 export type CardSkin = {
   id: string;
   frame: string;
-  clasp: string;
   // Kullanıcı görselinin yerleştiği pencere (kart yüzdesi olarak)
   window: { top: number; left: number; right: number; bottom: number };
 };
@@ -15,7 +13,6 @@ export type CardSkin = {
 export const DEFAULT_SKIN: CardSkin = {
   id: "default",
   frame: frameUrl,
-  clasp: claspUrl,
   // card_image.png'nin opak alanından ölçüldü
   window: { top: 24.7, left: 5.13, right: 5.13, bottom: 2.47 },
 };
@@ -102,8 +99,8 @@ export function BadgeCard({
         ) : null}
       </div>
 
-      {/* 2) Clasp (en üstte, frame ile aynı eksende) */}
-      <img className="bc-clasp" src={skin.clasp} alt="" aria-hidden="true" />
+      {/* 2) Clasp (CSS — tema rengiyle, asset yerine; üst orta) */}
+      <div className="bc-clasp" aria-hidden="true" />
     </div>
   );
 }
