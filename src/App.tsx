@@ -393,6 +393,19 @@ export function App() {
               activeTimers={viewingOther ? [] : timers}
               onChange={applyWeek}
               onStartTimer={requestStart}
+              timerActions={{
+                pause: pauseTimer,
+                resume: (t) =>
+                  requestStart(t.habitId, t.day, {
+                    workTargetMs: t.workTargetMs,
+                    plannedBreakMs: t.plannedBreakMs,
+                  }),
+                startBreak: startBreak,
+                resumeWork: resumeWork,
+                ack: ackAlarm,
+                finish: finishTimer,
+                cancel: cancelTimer,
+              }}
             />
           </>
         ) : view === "weeks" ? (

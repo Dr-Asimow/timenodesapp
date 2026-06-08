@@ -10,16 +10,29 @@ const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 type CellSel = { habitId: string; day: number } | null;
 export type DayType = "today" | "past" | "future";
 
+// Belirli bir sayaca (ActiveTimer) etki eden kontrol fonksiyonları
+export type TimerActions = {
+  pause: (t: ActiveTimer) => void;
+  resume: (t: ActiveTimer) => void;
+  startBreak: (t: ActiveTimer, breakTargetMs: number | null) => void;
+  resumeWork: (t: ActiveTimer) => void;
+  ack: (t: ActiveTimer) => void;
+  finish: (t: ActiveTimer) => void;
+  cancel: (t: ActiveTimer) => void;
+};
+
 export function WeekGrid({
   week,
   activeTimers,
   onChange,
   onStartTimer,
+  timerActions,
 }: {
   week: WeekData;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
   onStartTimer: (habitId: string, day: number, config: TimerConfig) => void;
+  timerActions: TimerActions;
 }) {
   const [sel, setSel] = useState<CellSel>(null);
   const [newHabit, setNewHabit] = useState("");
@@ -337,9 +350,25 @@ export function WeekGrid({
                 breakMin={week.breaks[h.id]?.[sel.day] ?? 0}
                 note={week.notes[h.id]?.[sel.day] ?? null}
                 timerState={timingState}
+                timer={timer ?? null}
+                timerActions={
+                  timer
+                    ? {
+                        pause: () => timerActions.pause(timer),
+                        resume: () => timerActions.resume(timer),
+                        startBreak: (target) =>
+                          timerActions.startBreak(timer, target),
+                        resumeWork: () => timerActions.resumeWork(timer),
+                        ack: () => timerActions.ack(timer),
+                        finish: () => timerActions.finish(timer),
+                        cancel: () => timerActions.cancel(timer),
+                      }
+                    : null
+                }
                 onStartTimer={(config) => {
+                  // Başlat'ta popup'ı KAPATMA: kullanıcı çalışan sayacı
+                  // büyükçe popup içinde görsün, geri dönüp dönmemek ona kalsın.
                   onStartTimer(h.id, sel.day, config);
-                  setSel(null);
                 }}
                 onAddWork={(d) => addMinutes(h.id, sel.day, d)}
                 onSetNote={(note) => setActivityNote(h.id, sel.day, note)}

@@ -1,6 +1,28 @@
-import { useState } from "react";
-import type { TimerConfig } from "../types";
+import { useEffect, useState } from "react";
+import type { ActiveTimer, TimerConfig } from "../types";
 import type { DayType } from "./WeekGrid";
+import {
+  isRunning,
+  phaseTotalMs,
+  phaseProgress,
+  phaseTargetMs,
+  workTotalMs,
+  breakTotalMs,
+  alarmRinging,
+  workMinutes,
+  formatClock,
+} from "../timer";
+
+// Popup içindeki canlı sayaca bağlı (seçili timer'a sabitlenmiş) kontroller
+export type PopTimerActions = {
+  pause: () => void;
+  resume: () => void;
+  startBreak: (breakTargetMs: number | null) => void;
+  resumeWork: () => void;
+  ack: () => void;
+  finish: () => void;
+  cancel: () => void;
+};
 
 const FOCUS_MIN = 5;
 const FOCUS_MAX = 120;
@@ -23,6 +45,8 @@ export function CellPopover({
   breakMin,
   note,
   timerState,
+  timer,
+  timerActions,
   onStartTimer,
   onAddWork,
   onSetNote,
@@ -35,12 +59,15 @@ export function CellPopover({
   breakMin: number;
   note: string | null;
   timerState: "" | "running" | "pausedt";
+  timer: ActiveTimer | null;
+  timerActions: PopTimerActions | null;
   onStartTimer: (config: TimerConfig) => void;
   onAddWork: (deltaMin: number) => void;
   onSetNote: (note: string) => void;
   onClose: () => void;
 }) {
   const isFuture = dayType === "future";
+  const hasTimer = !!(timer && timerActions);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
@@ -53,14 +80,19 @@ export function CellPopover({
           </button>
         </div>
 
-        {isFuture ? (
+        {isFuture && !hasTimer ? (
           <p className="future-note muted small">
             İleri tarih — burada zaman takibi yok, ama plan/aktivite notu
             bırakabilirsin.
           </p>
         ) : (
           <>
-            {dayType === "today" ? (
+            {hasTimer ? (
+              <>
+                <LiveTimer timer={timer!} actions={timerActions!} />
+                <div className="popover-divider" />
+              </>
+            ) : dayType === "today" ? (
               <>
                 <TimerSetup
                   timerState={timerState}
@@ -77,6 +109,162 @@ export function CellPopover({
 
         <NoteField note={note} onSetNote={onSetNote} />
       </div>
+    </div>
+  );
+}
+
+// Popup içinde büyük, canlı tıklayan sayaç + kontroller.
+// Alarm bip'i üst çubuktaki TimerCard'da çalar (burada çift çalmaz), bu yüzden
+// burada sadece görsel + buton var.
+function LiveTimer({
+  timer,
+  actions,
+}: {
+  timer: ActiveTimer;
+  actions: PopTimerActions;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  const running = isRunning(timer);
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const onBreak = timer.phase === "break";
+  const total = phaseTotalMs(timer, now);
+  const progress = phaseProgress(timer, now);
+  const target = phaseTargetMs(timer);
+  const ringing = alarmRinging(timer, now);
+  const [showBreak, setShowBreak] = useState(false);
+
+  const phaseLabel = onBreak
+    ? running
+      ? "molada"
+      : "mola duraklatıldı"
+    : running
+    ? "çalışıyor"
+    : "duraklatıldı";
+  const remain =
+    target != null ? formatClock(Math.max(0, target - total)) : null;
+
+  function breakClick() {
+    if (timer.plannedBreakMs != null) actions.startBreak(timer.plannedBreakMs);
+    else setShowBreak((v) => !v);
+  }
+  function finish() {
+    const mins = workMinutes(timer, now);
+    if (
+      mins <= 0 &&
+      !confirm("Çalışma süresi 1 dakikadan az. Yine de kaydedilsin mi?")
+    )
+      return;
+    actions.finish();
+  }
+  function cancel() {
+    if (confirm("Sayaç iptal edilsin mi? Süre kaydedilmez.")) actions.cancel();
+  }
+
+  return (
+    <div
+      className={`pop-timer ${onBreak ? "brk" : "work"} ${
+        ringing ? "ringing" : ""
+      }`}
+    >
+      <div className="pop-timer-clock">{formatClock(total)}</div>
+      <div className="pop-timer-sub">
+        <span className={`pop-timer-phase ${onBreak ? "brk" : "work"}`}>
+          ● {phaseLabel}
+        </span>
+        {remain ? <span className="muted small"> · kalan {remain}</span> : null}
+      </div>
+      {progress != null ? (
+        <div className="pop-timer-track">
+          <div
+            className={`pop-timer-fill ${onBreak ? "brk" : "work"}`}
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+      ) : null}
+      <div className="pop-timer-stats muted small">
+        Tamamlanan {Math.round(workTotalMs(timer, now) / 60000)}dk · Ara{" "}
+        {Math.round(breakTotalMs(timer, now) / 60000)}dk
+      </div>
+
+      {ringing ? (
+        <div className="pop-timer-actions">
+          <button className="primary-btn small" onClick={actions.ack}>
+            Alarmı durdur & devam
+          </button>
+          {onBreak ? (
+            <button className="ghost-btn accent" onClick={actions.resumeWork}>
+              ▶ Çalışmaya dön
+            </button>
+          ) : (
+            <button
+              className="ghost-btn"
+              onClick={() => actions.startBreak(timer.plannedBreakMs)}
+            >
+              ☕ Ara ver
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="pop-timer-actions">
+          {onBreak ? (
+            <button className="ghost-btn accent" onClick={actions.resumeWork}>
+              ▶ Çalışmaya dön
+            </button>
+          ) : running ? (
+            <>
+              <button className="ghost-btn" onClick={actions.pause}>
+                ❚❚ Duraklat
+              </button>
+              <div className="break-wrap">
+                <button className="ghost-btn" onClick={breakClick}>
+                  ☕ Ara ver
+                </button>
+                {showBreak ? (
+                  <div
+                    className="break-menu"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {[5, 10, 15].map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setShowBreak(false);
+                          actions.startBreak(m * 60000);
+                        }}
+                      >
+                        {m}dk
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setShowBreak(false);
+                        actions.startBreak(null);
+                      }}
+                    >
+                      ∞ Sınırsız
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <button className="ghost-btn accent" onClick={actions.resume}>
+              ▶ Devam
+            </button>
+          )}
+          <button className="primary-btn small" onClick={finish}>
+            Bitir & kaydet
+          </button>
+          <button className="ghost-btn danger" onClick={cancel}>
+            İptal
+          </button>
+        </div>
+      )}
     </div>
   );
 }
