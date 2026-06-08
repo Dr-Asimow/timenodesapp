@@ -34,6 +34,7 @@ import { Home, type View } from "./components/Home";
 import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
 import { DayPanel } from "./components/DayPanel";
+import { MusicPlayer } from "./components/MusicPlayer";
 import type { TodoItem } from "./types";
 
 const TR_MONTHS = [
@@ -578,6 +579,7 @@ export function App() {
                   onSetNote={setTodayNote}
                 />
                 <div className="week-main">{grid}</div>
+                <MusicPlayer />
               </div>
             );
           })()
