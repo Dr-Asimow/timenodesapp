@@ -41,7 +41,7 @@ import { WeekGrid } from "./components/WeekGrid";
 import { TimersStack } from "./components/TimerBar";
 import { MultiTaskModal } from "./components/MultiTaskModal";
 import { Brand, LoadingScreen } from "./components/Brand";
-import { Home, type View } from "./components/Home";
+import { type View, initials } from "./components/Home";
 import { Profile } from "./components/Profile";
 import { WeeksPage } from "./components/WeeksPage";
 import { Stats } from "./components/Stats";
@@ -49,6 +49,38 @@ import { DayPanel } from "./components/DayPanel";
 import { NotePage } from "./components/note/NotePage";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { FlyParticles, type Burst } from "./components/Particles";
+
+/* ── Sidebar ikon bileşenleri ────────────────────────────── */
+function WeekIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="1.5" width="6" height="6" rx="1"/>
+      <rect x="10.5" y="1.5" width="6" height="6" rx="1"/>
+      <rect x="1.5" y="10.5" width="6" height="6" rx="1"/>
+      <rect x="10.5" y="10.5" width="6" height="6" rx="1"/>
+    </svg>
+  );
+}
+function WeeksIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="14" height="13" rx="1.5"/>
+      <path d="M2 7h14"/>
+      <path d="M6 1v4M12 1v4"/>
+    </svg>
+  );
+}
+function StatsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+      <rect x="2"  y="10" width="4" height="7" rx="1" opacity="0.75"/>
+      <rect x="7"  y="6"  width="4" height="11" rx="1"/>
+      <rect x="12" y="2"  width="4" height="15" rx="1" opacity="0.85"/>
+    </svg>
+  );
+}
 import type { TodoItem } from "./types";
 
 const TR_MONTHS = [
@@ -611,7 +643,7 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <button className="brand-btn" onClick={() => setView("home")}>
+        <button className="brand-btn" onClick={() => navigate("week")}>
           <Brand size="sm" tagline={false} />
         </button>
         <div className="topbar-right">
@@ -652,24 +684,7 @@ export function App() {
             view === "week" && !viewingOther ? "wide" : ""
           }`}
         >
-        {view !== "home" ? (
-          <button className="back-btn" onClick={() => setView("home")}>
-            ← Ana sayfa
-          </button>
-        ) : null}
-
-        {view === "home" ? (
-          <Home
-            userId={userId ?? ""}
-            username={username}
-            displayName={displayName}
-            avatarUrl={avatarUrl}
-            memberSince={memberSince}
-            weekTotalMin={weekTotalMin}
-            coins={coins}
-            onNavigate={navigate}
-          />
-        ) : view === "week" ? (
+        {view === "week" ? (
           (() => {
             const grid = (
               <WeekGrid
@@ -796,6 +811,47 @@ export function App() {
 
       {/* Her zaman mount: sayfa değişse de müzik (iframe) durmaz */}
       <MusicPlayer />
+
+      {/* ── Sağ kenar navigasyon ──────────────────────── */}
+      <nav className="side-nav">
+        <button
+          className={`snav-btn snav-profile${view === "profile" ? " active" : ""}`}
+          onClick={() => navigate("profile")}
+          title="Profil"
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} className="snav-avatar" alt="" />
+          ) : (
+            <div className="snav-avatar snav-initials">
+              {initials(displayName || username)}
+            </div>
+          )}
+        </button>
+
+        <div className="snav-sep" />
+
+        <button
+          className={`snav-btn${view === "week" ? " active" : ""}`}
+          onClick={() => navigate("week")}
+          title="Bu Hafta"
+        >
+          <WeekIcon />
+        </button>
+        <button
+          className={`snav-btn${view === "weeks" ? " active" : ""}`}
+          onClick={() => navigate("weeks")}
+          title="Haftalar"
+        >
+          <WeeksIcon />
+        </button>
+        <button
+          className={`snav-btn${view === "stats" ? " active" : ""}`}
+          onClick={() => navigate("stats")}
+          title="İstatistikler"
+        >
+          <StatsIcon />
+        </button>
+      </nav>
 
       {noteTarget && userId ? (
         <NotePage
