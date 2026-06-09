@@ -6,15 +6,92 @@
   --text: #e6edf3;
   --muted: #8b949e;
   --accent: #39d353;
+  --accent-fg: #0a1f12;
   --danger: #f85149;
 
-  /* Isı haritası tonları (3. görsel) — ton arttıkça daha çok zaman */
+  /* Isı haritası tonları — ton arttıkça daha çok zaman */
   --lvl-0: #161b22;
   --lvl-1: #0e4429;
   --lvl-2: #006d32;
   --lvl-3: #26a641;
   --lvl-4: #39d353;
   --lvl-5: #5ff584;
+  --row-hl: rgba(57, 211, 83, 0.08);
+  --lw-bg: #0d1014;
+}
+
+[data-theme="midnight"] {
+  --bg: #0a0b1e;
+  --panel: #0f1035;
+  --panel-2: #161654;
+  --border: #2d2f70;
+  --text: #e0e1f5;
+  --muted: #7c80b8;
+  --accent: #7c6af8;
+  --accent-fg: #0d0b30;
+  --danger: #f87171;
+  --lvl-0: #0f1035;
+  --lvl-1: #1a136c;
+  --lvl-2: #2d27a8;
+  --lvl-3: #5046e5;
+  --lvl-4: #7c6af8;
+  --lvl-5: #a5b4fc;
+}
+
+[data-theme="amber"] {
+  --bg: #121008;
+  --panel: #1e1a0c;
+  --panel-2: #262116;
+  --border: #3e3318;
+  --text: #f5ead2;
+  --muted: #a09060;
+  --accent: #f0a020;
+  --accent-fg: #1c0e00;
+  --danger: #f87171;
+  --lvl-0: #1e1a0c;
+  --lvl-1: #3d2800;
+  --lvl-2: #7a4f00;
+  --lvl-3: #b87a00;
+  --lvl-4: #f0a020;
+  --lvl-5: #fbbf24;
+}
+
+[data-theme="slate"] {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #253147;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --accent: #38bdf8;
+  --accent-fg: #001e2e;
+  --danger: #f87171;
+  --lvl-0: #1e293b;
+  --lvl-1: #0c3055;
+  --lvl-2: #0c4a7a;
+  --lvl-3: #0369a1;
+  --lvl-4: #0ea5e9;
+  --lvl-5: #38bdf8;
+}
+
+[data-theme="sand"] {
+  --bg: #f2ede6;
+  --panel: #faf7f3;
+  --panel-2: #ede8e0;
+  --border: #ddd5c8;
+  --text: #282218;
+  --muted: #9a8878;
+  --accent: #d9580d;
+  --accent-fg: #ffffff;
+  --danger: #dc2626;
+  --row-hl: rgba(217, 88, 13, 0.07);
+  --lw-bg: #e8e0d4;
+  --lvl-0: #ede8e0;
+  --lvl-1: #fddcc4;
+  --lvl-2: #f9b984;
+  --lvl-3: #f08a3c;
+  --lvl-4: #d9580d;
+  --lvl-5: #b34008;
 }
 
 * {
@@ -157,7 +234,7 @@ body {
   align-self: flex-start;
   background: var(--accent);
   border: none;
-  color: #0a1f12;
+  color: var(--accent-fg);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -215,8 +292,8 @@ body {
   height: 56px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--accent), #1f8f4a);
-  color: #06180d;
+  background: linear-gradient(135deg, var(--accent), var(--lvl-3));
+  color: var(--accent-fg);
   font-weight: 800;
   font-size: 20px;
   display: grid;
@@ -396,7 +473,7 @@ body {
   font-size: 20px;
   font-weight: 800;
   line-height: 1;
-  color: #e8eaed; /* kırık beyaz */
+  color: var(--text);
 }
 .wk-range {
   font-size: 11px;
@@ -806,7 +883,7 @@ body {
 .habit-bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #1f8f4a, var(--accent));
+  background: linear-gradient(90deg, var(--lvl-3), var(--accent));
   min-width: 3px;
   transition: width 0.4s ease;
 }
@@ -863,7 +940,7 @@ body {
   flex-direction: column;
 }
 .page.wide {
-  max-width: 1180px;
+  max-width: 1380px;
 }
 
 /* --- Hafta görünümü: sol gün paneli + sağ ızgara --------------------- */
@@ -934,7 +1011,7 @@ body {
   height: 64px;
   border-radius: 16px;
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   font-size: 38px;
   font-weight: 800;
   display: flex;
@@ -1003,7 +1080,7 @@ body {
 }
 .agenda-start {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 8px;
   padding: 5px 10px;
@@ -1046,7 +1123,7 @@ body {
   top: 2px;
   width: 4px;
   height: 9px;
-  border: solid #0a1f12;
+  border: solid var(--accent-fg);
   border-width: 0 2.5px 2.5px 0;
   transform: rotate(45deg);
 }
@@ -1206,7 +1283,7 @@ body {
   flex: 0 0 auto;
   width: 46px;
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 10px;
   font-size: 22px;
@@ -1289,7 +1366,7 @@ body {
   height: 28px;
   border-radius: 50%;
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   font-size: 11px;
   cursor: pointer;
@@ -1393,14 +1470,14 @@ body {
   height: 42px;
   border-radius: 50%;
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .music-controls .music-play:hover {
-  color: #0a1f12;
+  color: var(--accent-fg);
   filter: brightness(1.08);
 }
 .music-form {
@@ -1430,7 +1507,7 @@ body {
   flex: 0 0 auto;
   width: 40px;
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 9px;
   font-size: 20px;
@@ -1475,7 +1552,7 @@ button {
 }
 .primary-btn {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -1617,7 +1694,7 @@ button {
   z-index: 1;
   margin-left: -20px;
   padding: 8px 16px 8px 30px;
-  background: #0d1014;
+  background: var(--lw-bg);
   border: 1px solid var(--border);
   border-radius: 0 14px 14px 0;
   display: flex;
@@ -1671,7 +1748,7 @@ button {
 }
 .day-col,
 .total-col {
-  width: 78px;
+  width: 86px;
 }
 .day-col {
   position: relative;
@@ -1698,9 +1775,9 @@ button {
   background: var(--accent);
   box-shadow: 0 0 6px rgba(57, 211, 83, 0.7);
 }
-/* Sütun arkasında hafif yeşil ton (hücre boşluklarında görünür) */
+/* Sütun arkasında hafif ton (hücre boşluklarında görünür) */
 .today-col {
-  background: rgba(57, 211, 83, 0.07);
+  background: var(--row-hl);
 }
 .cell-td.today-col {
   border-radius: 8px;
@@ -1789,17 +1866,17 @@ tr.drag-over th {
 /* Satır hover: tüm satır hafif yeşil + alışkanlık adı accent */
 .grid tbody tr:not(.add-habit-row):hover > th,
 .grid tbody tr:not(.add-habit-row):hover > td {
-  background-color: rgba(57, 211, 83, 0.08);
+  background-color: var(--row-hl);
 }
 .grid tbody tr:not(.add-habit-row):hover .habit-link {
   color: var(--accent);
 }
 /* Sütun hover (JS ile): gün hücreleri + başlık */
 .grid td.col-hl {
-  background-color: rgba(57, 211, 83, 0.08);
+  background-color: var(--row-hl);
 }
 .grid th.col-hl-head {
-  background-color: rgba(57, 211, 83, 0.08);
+  background-color: var(--row-hl);
   border-radius: 8px 8px 0 0;
 }
 .grid th.col-hl-head .day-label,
@@ -1816,8 +1893,8 @@ tr.drag-over th {
   position: relative;
   overflow: hidden;
   width: 100%;
-  height: 46px;
-  border-radius: 8px;
+  height: 68px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--lvl-0);
   color: rgba(255, 255, 255, 0.92);
@@ -2053,7 +2130,7 @@ tr.drag-over th {
 }
 .start-btn {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 9px;
   padding: 11px 0;
@@ -2245,7 +2322,7 @@ tr.drag-over th {
 .delta-btn {
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   font-weight: 800;
   font-size: 14px;
   padding: 10px 12px;
@@ -2360,7 +2437,7 @@ tr.drag-over th {
 }
 .editrow-plus {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border-color: var(--accent);
 }
 .editrow-plus:hover {
@@ -2393,7 +2470,7 @@ tr.drag-over th {
 }
 .popover-manual button {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 7px;
   padding: 0 10px;
@@ -2693,7 +2770,7 @@ tr.drag-over th {
 }
 .alarm-btn {
   background: var(--accent);
-  color: #0a1f12;
+  color: var(--accent-fg);
   border: none;
   border-radius: 8px;
   padding: 9px 14px;
@@ -3182,7 +3259,7 @@ tr.drag-over th {
   top: 1px;
   width: 4px;
   height: 9px;
-  border: solid #0a1f12;
+  border: solid var(--accent-fg);
   border-width: 0 2.5px 2.5px 0;
   transform: rotate(45deg);
 }
@@ -3257,4 +3334,67 @@ tr.drag-over th {
   padding: 10px 12px;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* --- Tema seçici (Profil sayfası) ---------------------------------------- */
+.theme-picker {
+  display: flex;
+  gap: 8px;
+}
+.theme-swatch {
+  flex: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.theme-swatch:hover {
+  transform: translateY(-2px);
+}
+.theme-swatch.active {
+  border-color: var(--accent);
+}
+.theme-swatch-preview {
+  height: 44px;
+  display: flex;
+  align-items: flex-end;
+  padding: 7px;
+}
+.theme-swatch-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+.theme-swatch-name {
+  font-size: 10px;
+  text-align: center;
+  padding: 5px 4px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Sand teması özel overridelar --------------------------------------- */
+[data-theme="sand"] .cell {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="sand"] .cell-val {
+  mix-blend-mode: normal;
+  color: var(--text);
+}
+[data-theme="sand"] .cell.lvl-4 .cell-val,
+[data-theme="sand"] .cell.lvl-5 .cell-val {
+  color: #fff;
+}
+[data-theme="sand"] .grid-scroll {
+  box-shadow: 4px 0 14px rgba(0, 0, 0, 0.08);
+}
+[data-theme="sand"] body {
+  font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
 }

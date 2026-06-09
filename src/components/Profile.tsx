@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatHours } from "../heat";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
 import { BadgeCard, uidFromId, dateDMY } from "./BadgeCard";
+import { THEMES, getSavedTheme, applyTheme, type ThemeId } from "../theme";
 
 const MONTHS_TR = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -37,6 +38,13 @@ export function Profile({
   const [nameInput, setNameInput] = useState(displayName);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const [theme, setTheme] = useState<ThemeId>(getSavedTheme);
+
+  function pickTheme(id: ThemeId) {
+    applyTheme(id);
+    setTheme(id);
+  }
 
   const [showPw, setShowPw] = useState(false);
   const [pw1, setPw1] = useState("");
@@ -129,6 +137,39 @@ export function Profile({
           </div>
 
           {msg ? <div className="profile-msg">{msg}</div> : null}
+
+          <div className="account-box">
+            <h3 className="account-title">Görünüm</h3>
+            <div className="theme-picker">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  className={`theme-swatch${theme === t.id ? " active" : ""}`}
+                  onClick={() => pickTheme(t.id)}
+                  title={t.label}
+                >
+                  <div
+                    className="theme-swatch-preview"
+                    style={{
+                      background: t.bg,
+                      borderBottom: `1px solid ${t.border}`,
+                    }}
+                  >
+                    <span
+                      className="theme-swatch-dot"
+                      style={{ background: t.accent }}
+                    />
+                  </div>
+                  <div
+                    className="theme-swatch-name"
+                    style={{ background: t.panel }}
+                  >
+                    {t.label}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="account-box">
             <h3 className="account-title">Hesap</h3>
