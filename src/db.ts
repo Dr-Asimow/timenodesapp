@@ -119,68 +119,66 @@ const DEFAULT_HABITS = [
   "Egzersiz",
 ];
 
-// Auth kimliği için isimden BAĞIMSIZ, rastgele sabit sentetik mail.
-// Böylece kullanıcı adı değiştirilebilir/benzersiz olur, giriş bozulmaz.
-function syntheticEmail(): string {
-  return `tn_${crypto.randomUUID().replace(/-/g, "")}@timenodes.app`;
-}
+// --- Auth (e-posta ile giriş) ----------------------------------------
 
-// --- Auth -------------------------------------------------------------
-
+// Kayıt: gerçek e-posta + şifre + görünen ad.
+// Profil (display_name + benzersiz friend_code) DB trigger'ı ile oluşur.
 export async function signUp(
-  username: string,
+  email: string,
   password: string,
-  email: string
+  displayName: string
 ) {
-  const uname = username.trim();
-  if (!uname) throw new Error("Kullanıcı adı boş olamaz.");
-
-  // Kullanıcı adı benzersiz olmalı (büyük/küçük harf duyarsız)
-  const { data: available, error: aErr } = await supabase.rpc(
-    "username_available",
-    { uname }
-  );
-  if (aErr) throw aErr;
-  if (!available) throw new Error("Bu kullanıcı adı zaten alınmış.");
-
-  // Gerçek e-posta yalnızca profilde saklanır (auth kimliği rastgele sentetik mail)
+  const mail = email.trim();
+  const name = displayName.trim();
+  if (!mail) throw new Error("E-posta boş olamaz.");
+  if (!name) throw new Error("Görünen ad boş olamaz.");
   const { error } = await supabase.auth.signUp({
-    email: syntheticEmail(),
+    email: mail,
     password,
-    options: { data: { username: uname, contact_email: email.trim() } },
+    options: { data: { display_name: name } },
   });
   if (error) throw error;
 }
 
-export async function signIn(username: string, password: string) {
-  const uname = username.trim();
-  if (!uname) throw new Error("Kullanıcı adı boş olamaz.");
-
-  // Kullanıcı adından auth e-postasını çöz (RPC)
-  const { data: authEmail, error: rErr } = await supabase.rpc(
-    "auth_email_for_username",
-    { uname }
-  );
-  if (rErr) throw rErr;
-  if (!authEmail) throw new Error("Kullanıcı adı veya şifre hatalı.");
-
+export async function signIn(email: string, password: string) {
+  const mail = email.trim();
+  if (!mail) throw new Error("E-posta boş olamaz.");
   const { error } = await supabase.auth.signInWithPassword({
-    email: authEmail as string,
+    email: mail,
     password,
   });
   if (error) throw error;
+}
+
+// Oturum sahibinin benzersiz arkadaş kodu (UID) — profiles'tan
+export async function loadMyFriendCode(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("friend_code")
+    .maybeSingle();
+  if (error) return null;
+  return (data?.friend_code as string) ?? null;
 }
 
 export async function signOut() {
   await supabase.auth.signOut();
 }
 
-// Görünen adı güncelle (auth metadata → session anında yansır)
+// Görünen adı güncelle: auth metadata (session anında) + profiles (arkadaş listesi)
 export async function updateDisplayName(name: string) {
+  const v = name.trim();
   const { error } = await supabase.auth.updateUser({
-    data: { display_name: name.trim() },
+    data: { display_name: v },
   });
   if (error) throw error;
+  // profiles.display_name'i de güncelle (ileride arkadaşların görmesi için)
+  const { data } = await supabase.auth.getUser();
+  if (data.user) {
+    await supabase
+      .from("profiles")
+      .update({ display_name: v })
+      .eq("id", data.user.id);
+  }
 }
 
 // Şifre değiştir (oturum açık kullanıcı)

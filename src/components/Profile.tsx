@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatHours } from "../heat";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
-import { BadgeCard, uidFromId, dateDMY } from "./BadgeCard";
+import { BadgeCard, dateDMY } from "./BadgeCard";
 import { THEMES, getSavedTheme, applyTheme, type ThemeId } from "../theme";
 
 const MONTHS_TR = [
@@ -21,6 +21,7 @@ export function Profile({
   contactEmail,
   avatarUrl,
   memberSince,
+  friendCode,
   weekTotalMin,
   coins,
 }: {
@@ -30,6 +31,7 @@ export function Profile({
   contactEmail: string;
   avatarUrl: string | null;
   memberSince: string;
+  friendCode: string | null;
   weekTotalMin: number;
   coins: number;
 }) {
@@ -38,6 +40,18 @@ export function Profile({
   const [nameInput, setNameInput] = useState(displayName);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copyUid() {
+    if (!friendCode) return;
+    try {
+      await navigator.clipboard.writeText(friendCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* pano erişimi yoksa yoksay */
+    }
+  }
 
   const [theme, setTheme] = useState<ThemeId>(getSavedTheme);
 
@@ -108,14 +122,27 @@ export function Profile({
   return (
     <div className="profile">
       <div className="profile-grid">
-        <BadgeCard
-          name={name || username}
-          imageUrl={art}
-          uid={uidFromId(userId)}
-          dateLabel={dateDMY(memberSince)}
-          onPickImage={uploadFile}
-          busy={busy === "avatar"}
-        />
+        <div className="profile-card-col">
+          <BadgeCard
+            name={name || username}
+            imageUrl={art}
+            uid={friendCode ?? "········"}
+            dateLabel={dateDMY(memberSince)}
+            onPickImage={uploadFile}
+            busy={busy === "avatar"}
+          />
+          <button
+            className={`uid-copy${copied ? " copied" : ""}`}
+            onClick={copyUid}
+            disabled={!friendCode}
+            title="UID'ni kopyala (arkadaş eklemek için)"
+          >
+            <span className="uid-copy-code">
+              UID&nbsp;{friendCode ?? "········"}
+            </span>
+            <span className="uid-copy-ic">{copied ? "✓ kopyalandı" : "⧉"}</span>
+          </button>
+        </div>
 
         <div className="profile-side">
           <div className="profile-id">

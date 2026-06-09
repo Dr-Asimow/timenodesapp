@@ -7,26 +7,27 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function Login() {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const u = username.trim();
-    if (!u || !password) return;
+    if (!email.trim() || !password) return;
     setBusy(true);
     setErr(null);
     try {
+      if (!EMAIL_RE.test(email.trim()))
+        throw new Error("Geçerli bir e-posta gir.");
       if (mode === "up") {
-        if (!EMAIL_RE.test(email.trim()))
-          throw new Error("Geçerli bir e-posta gir.");
+        if (!displayName.trim())
+          throw new Error("Görünen ad boş olamaz.");
         if (password.length < 6)
           throw new Error("Şifre en az 6 karakter olmalı.");
-        await signUp(u, password, email);
+        await signUp(email, password, displayName);
       } else {
-        await signIn(u, password);
+        await signIn(email, password);
       }
       // Başarılıysa onAuthStateChange App'i günceller
     } catch (e: unknown) {
@@ -63,28 +64,30 @@ export function Login() {
           </button>
         </div>
 
+        <label>
+          E-posta
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ornek@mail.com"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
+        </label>
+
         {mode === "up" ? (
           <label>
-            E-posta
+            Görünen ad
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ornek@mail.com"
-              autoCapitalize="none"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="İsmin (sonradan değiştirebilirsin)"
+              maxLength={40}
             />
           </label>
         ) : null}
 
-        <label>
-          Kullanıcı adı
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="kullanıcı adı"
-            autoCapitalize="none"
-          />
-        </label>
         <label>
           Şifre
           <input
@@ -92,6 +95,7 @@ export function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
+            autoComplete={mode === "up" ? "new-password" : "current-password"}
           />
         </label>
 
@@ -102,7 +106,7 @@ export function Login() {
         </button>
         <p className="hint">
           {mode === "up"
-            ? "E-posta şimdilik sadece hesabına kaydedilir (doğrulama yok). Giriş kullanıcı adı + şifre ile."
+            ? "E-posta ile giriş yaparsın. Görünen adını istediğin zaman değiştirebilirsin; sana özel bir UID otomatik verilir."
             : "Verilerin Supabase'de güvenli (RLS) saklanır, başka cihazdan da giriş yapabilirsin."}
         </p>
       </form>
@@ -112,9 +116,11 @@ export function Login() {
 
 function translateError(msg: string): string {
   if (/Invalid login credentials/i.test(msg))
-    return "Kullanıcı adı veya şifre hatalı.";
+    return "E-posta veya şifre hatalı.";
   if (/User already registered/i.test(msg))
-    return "Bu kullanıcı adı zaten alınmış. Giriş yapmayı dene.";
+    return "Bu e-posta zaten kayıtlı. Giriş yapmayı dene.";
   if (/at least 6/i.test(msg)) return "Şifre en az 6 karakter olmalı.";
+  if (/valid email|invalid format/i.test(msg))
+    return "Geçerli bir e-posta gir.";
   return msg;
 }

@@ -27,6 +27,7 @@ import {
   loadYearTotals,
   loadYearStats,
   loadHabitTotalsForWeek,
+  loadMyFriendCode,
   type YearStats,
 } from "./db";
 import {
@@ -132,6 +133,8 @@ export function App() {
   );
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  // Kullanıcının benzersiz UID'i (arkadaş kodu) — profiles'tan
+  const [friendCode, setFriendCode] = useState<string | null>(null);
   // Günlük (Not Defteri, tam ekran) — açık gün + etiket
   const [noteTarget, setNoteTarget] = useState<{
     day: string;
@@ -251,6 +254,23 @@ export function App() {
     loadDayTodos(toISODate(new Date()))
       .then((t) => {
         if (!cancel) setTodos(t);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [userId]);
+
+  // Kullanıcının benzersiz UID'ini (arkadaş kodu) yükle
+  useEffect(() => {
+    if (!userId) {
+      setFriendCode(null);
+      return;
+    }
+    let cancel = false;
+    loadMyFriendCode()
+      .then((c) => {
+        if (!cancel) setFriendCode(c);
       })
       .catch(() => {});
     return () => {
@@ -572,8 +592,8 @@ export function App() {
     0
   );
   const coins = weekTotalMin; // placeholder: 1 dk = 1 time coin (gamify sonra)
-  const contactEmail =
-    (session.user.user_metadata?.contact_email as string) ?? "";
+  // Gerçek e-posta artık auth kimliği (giriş e-postası)
+  const contactEmail = session.user.email ?? "";
   const displayName =
     (session.user.user_metadata?.display_name as string) || username;
   const avatarUrl =
@@ -781,6 +801,7 @@ export function App() {
             contactEmail={contactEmail}
             avatarUrl={avatarUrl}
             memberSince={memberSince}
+            friendCode={friendCode}
             weekTotalMin={weekTotalMin}
             coins={coins}
           />
