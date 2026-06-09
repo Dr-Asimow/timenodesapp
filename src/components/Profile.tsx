@@ -96,8 +96,8 @@ export function Profile({
 
   async function savePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (pw1.length < 6) {
-      setMsg("Şifre en az 6 karakter olmalı.");
+    if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(pw1)) {
+      setMsg("Şifre en az 8 karakter olmalı, harf ve rakam içermeli.");
       return;
     }
     if (pw1 !== pw2) {
@@ -248,7 +248,7 @@ export function Profile({
                     type="password"
                     value={pw1}
                     onChange={(e) => setPw1(e.target.value)}
-                    placeholder="Yeni şifre (≥6)"
+                    placeholder="Yeni şifre (≥8, harf+rakam)"
                     autoComplete="new-password"
                   />
                   <input

@@ -23,8 +23,10 @@ export function Login() {
       if (mode === "up") {
         if (!displayName.trim())
           throw new Error("Görünen ad boş olamaz.");
-        if (password.length < 6)
-          throw new Error("Şifre en az 6 karakter olmalı.");
+        if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(password))
+          throw new Error(
+            "Şifre en az 8 karakter olmalı, harf ve rakam içermeli."
+          );
         await signUp(email, password, displayName);
       } else {
         await signIn(email, password);
@@ -106,7 +108,7 @@ export function Login() {
         </button>
         <p className="hint">
           {mode === "up"
-            ? "E-posta ile giriş yaparsın. Görünen adını istediğin zaman değiştirebilirsin; sana özel bir UID otomatik verilir."
+            ? "Şifre en az 8 karakter, harf ve rakam içermeli. Görünen adını sonra değiştirebilirsin; sana özel bir UID otomatik verilir."
             : "Verilerin Supabase'de güvenli (RLS) saklanır, başka cihazdan da giriş yapabilirsin."}
         </p>
       </form>
@@ -119,7 +121,10 @@ function translateError(msg: string): string {
     return "E-posta veya şifre hatalı.";
   if (/User already registered/i.test(msg))
     return "Bu e-posta zaten kayıtlı. Giriş yapmayı dene.";
-  if (/at least 6/i.test(msg)) return "Şifre en az 6 karakter olmalı.";
+  if (/at least \d+ characters|password.*short/i.test(msg))
+    return "Şifre en az 8 karakter olmalı, harf ve rakam içermeli.";
+  if (/password should contain|one character of each/i.test(msg))
+    return "Şifre harf ve rakam içermeli.";
   if (/valid email|invalid format/i.test(msg))
     return "Geçerli bir e-posta gir.";
   return msg;
