@@ -13,9 +13,9 @@ export const THEMES: ThemeInfo[] = [
   {
     id: "github",
     label: "GitHub Dark",
-    bg: "#0d1117",
-    panel: "#161b22",
-    border: "#30363d",
+    bg: "#0a0a0c",
+    panel: "#131316",
+    border: "#2a2a2f",
     accent: "#39d353",
   },
   {

@@ -1,6 +1,8 @@
 export type Habit = {
   id: string;
   name: string;
+  // Etkinlik rengi (hex). null/boş ise varsayılan accent rengi kullanılır.
+  color: string | null;
 };
 
 // minutes[habitId][dayIndex 0..6] = dakika

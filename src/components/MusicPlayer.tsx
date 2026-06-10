@@ -53,7 +53,7 @@ export function MusicPlayer() {
     () => target?.videoId ?? null
   );
   const [err, setErr] = useState(false);
-  // Açılışta müzik yoksa küçük (collapsed) başla
+  // Sağ-alt köşede sabit; bağlı bir parça varsa açık başla
   const [collapsed, setCollapsed] = useState(() => !target);
 
   targetRef.current = target;

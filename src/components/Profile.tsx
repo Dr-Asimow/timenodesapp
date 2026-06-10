@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatHours } from "../heat";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
 import { BadgeCard, dateDMY } from "./BadgeCard";
+import { BadgeRow } from "./Badges";
 import { THEMES, getSavedTheme, applyTheme, type ThemeId } from "../theme";
 
 const MONTHS_TR = [
@@ -142,6 +143,8 @@ export function Profile({
             </span>
             <span className="uid-copy-ic">{copied ? "✓ kopyalandı" : "⧉"}</span>
           </button>
+
+          <BadgeRow />
         </div>
 
         <div className="profile-side">
@@ -302,7 +305,7 @@ export function Profile({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+export function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="stat-card">
       <div className="stat-value">{value}</div>

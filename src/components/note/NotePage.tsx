@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import { loadDayPage, saveDayPage, type PageDoc } from "../../db";
+import type { Page, PageDoc } from "../../db";
 import { NoteEditor } from "./NoteEditor";
 
 export function NotePage({
-  userId,
-  day,
-  dateLabel,
+  pageKey,
+  headerLabel,
+  load,
+  save,
   onClose,
+  accentColor,
+  onAccentColorChange,
 }: {
-  userId: string;
-  day: string;
-  dateLabel: string;
+  // Sayfayı yeniden yüklemeyi tetikleyen anahtar (gün ISO'su ya da habit id)
+  pageKey: string;
+  // Üst çubukta gösterilen etiket (ör. "10 Haz · Günlük" veya "Japonca · Etkinlik")
+  headerLabel: string;
+  load: () => Promise<Page | null>;
+  save: (title: string, content: PageDoc) => Promise<void>;
   onClose: () => void;
+  // Verilirse üst çubukta etkinlik renk seçici gösterilir (sadece etkinlik sayfalarında)
+  accentColor?: string | null;
+  onAccentColorChange?: (color: string | null) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -24,7 +33,8 @@ export function NotePage({
 
   useEffect(() => {
     let cancel = false;
-    loadDayPage(day)
+    setLoading(true);
+    load()
       .then((p) => {
         if (cancel) return;
         setTitle(p?.title ?? "");
@@ -38,19 +48,14 @@ export function NotePage({
     return () => {
       cancel = true;
     };
-  }, [day]);
+  }, [pageKey]);
 
   function scheduleSave() {
     setStatus("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       try {
-        await saveDayPage(
-          userId,
-          day,
-          latest.current.title,
-          latest.current.doc ?? {}
-        );
+        await save(latest.current.title, latest.current.doc ?? {});
         setStatus("saved");
       } catch {
         setStatus("idle");
@@ -62,12 +67,7 @@ export function NotePage({
   async function close() {
     if (timer.current) clearTimeout(timer.current);
     try {
-      await saveDayPage(
-        userId,
-        day,
-        latest.current.title,
-        latest.current.doc ?? {}
-      );
+      await save(latest.current.title, latest.current.doc ?? {});
     } catch {
       /* yoksay */
     }
@@ -80,7 +80,13 @@ export function NotePage({
         <button className="ghost-btn small" onClick={close}>
           ← Kapat
         </button>
-        <span className="note-day muted small">{dateLabel} · Günlük</span>
+        <span className="note-day muted small">{headerLabel}</span>
+        {onAccentColorChange ? (
+          <HabitColorPicker
+            color={accentColor ?? null}
+            onChange={onAccentColorChange}
+          />
+        ) : null}
         <span className="note-status muted small">
           {status === "saving"
             ? "Kaydediliyor…"
@@ -118,5 +124,66 @@ export function NotePage({
         </div>
       </div>
     </div>
+  );
+}
+
+const HABIT_COLORS = [
+  { name: "Varsayılan", v: null },
+  { name: "Yeşil", v: "#39d353" },
+  { name: "Mavi", v: "#6cb0ff" },
+  { name: "Mor", v: "#c084fc" },
+  { name: "Turuncu", v: "#f0a020" },
+  { name: "Sarı", v: "#f0c000" },
+  { name: "Kırmızı", v: "#ff6b6b" },
+  { name: "Pembe", v: "#f472b6" },
+  { name: "Camgöbeği", v: "#2dd4bf" },
+  { name: "Gri", v: "#9aa4b2" },
+];
+
+function HabitColorPicker({
+  color,
+  onChange,
+}: {
+  color: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="nt-color-wrap">
+      <button
+        type="button"
+        className="habit-color-btn"
+        title="Etkinlik rengi"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setOpen((o) => !o);
+        }}
+      >
+        <span
+          className="habit-dot"
+          style={{ background: color || "var(--accent)" }}
+        />
+      </button>
+      {open ? (
+        <div className="nt-color-pop" onMouseLeave={() => setOpen(false)}>
+          {HABIT_COLORS.map((col) => (
+            <button
+              key={col.name}
+              type="button"
+              className="nt-swatch"
+              title={col.name}
+              style={{ background: col.v ?? "transparent" }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(col.v);
+                setOpen(false);
+              }}
+            >
+              {col.v ? "" : "⌀"}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </span>
   );
 }

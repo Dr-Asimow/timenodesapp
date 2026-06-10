@@ -8,12 +8,17 @@ import {
   insertHabit,
   deleteHabit,
   updateHabitPosition,
+  updateHabitColor,
   upsertEntry,
   setDayNote,
   loadDayTodos,
   addTodo,
   setTodoDone,
   deleteTodo,
+  loadDayPage,
+  saveDayPage,
+  loadHabitPage,
+  saveHabitPage,
 } from "./db";
 import {
   mondayOf,
@@ -82,6 +87,15 @@ function StatsIcon() {
     </svg>
   );
 }
+function SettingsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="9" r="2.5"/>
+      <path d="M9 1.5v2M9 14.5v2M16.5 9h-2M3.5 9h-2M14.2 3.8l-1.4 1.4M5.2 12.8l-1.4 1.4M14.2 14.2l-1.4-1.4M5.2 5.2 3.8 3.8"/>
+    </svg>
+  );
+}
 import type { TodoItem } from "./types";
 
 const TR_MONTHS = [
@@ -139,6 +153,11 @@ export function App() {
   const [noteTarget, setNoteTarget] = useState<{
     day: string;
     label: string;
+  } | null>(null);
+  // Etkinlik sayfası (tam ekran) — açık etkinlik id + adı
+  const [habitPageTarget, setHabitPageTarget] = useState<{
+    habitId: string;
+    name: string;
   } | null>(null);
   // Seçili hücre (popover) — hem ızgaradan hem gündemden açılabilsin diye App'te
   const [cellSel, setCellSel] = useState<{ habitId: string; day: number } | null>(
@@ -198,7 +217,15 @@ export function App() {
         const w = await loadWeek(toISODate(mondayOf(new Date())));
         if (!cancel) setWeek(w);
       } catch (e) {
-        if (!cancel) setErr(e instanceof Error ? e.message : "Yükleme hatası");
+        if (!cancel) {
+          const msg =
+            e instanceof Error
+              ? e.message
+              : e && typeof e === "object" && "message" in e
+              ? String((e as { message: unknown }).message)
+              : "Yükleme hatası";
+          setErr(msg);
+        }
       }
     })();
     return () => {
@@ -412,6 +439,19 @@ export function App() {
       .catch((e) => setErr(e instanceof Error ? e.message : "Kayıt hatası"));
   }
 
+  // Bir etkinliğin rengini güncelle: yerel state (güncel + görüntülenen hafta) + DB
+  function setHabitColor(habitId: string, color: string | null) {
+    const update = (w: WeekData): WeekData => ({
+      ...w,
+      habits: w.habits.map((h) => (h.id === habitId ? { ...h, color } : h)),
+    });
+    setWeek((w) => (w ? update(w) : w));
+    setViewedWeek((w) => (w ? update(w) : w));
+    chain.current = chain.current
+      .then(() => updateHabitColor(habitId, color))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Renk kaydedilemedi"));
+  }
+
   // Hafta değişimini uygula: doğru haftayı (güncel ya da görüntülenen) güncelle + DB'ye yaz
   function applyWeek(newWeek: WeekData) {
     if (week && newWeek.startDate === week.startDate) {
@@ -574,7 +614,8 @@ export function App() {
   // Interval ref'lerini her render'da güncel tut
   timersRef.current = timers;
   finishTimerRef.current = finishTimer;
-  reloadBlockedRef.current = noteTarget !== null || pending !== null;
+  reloadBlockedRef.current =
+    noteTarget !== null || habitPageTarget !== null || pending !== null;
 
   const pendingOthers = pending
     ? timers.filter(
@@ -585,7 +626,7 @@ export function App() {
   // --- Render ---
   if (!authReady) return <LoadingScreen />;
   if (!session) return <Login />;
-  if (!week) return <LoadingScreen />;
+  if (!week) return <LoadingScreen error={err} />;
 
   const weekTotalMin = week.habits.reduce(
     (a, h) => a + (week.minutes[h.id] ?? []).reduce((s, m) => s + m, 0),
@@ -728,7 +769,18 @@ export function App() {
                 sel={cellSel}
                 onSelChange={setCellSel}
                 onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
+                onOpenHabitPage={(habitId, name) =>
+                  setHabitPageTarget({ habitId, name })
+                }
                 prevTotals={prevTotals}
+                viewingOther={viewingOther}
+                onPrevWeek={() =>
+                  openWeek(toISODate(addDays(shownWeek.startDate, -7)))
+                }
+                onNextWeek={() =>
+                  openWeek(toISODate(addDays(shownWeek.startDate, 7)))
+                }
+                onToday={() => openWeek(week.startDate)}
               />
             );
             if (viewingOther) {
@@ -748,15 +800,13 @@ export function App() {
                       Güncel haftaya dön
                     </button>
                   </div>
-                  {grid}
+                  <div className="week-main">{grid}</div>
                 </>
               );
             }
             return (
               <div className="week-layout">
                 <DayPanel
-                  dateLabel={dateLabel}
-                  dayName={dayName}
                   habits={week.habits}
                   items={todos}
                   todayMinutes={todayMinutes}
@@ -854,14 +904,14 @@ export function App() {
         <button
           className={`snav-btn${view === "week" ? " active" : ""}`}
           onClick={() => navigate("week")}
-          title="Bu Hafta"
+          title="Dashboard"
         >
           <WeekIcon />
         </button>
         <button
           className={`snav-btn${view === "weeks" ? " active" : ""}`}
           onClick={() => navigate("weeks")}
-          title="Haftalar"
+          title="Takvim"
         >
           <WeeksIcon />
         </button>
@@ -872,14 +922,43 @@ export function App() {
         >
           <StatsIcon />
         </button>
+        <button
+          className={`snav-btn${view === "profile" ? " active" : ""}`}
+          onClick={() => navigate("profile")}
+          title="Ayarlar"
+        >
+          <SettingsIcon />
+        </button>
       </nav>
 
       {noteTarget && userId ? (
         <NotePage
-          userId={userId}
-          day={noteTarget.day}
-          dateLabel={noteTarget.label}
+          pageKey={`day:${noteTarget.day}`}
+          headerLabel={`${noteTarget.label} · Günlük`}
+          load={() => loadDayPage(noteTarget.day)}
+          save={(title, content) =>
+            saveDayPage(userId, noteTarget.day, title, content)
+          }
           onClose={() => setNoteTarget(null)}
+        />
+      ) : null}
+
+      {habitPageTarget && userId ? (
+        <NotePage
+          pageKey={`habit:${habitPageTarget.habitId}`}
+          headerLabel={`${habitPageTarget.name} · Etkinlik`}
+          load={() => loadHabitPage(habitPageTarget.habitId)}
+          save={(title, content) =>
+            saveHabitPage(userId, habitPageTarget.habitId, title, content)
+          }
+          onClose={() => setHabitPageTarget(null)}
+          accentColor={
+            shownWeek.habits.find((h) => h.id === habitPageTarget.habitId)
+              ?.color ?? null
+          }
+          onAccentColorChange={(color) =>
+            setHabitColor(habitPageTarget.habitId, color)
+          }
         />
       ) : null}
     </div>

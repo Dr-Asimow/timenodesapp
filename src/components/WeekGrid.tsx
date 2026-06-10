@@ -5,8 +5,12 @@ import { isRunning } from "../timer";
 import { heatLevel, formatMinutes, formatHours } from "../heat";
 import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
+import { Stat } from "./Profile";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+const FULL_DAY_LABELS = [
+  "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar",
+];
 const MONTHS_TR = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
@@ -35,7 +39,12 @@ export function WeekGrid({
   sel,
   onSelChange,
   onOpenDayNote,
+  onOpenHabitPage,
   prevTotals,
+  viewingOther,
+  onPrevWeek,
+  onNextWeek,
+  onToday,
 }: {
   week: WeekData;
   activeTimers: ActiveTimer[];
@@ -47,14 +56,30 @@ export function WeekGrid({
   onSelChange: (sel: CellSel) => void;
   // O günün günlüğünü (Not Defteri) aç
   onOpenDayNote: (dayISO: string, label: string) => void;
+  // Etkinliğin kalıcı not sayfasını aç
+  onOpenHabitPage: (habitId: string, name: string) => void;
   // Geçen haftanın alışkanlık bazında toplam çalışma dk'sı (habitId→dk)
   prevTotals: Record<string, number> | null;
+  // Hafta gezinmesi: önceki/sonraki hafta ve güncel haftaya dön
+  viewingOther: boolean;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+  onToday: () => void;
 }) {
   const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
   const [adding, setAdding] = useState(false);
-  // Gün notu modalı için seçili gün (0..6) ya da null
-  const [dayNoteSel, setDayNoteSel] = useState<number | null>(null);
+  // Gün detayı panelinde seçili gün (0..6) — varsayılan: bugün
+  const [selectedDay, setSelectedDay] = useState<number>(() => {
+    const iso = toISODate(new Date());
+    for (let i = 0; i < 7; i++) {
+      if (toISODate(addDays(week.startDate, i)) === iso) return i;
+    }
+    return 0;
+  });
+  // Seçili günün gündemi (gün detayı paneli)
+  const [dayTodos, setDayTodos] = useState<TodoItem[]>([]);
+  const [dayTodosLoading, setDayTodosLoading] = useState(true);
   // Sürükle-bırak yeniden sıralama
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
@@ -71,6 +96,26 @@ export function WeekGrid({
       isToday: toISODate(d) === todayISO,
     };
   });
+
+  const selectedISO = toISODate(addDays(week.startDate, selectedDay));
+
+  useEffect(() => {
+    let cancel = false;
+    setDayTodosLoading(true);
+    loadDayTodos(selectedISO)
+      .then((t) => {
+        if (!cancel) {
+          setDayTodos(t);
+          setDayTodosLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancel) setDayTodosLoading(false);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [selectedISO]);
 
   function setMinutes(habitId: string, day: number, value: number) {
     const next = Math.max(0, value);
@@ -97,7 +142,7 @@ export function WeekGrid({
   function addHabit() {
     const name = newHabit.trim();
     if (!name) return;
-    const h: Habit = { id: newId(), name };
+    const h: Habit = { id: newId(), name, color: null };
     onChange({
       ...week,
       habits: [...week.habits, h],
@@ -154,6 +199,9 @@ export function WeekGrid({
     (a, h) => a + (prevTotals?.[h.id] ?? 0),
     0
   );
+  const completedHabits = week.habits.filter((h) => rowTotal(h.id) > 0).length;
+  const changePct =
+    prevGrand > 0 ? Math.round(((grandTotal - prevGrand) / prevGrand) * 100) : null;
 
   const rangeStart = days[0];
   const rangeEnd = days[6];
@@ -164,7 +212,23 @@ export function WeekGrid({
       ? `${rangeStart.date} – ${rangeEnd.date} ${MONTHS_TR[endMonth]} ${week.year}`
       : `${rangeStart.date} ${MONTHS_TR[startMonth]} – ${rangeEnd.date} ${MONTHS_TR[endMonth]} ${week.year}`;
 
+  // Heatmap altındaki "Gün detayı" paneli için seçili güne ait veriler
+  const selectedTotal = colTotal(selectedDay);
+  const selectedWorked = week.habits
+    .map((h) => ({
+      name: h.name,
+      color: h.color,
+      work: week.minutes[h.id]?.[selectedDay] ?? 0,
+    }))
+    .filter((b) => b.work > 0);
+  const selectedLabel = `${days[selectedDay].date} ${
+    MONTHS_TR[days[selectedDay].iso.getMonth()]
+  } ${FULL_DAY_LABELS[selectedDay]}`;
+  const selectedHabitItems = dayTodos.filter((t) => t.habitId);
+  const selectedTodoItems = dayTodos.filter((t) => !t.habitId);
+
   return (
+    <>
     <div className="week">
       <div className="week-head">
         <div className="week-no">
@@ -174,9 +238,30 @@ export function WeekGrid({
         <div className="week-range muted">
           {rangeLabel}
         </div>
-        <div className="week-total">
-          <span className="muted small">Toplam</span>
-          <span className="week-total-big">{formatHours(grandTotal)} sa</span>
+        <div className="week-nav">
+          <button
+            className="week-nav-btn"
+            title="Önceki hafta"
+            onClick={onPrevWeek}
+          >
+            ‹
+          </button>
+          {viewingOther ? (
+            <button
+              className="week-nav-today"
+              title="Bugüne dön"
+              onClick={onToday}
+            >
+              Bugüne dön
+            </button>
+          ) : null}
+          <button
+            className="week-nav-btn"
+            title="Sonraki hafta"
+            onClick={onNextWeek}
+          >
+            ›
+          </button>
         </div>
       </div>
 
@@ -190,14 +275,14 @@ export function WeekGrid({
                 <th
                   key={i}
                   className={`day-col ${d.isToday ? "today" : ""} ${
-                    hoverDay === i ? "col-hl-head" : ""
-                  }`}
+                    selectedDay === i ? "selected-day" : ""
+                  } ${hoverDay === i ? "col-hl-head" : ""}`}
                 >
                   {d.isToday ? <span className="today-dot" /> : null}
                   <button
                     className="day-head-btn"
-                    title="Gün özeti / günlük"
-                    onClick={() => setDayNoteSel(i)}
+                    title="Gün detayını göster"
+                    onClick={() => setSelectedDay(i)}
                   >
                     <span className="day-label">{d.label}</span>
                     <span className="day-date">{d.date}</span>
@@ -247,9 +332,14 @@ export function WeekGrid({
                   >
                     ⠿
                   </span>
+                  <span
+                    className="habit-dot"
+                    style={{ background: h.color || "var(--accent)" }}
+                  />
                   <button
                     className="habit-link"
-                    title="Etkinlik sayfası (yakında)"
+                    title="Etkinlik sayfasını aç"
+                    onClick={() => onOpenHabitPage(h.id, h.name)}
                   >
                     {h.name}
                   </button>
@@ -367,6 +457,82 @@ export function WeekGrid({
         <span className="muted small">Çok</span>
       </div>
 
+      <div className="day-detail">
+        <div className="day-detail-head">
+          <span>
+            <span className="ds-dot" /> {selectedLabel}
+          </span>
+          <span className="day-detail-total">
+            Toplam {formatHours(selectedTotal)} saat
+          </span>
+        </div>
+        <div className="day-detail-cols">
+          <div className="day-detail-col">
+            <h4 className="ds-title">Aktiviteler</h4>
+            {selectedWorked.length === 0 ? (
+              <p className="muted small">Bu gün kayıtlı süre yok.</p>
+            ) : (
+              <div className="habit-bars">
+                {selectedWorked.map((b) => (
+                  <div className="habit-bar-row" key={b.name}>
+                    <span className="habit-bar-name">
+                      <span
+                        className="habit-dot"
+                        style={{ background: b.color || "var(--accent)" }}
+                      />
+                      <span className="habit-bar-name-text">{b.name}</span>
+                    </span>
+                    <div className="habit-bar-track">
+                      <div
+                        className="habit-bar-fill"
+                        style={{
+                          width: `${
+                            selectedTotal > 0 ? (b.work / selectedTotal) * 100 : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                    <span className="habit-bar-val">{formatMinutes(b.work)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="day-detail-col">
+            <h4 className="ds-title">Gündem</h4>
+            {dayTodosLoading ? (
+              <p className="muted small">Yükleniyor…</p>
+            ) : dayTodos.length === 0 ? (
+              <p className="muted small">Bu güne gündem eklenmemiş.</p>
+            ) : (
+              <div className="ds-list">
+                {selectedHabitItems.map((it) => (
+                  <div className="ds-item habit" key={it.id}>
+                    <span className="ds-dot" />
+                    <span className="ds-item-text">{it.title}</span>
+                  </div>
+                ))}
+                {selectedTodoItems.map((it) => (
+                  <div
+                    className={`ds-item todo ${it.done ? "done" : ""}`}
+                    key={it.id}
+                  >
+                    <span className="ds-check">{it.done ? "✓" : "○"}</span>
+                    <span className="ds-item-text">{it.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <button
+          className="notebook-btn ds-journal"
+          onClick={() => onOpenDayNote(selectedISO, selectedLabel)}
+        >
+          📓 Günlüğü aç
+        </button>
+      </div>
+
       {sel
         ? (() => {
             const h = week.habits.find((x) => x.id === sel.habitId);
@@ -418,25 +584,6 @@ export function WeekGrid({
           })()
         : null}
 
-      {dayNoteSel !== null ? (
-        <DaySummaryModal
-          dayLabel={`${days[dayNoteSel].date} ${
-            MONTHS_TR[days[dayNoteSel].iso.getMonth()]
-          } ${DAY_LABELS[dayNoteSel]}`}
-          dayISO={toISODate(addDays(week.startDate, dayNoteSel))}
-          breakdown={week.habits.map((h) => ({
-            name: h.name,
-            work: week.minutes[h.id]?.[dayNoteSel] ?? 0,
-            brk: week.breaks[h.id]?.[dayNoteSel] ?? 0,
-          }))}
-          onOpenJournal={(dayISO, label) => {
-            setDayNoteSel(null);
-            onOpenDayNote(dayISO, label);
-          }}
-          onClose={() => setDayNoteSel(null)}
-        />
-      ) : null}
-
       {adding ? (
         <div
           className="modal-overlay"
@@ -480,119 +627,19 @@ export function WeekGrid({
         </div>
       ) : null}
     </div>
-  );
-}
-
-// Gün başlığına tıklayınca: o günün GÜNDEM özeti (yapılacaklar + süre dağılımı + not)
-type DayBreakdown = { name: string; work: number; brk: number };
-
-function DaySummaryModal({
-  dayLabel,
-  dayISO,
-  breakdown,
-  onOpenJournal,
-  onClose,
-}: {
-  dayLabel: string;
-  dayISO: string;
-  breakdown: DayBreakdown[];
-  onOpenJournal: (dayISO: string, label: string) => void;
-  onClose: () => void;
-}) {
-  const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancel = false;
-    setLoading(true);
-    loadDayTodos(dayISO)
-      .then((t) => {
-        if (!cancel) {
-          setTodos(t);
-          setLoading(false);
+    <aside className="week-side">
+      <Stat label="Bu hafta toplam" value={`${formatHours(grandTotal)} sa`} />
+      <Stat
+        label="Geçen haftaya göre"
+        value={
+          changePct === null ? "—" : `${changePct > 0 ? "+" : ""}${changePct}%`
         }
-      })
-      .catch(() => {
-        if (!cancel) setLoading(false);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, [dayISO]);
-
-  const close = onClose;
-
-  const habitItems = todos.filter((t) => t.habitId);
-  const todoItems = todos.filter((t) => !t.habitId);
-  const worked = breakdown.filter((b) => b.work > 0 || b.brk > 0);
-  const totalWork = breakdown.reduce((a, b) => a + b.work, 0);
-
-  return (
-    <div className="modal-overlay" onClick={close}>
-      <div className="modal day-summary" onClick={(e) => e.stopPropagation()}>
-        <div className="popover-head">
-          <span className="popover-title">{dayLabel}</span>
-          <button className="modal-x" onClick={close} aria-label="Kapat">
-            ×
-          </button>
-        </div>
-
-        <section className="ds-section">
-          <h4 className="ds-title">Gündem</h4>
-          {loading ? (
-            <p className="muted small">Yükleniyor…</p>
-          ) : todos.length === 0 ? (
-            <p className="muted small">Bu güne gündem eklenmemiş.</p>
-          ) : (
-            <div className="ds-list">
-              {habitItems.map((it) => (
-                <div className="ds-item habit" key={it.id}>
-                  <span className="ds-dot" />
-                  <span className="ds-item-text">{it.title}</span>
-                </div>
-              ))}
-              {todoItems.map((it) => (
-                <div className={`ds-item todo ${it.done ? "done" : ""}`} key={it.id}>
-                  <span className="ds-check">{it.done ? "✓" : "○"}</span>
-                  <span className="ds-item-text">{it.title}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="ds-section">
-          <h4 className="ds-title">Süre dağılımı</h4>
-          {worked.length === 0 ? (
-            <p className="muted small">Bu gün kayıtlı süre yok.</p>
-          ) : (
-            <div className="ds-list">
-              {worked.map((b) => (
-                <div className="ds-time" key={b.name}>
-                  <span className="ds-time-name">{b.name}</span>
-                  <span className="ds-time-val">
-                    {formatMinutes(b.work)}
-                    {b.brk > 0 ? (
-                      <span className="muted"> · {formatMinutes(b.brk)} mola</span>
-                    ) : null}
-                  </span>
-                </div>
-              ))}
-              <div className="ds-time total">
-                <span className="ds-time-name">Toplam</span>
-                <span className="ds-time-val">{formatMinutes(totalWork)}</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <button
-          className="notebook-btn ds-journal"
-          onClick={() => onOpenJournal(dayISO, dayLabel)}
-        >
-          📓 Günlüğü aç
-        </button>
-      </div>
-    </div>
+      />
+      <Stat
+        label="Tamamlanan etkinlik"
+        value={`${completedHabits} / ${week.habits.length}`}
+      />
+    </aside>
+    </>
   );
 }

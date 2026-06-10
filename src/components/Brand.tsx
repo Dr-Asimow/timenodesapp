@@ -19,10 +19,19 @@ export function Brand({
 }
 
 // Tam ekran yükleniyor görünümü (aynı marka + animasyonlu nokta)
-export function LoadingScreen() {
+// Veri yüklenirken hata oluşursa sonsuz spinner yerine hatayı gösterir.
+export function LoadingScreen({ error }: { error?: string | null } = {}) {
   return (
     <div className="loading-screen">
       <Brand />
+      {error ? (
+        <div className="loading-error">
+          <p>⚠️ {error}</p>
+          <button className="primary-btn small" onClick={() => window.location.reload()}>
+            Tekrar dene
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

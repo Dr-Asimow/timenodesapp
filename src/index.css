@@ -1,23 +1,23 @@
 :root {
-  --bg: #0d1117;
-  --panel: #161b22;
-  --panel-2: #1c2330;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #8b949e;
+  --bg: #0a0a0c;
+  --panel: #131316;
+  --panel-2: #1c1c20;
+  --border: #2a2a2f;
+  --text: #f4f4f5;
+  --muted: #8b8b8e;
   --accent: #39d353;
   --accent-fg: #0a1f12;
   --danger: #f85149;
 
   /* Isı haritası tonları — ton arttıkça daha çok zaman */
-  --lvl-0: #161b22;
+  --lvl-0: #131316;
   --lvl-1: #0e4429;
   --lvl-2: #006d32;
   --lvl-3: #26a641;
   --lvl-4: #39d353;
   --lvl-5: #5ff584;
   --row-hl: rgba(57, 211, 83, 0.08);
-  --lw-bg: #0d1014;
+  --lw-bg: #0a0a0c;
 }
 
 [data-theme="midnight"] {
@@ -131,7 +131,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 22px;
+  padding: 14px 22px 14px 102px; /* sol: 80px icon rail + 22px boşluk */
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
@@ -192,6 +192,17 @@ body {
 }
 .loading-screen .brand-title {
   font-size: 48px;
+}
+.loading-error {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--danger);
+  font-size: 13px;
+  max-width: 360px;
 }
 .topbar-right {
   display: flex;
@@ -584,6 +595,155 @@ body {
   color: var(--accent);
 }
 
+/* --- Rozetler --------------------------------------------------------- */
+.badge-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.badge-section-title {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.badge-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.badge-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+}
+.badge-pill-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--badge-color, var(--accent));
+  color: var(--badge-color, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: lowercase;
+  transition: background 0.12s, color 0.12s;
+}
+.badge-pill:hover .badge-pill-ic {
+  background: var(--badge-color, var(--accent));
+  color: var(--accent-fg);
+}
+.badge-pill-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* --- Rozet popup'ı ----------------------------------------------------- */
+.badge-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(1, 4, 9, 0.7);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.badge-popup-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  width: 100%;
+  max-width: 640px;
+}
+.badge-popup {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 160px;
+  padding: 28px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--badge-color, var(--accent));
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.badge-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.badge-popup-close:hover {
+  color: var(--text);
+}
+.badge-popup-ic {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--badge-color, var(--accent));
+  color: var(--badge-color, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+.badge-popup-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.badge-popup-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 380px;
+}
+.badge-popup-arrow {
+  flex: 0 0 44px;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.badge-popup-arrow:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* --- Yaka kartı (badge) — 5 katman ---------------------------------- */
 .badge-card {
   position: relative;
@@ -906,7 +1066,7 @@ body {
 .habit-bars {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .habit-bar-row {
   display: grid;
@@ -915,10 +1075,22 @@ body {
   gap: 10px;
 }
 .habit-bar-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 13px;
+}
+.habit-bar-name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.habit-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 .habit-bar-track {
   height: 12px;
@@ -977,7 +1149,7 @@ body {
   flex: 1;
   display: flex;
   justify-content: center;
-  padding: 28px 74px 28px 18px; /* sağ: 56px sidebar + 18px boşluk */
+  padding: 28px 18px 28px 98px; /* sol: 80px icon rail + 18px boşluk */
 }
 .page {
   width: 100%;
@@ -986,29 +1158,29 @@ body {
   flex-direction: column;
 }
 .page.wide {
-  max-width: 1380px;
+  max-width: 1760px;
 }
 
-/* ===== Sağ kenar navigasyon (side-nav) =============================== */
+/* ===== Sol kenar navigasyon (icon rail) =============================== */
 .side-nav {
   position: fixed;
-  right: 0;
-  top: 49px; /* topbar yüksekliği */
+  left: 0;
+  top: 77px; /* topbar yüksekliği (49px) + .main üst boşluğu (28px) */
   bottom: 0;
-  width: 56px;
+  width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 14px 0 20px;
-  gap: 2px;
+  padding: 18px 0 20px;
+  gap: 6px;
   background: var(--panel);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   z-index: 90;
 }
 .snav-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1027,13 +1199,14 @@ body {
   background: rgba(0, 0, 0, 0.06);
 }
 .snav-btn.active {
-  background: var(--accent);
-  color: var(--accent-fg);
+  background: var(--panel-2);
+  color: var(--accent);
+  box-shadow: inset -2px 0 0 var(--accent);
 }
 /* profil butonu biraz daha büyük */
 .snav-profile {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   margin-bottom: 2px;
 }
 .snav-avatar {
@@ -1066,41 +1239,44 @@ body {
 /* --- Hafta görünümü: sol gün paneli + sağ ızgara --------------------- */
 .week-layout {
   display: flex;
-  gap: 20px;
+  gap: 28px;
   align-items: stretch;
 }
 .week-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
 }
 .week-main .week {
+  flex: 1;
+  min-width: 0;
   height: 100%;
+}
+.week-side {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .day-panel {
-  flex: 0 0 290px;
-  width: 290px;
+  flex: 0 0 240px;
+  width: 240px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 22px 18px;
+  padding: 20px 16px;
 }
-.day-panel-head {
-  line-height: 1.1;
-}
-.day-panel-date {
-  font-size: 22px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.day-panel-name {
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  margin-top: 2px;
+.day-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .day-agenda {
@@ -1442,12 +1618,13 @@ body {
   color: var(--danger);
 }
 /* --- Müzik oynatıcı (sabit/floating; sayfa değişse de mount kalır) ---- */
+/* Sağ-alt köşede sabit, icon rail'den bağımsız konumlanır. */
 .music-player.floating {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: 24px;
+  bottom: 16px;
   z-index: 80;
-  width: 280px;
+  width: 240px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1458,15 +1635,27 @@ body {
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
 }
 .music-player.floating.collapsed {
-  width: auto;
-  max-width: 280px;
-  padding: 10px 12px;
+  right: 24px; /* aynı köşede küçülür */
+  bottom: 16px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
   gap: 0;
+  align-items: center;
+  justify-content: center;
+}
+.music-player.floating.collapsed .music-title-lbl,
+.music-player.floating.collapsed .music-mini-play {
+  display: none;
 }
 .music-head {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.music-player.floating.collapsed .music-head {
+  gap: 2px;
 }
 .music-min {
   margin-left: auto;
@@ -1477,6 +1666,9 @@ body {
   line-height: 1;
   cursor: pointer;
   padding: 2px 4px;
+}
+.music-player.floating.collapsed .music-min {
+  margin-left: 0;
 }
 .music-min:hover {
   color: var(--text);
@@ -1646,6 +1838,9 @@ body {
     flex: none;
     width: 100%;
   }
+  .week-main {
+    flex-direction: column;
+  }
   .agenda-cols {
     flex-direction: column;
   }
@@ -1752,16 +1947,14 @@ button {
 /* --- Hafta paneli ----------------------------------------------------- */
 .week {
   width: 100%;
-  max-width: 940px;
 }
 .week-head {
   display: flex;
   align-items: flex-end;
   gap: 22px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
-.week-no,
-.week-total {
+.week-no {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
@@ -1774,14 +1967,44 @@ button {
   flex: 1;
   font-size: 14px;
 }
-.week-total {
-  text-align: right;
-  margin-left: auto;
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.week-total-big {
-  font-size: 22px;
-  font-weight: 700;
+.week-nav-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+}
+.week-nav-btn:hover {
+  border-color: var(--muted);
+}
+.week-nav-today {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 0 10px;
+  height: 28px;
+}
+.week-nav-today:hover {
+  border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Sağ kolondaki KPI kartları */
+.week-side .stat-value {
+  color: var(--text);
 }
 
 /* --- Izgara ----------------------------------------------------------- */
@@ -1794,29 +2017,18 @@ button {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--panel);
-  padding: 8px;
-  position: relative;
-  z-index: 2;
-  box-shadow: 6px 0 16px rgba(0, 0, 0, 0.4);
 }
 .grid {
   border-collapse: separate;
-  border-spacing: 6px;
+  border-spacing: 2px;
   width: 100%;
 }
-/* Geçen hafta HUD — ayrı çubuk, tablonun arkasından sağa doğru çıkar */
+/* Geçen hafta HUD — ızgaranın sağında, ince ayraçla ayrılan sütun */
 .lw-hud {
   flex: 0 0 auto;
-  position: relative;
-  z-index: 1;
-  margin-left: -20px;
-  padding: 8px 16px 8px 30px;
-  background: var(--lw-bg);
-  border: 1px solid var(--border);
-  border-radius: 0 14px 14px 0;
+  margin-left: 16px;
+  padding: 8px 0 8px 16px;
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   color: var(--muted);
@@ -1862,13 +2074,13 @@ button {
 }
 .habit-col {
   text-align: left;
-  width: 150px;
+  width: 96px;
   color: var(--muted);
   font-size: 12px;
 }
 .day-col,
 .total-col {
-  width: 86px;
+  width: 56px;
 }
 .day-col {
   position: relative;
@@ -1883,6 +2095,10 @@ button {
   color: var(--accent);
 }
 .day-col.today .day-date {
+  color: var(--accent);
+}
+.day-col.selected-day .day-label,
+.day-col.selected-day .day-date {
   color: var(--accent);
 }
 .today-dot {
@@ -2013,8 +2229,8 @@ tr.drag-over th {
   position: relative;
   overflow: hidden;
   width: 100%;
-  height: 68px;
-  border-radius: 10px;
+  height: 34px;
+  border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--lvl-0);
   color: rgba(255, 255, 255, 0.92);
@@ -2632,17 +2848,6 @@ tr.drag-over th {
   margin: 4px 0 2px;
 }
 
-/* --- Gün özeti modalı (gün başlığına tıkla) -------------------------- */
-.modal.day-summary {
-  width: 430px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
 .ds-section {
   display: flex;
   flex-direction: column;
@@ -2659,17 +2864,17 @@ tr.drag-over th {
 .ds-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 .ds-item {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 14px;
+  font-size: 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 9px;
-  padding: 9px 11px;
+  padding: 5px 11px;
 }
 .ds-item.habit {
   border-left: 3px solid var(--accent);
@@ -2784,7 +2989,7 @@ tr.drag-over th {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 22px;
+  padding: 10px 78px 10px 22px; /* sağ: 56px sidebar + 22px boşluk */
   background: var(--panel-2);
   border-bottom: 1px solid var(--border);
 }
@@ -2974,7 +3179,7 @@ tr.drag-over th {
   border: 1px dashed var(--border);
   color: var(--muted);
   border-radius: 8px;
-  padding: 11px 0;
+  padding: 7px 0;
   font-size: 13px;
   font-weight: 500;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -3017,7 +3222,7 @@ tr.drag-over th {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 16px;
+  margin-top: 8px;
   justify-content: flex-end;
 }
 .legend-box {
@@ -3025,6 +3230,36 @@ tr.drag-over th {
   height: 14px;
   border-radius: 4px;
   display: inline-block;
+}
+
+/* --- Gün detayı (heatmap altı, seçili güne ait özet) ------------------ */
+.day-detail {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.day-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.day-detail-total {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+.day-detail-cols {
+  display: flex;
+  gap: 24px;
+}
+.day-detail-col {
+  flex: 1;
+  min-width: 0;
 }
 
 /* --- Multi-task uyarı modalı ----------------------------------------- */
@@ -3145,10 +3380,10 @@ tr.drag-over th {
   border-color: var(--accent);
   color: var(--accent);
 }
-/* Gün özeti modalındaki "Günlüğü aç" — daha kompakt */
+/* Gün detayı panelindeki "Günlüğü aç" — daha kompakt */
 .ds-journal {
   margin-top: 4px;
-  padding: 13px 0;
+  padding: 8px 0;
   font-size: 14px;
 }
 
@@ -3279,6 +3514,27 @@ tr.drag-over th {
   font-size: 12px;
   display: grid;
   place-items: center;
+}
+/* Etkinlik renk seçici (NotePage üst çubuğu) */
+.habit-color-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.habit-color-btn:hover {
+  background: var(--panel-2);
+  border-color: var(--accent);
+}
+.habit-color-btn .habit-dot {
+  width: 12px;
+  height: 12px;
 }
 .nt-swatch:hover {
   border-color: var(--accent);
@@ -3511,9 +3767,6 @@ tr.drag-over th {
 [data-theme="sand"] .cell.lvl-4 .cell-val,
 [data-theme="sand"] .cell.lvl-5 .cell-val {
   color: #fff;
-}
-[data-theme="sand"] .grid-scroll {
-  box-shadow: 4px 0 14px rgba(0, 0, 0, 0.08);
 }
 [data-theme="sand"] body {
   font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;

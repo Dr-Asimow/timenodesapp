@@ -204,7 +204,7 @@ export async function currentUsername(): Promise<string | null> {
 
 // --- Veri ------------------------------------------------------------
 
-type HabitRow = { id: string; name: string; position: number };
+type HabitRow = { id: string; name: string; position: number; color: string | null };
 type EntryRow = {
   habit_id: string;
   day: string;
@@ -219,7 +219,7 @@ type DayNoteRow = { day: string; note: string | null };
 export async function loadWeek(startDateISO: string): Promise<WeekData> {
   let { data: habitRows, error: hErr } = await supabase
     .from("habits")
-    .select("id,name,position")
+    .select("id,name,position,color")
     .eq("archived", false)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -229,7 +229,7 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
     await seedDefaultHabits();
     const r = await supabase
       .from("habits")
-      .select("id,name,position")
+      .select("id,name,position,color")
       .eq("archived", false)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
@@ -239,6 +239,7 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
   const habits: Habit[] = (habitRows as HabitRow[]).map((h) => ({
     id: h.id,
     name: h.name,
+    color: h.color ?? null,
   }));
 
   const endISO = toISODate(addDays(startDateISO, 6));
@@ -315,6 +316,15 @@ export async function updateHabitPosition(id: string, position: number) {
   const { error } = await supabase
     .from("habits")
     .update({ position })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Bir alışkanlığın rengini güncelle (null = varsayılan accent rengi)
+export async function updateHabitColor(id: string, color: string | null) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ color })
     .eq("id", id);
   if (error) throw error;
 }
@@ -443,6 +453,31 @@ export async function saveDayPage(
   const { error } = await supabase.from("pages").upsert(
     { user_id: userId, day: dayISO, title, content },
     { onConflict: "user_id,day" }
+  );
+  if (error) throw error;
+}
+
+// Bir etkinliğe ait sayfayı yükle (yoksa null) — günden bağımsız, kalıcı
+export async function loadHabitPage(habitId: string): Promise<Page | null> {
+  const { data, error } = await supabase
+    .from("pages")
+    .select("id,title,content,day")
+    .eq("habit_id", habitId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as PageRow) ?? null;
+}
+
+// Bir etkinliğe ait sayfayı kaydet (upsert: user_id+habit_id tekil)
+export async function saveHabitPage(
+  userId: string,
+  habitId: string,
+  title: string,
+  content: PageDoc
+): Promise<void> {
+  const { error } = await supabase.from("pages").upsert(
+    { user_id: userId, habit_id: habitId, title, content },
+    { onConflict: "user_id,habit_id" }
   );
   if (error) throw error;
 }

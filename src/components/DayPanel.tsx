@@ -3,8 +3,6 @@ import type { Habit, TodoItem } from "../types";
 import { formatMinutes } from "../heat";
 
 export function DayPanel({
-  dateLabel,
-  dayName,
   habits,
   items,
   todayMinutes,
@@ -17,8 +15,6 @@ export function DayPanel({
   onOpenHabit,
   onOpenNote,
 }: {
-  dateLabel: string;
-  dayName: string;
   habits: Habit[];
   items: TodoItem[];
   todayMinutes: Record<string, number>;
@@ -39,10 +35,7 @@ export function DayPanel({
 
   return (
     <aside className="day-panel">
-      <div className="day-panel-head">
-        <div className="day-panel-date">{dateLabel}</div>
-        <div className="day-panel-name">{dayName}</div>
-      </div>
+      <div className="day-panel-title muted small">BUGÜNKÜ PLAN</div>
 
       <div className="day-agenda">
         {empty ? (
