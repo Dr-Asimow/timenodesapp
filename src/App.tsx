@@ -383,7 +383,7 @@ export function App() {
         .catch(() => {})
         .finally(() => autoAddingRef.current.delete(habit.id));
     }
-  }, [week?.minutes, week?.habits, todos, userId]);
+  }, [week, todos, userId]);
 
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
