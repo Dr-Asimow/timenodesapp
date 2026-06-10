@@ -9,6 +9,7 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -27,6 +28,8 @@ export function Login() {
           throw new Error(
             "Şifre en az 8 karakter olmalı, harf ve rakam içermeli."
           );
+        if (password !== password2)
+          throw new Error("Şifreler eşleşmiyor, tekrar kontrol et.");
         await signUp(email, password, displayName);
       } else {
         await signIn(email, password);
@@ -42,6 +45,7 @@ export function Login() {
   function switchMode(m: "in" | "up") {
     setMode(m);
     setErr(null);
+    setPassword2("");
   }
 
   return (
@@ -100,6 +104,19 @@ export function Login() {
             autoComplete={mode === "up" ? "new-password" : "current-password"}
           />
         </label>
+
+        {mode === "up" ? (
+          <label>
+            Şifre (tekrar)
+            <input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+          </label>
+        ) : null}
 
         {err ? <p className="login-err">{err}</p> : null}
 
