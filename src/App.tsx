@@ -355,6 +355,36 @@ export function App() {
     }
   }, [timers, todos, userId, week]);
 
+  // Haftalık tabloda bugün için veri varsa (minutes > 0), o alışkanlığı
+  // gündeme otomatik ekle (eğer yoksa)
+  useEffect(() => {
+    if (!userId || !week) return;
+    const tISO = toISODate(new Date());
+    const tIdx = Math.round(
+      (Date.parse(tISO) - Date.parse(week.startDate)) / 86400000
+    );
+    if (tIdx < 0 || tIdx > 6) return;
+    const inAgenda = new Set(
+      todos.filter((t) => t.habitId).map((t) => t.habitId)
+    );
+    const seen = new Set<string>();
+    for (const habit of week.habits) {
+      const mins = week.minutes[habit.id]?.[tIdx] ?? 0;
+      if (mins === 0 || inAgenda.has(habit.id)) continue;
+      if (autoAddingRef.current.has(habit.id) || seen.has(habit.id)) continue;
+      seen.add(habit.id);
+      autoAddingRef.current.add(habit.id);
+      addTodo(userId, tISO, habit.id, habit.name, todos.length)
+        .then((item) =>
+          setTodos((cur) =>
+            cur.some((x) => x.habitId === item.habitId) ? cur : [...cur, item]
+          )
+        )
+        .catch(() => {})
+        .finally(() => autoAddingRef.current.delete(habit.id));
+    }
+  }, [week?.minutes, week?.habits, todos, userId]);
+
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
     const job = async () => {
