@@ -63,7 +63,7 @@ export function Stats({
       </div>
 
       <section className="stats-section">
-        <h3 className="stats-title">Alışkanlık dağılımı</h3>
+        <h3 className="stats-title">Etkinlik dağılımı</h3>
         {stats.perHabit.length === 0 ? (
           <p className="muted small">Bu yıl henüz kayıt yok.</p>
         ) : (

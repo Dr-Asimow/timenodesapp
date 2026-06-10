@@ -129,7 +129,7 @@ export function WeekGrid({
 
   function removeHabit(habitId: string) {
     const h = week.habits.find((x) => x.id === habitId);
-    if (!confirm(`"${h?.name}" alışkanlığı silinsin mi?`)) return;
+    if (!confirm(`"${h?.name}" etkinliği silinsin mi?`)) return;
     const minutes = { ...week.minutes };
     const breaks = { ...week.breaks };
     const notes = { ...week.notes };
@@ -185,7 +185,7 @@ export function WeekGrid({
           <table className="grid" onMouseLeave={() => setHoverDay(null)}>
           <thead>
             <tr>
-              <th className="habit-col">Alışkanlık</th>
+              <th className="habit-col">Etkinlik</th>
               {days.map((d, i) => (
                 <th
                   key={i}
@@ -249,7 +249,7 @@ export function WeekGrid({
                   </span>
                   <button
                     className="habit-link"
-                    title="Alışkanlık sayfası (yakında)"
+                    title="Etkinlik sayfası (yakında)"
                   >
                     {h.name}
                   </button>
@@ -318,7 +318,7 @@ export function WeekGrid({
             <tr className="add-habit-row">
               <td colSpan={days.length + 2}>
                 <button className="add-habit-btn" onClick={() => setAdding(true)}>
-                  + Alışkanlık ekle
+                  + Etkinlik ekle
                 </button>
               </td>
             </tr>
@@ -453,13 +453,13 @@ export function WeekGrid({
               addHabit();
             }}
           >
-            <h2 className="modal-title">Yeni alışkanlık</h2>
+            <h2 className="modal-title">Yeni etkinlik</h2>
             <input
               autoFocus
               className="habit-modal-input"
               value={newHabit}
               onChange={(e) => setNewHabit(e.target.value)}
-              placeholder="Alışkanlık ismi…"
+              placeholder="Etkinlik ismi…"
             />
             <div className="modal-actions">
               <button className="primary-btn" type="submit">

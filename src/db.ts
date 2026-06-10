@@ -108,16 +108,8 @@ export async function loadHabitTotalsForWeek(
   return map;
 }
 
-const DEFAULT_HABITS = [
-  "Çizim",
-  "Japonca",
-  "İngilizce",
-  "Kitap",
-  "Maneviyat",
-  "Freelance",
-  "Proje",
-  "Egzersiz",
-];
+// Yeni kullanıcıya kopyalanan genel varsayılan etkinlikler
+const DEFAULT_HABITS = ["Mesai", "Ders", "Egzersiz", "Meditasyon"];
 
 // --- Auth (e-posta ile giriş) ----------------------------------------
 
