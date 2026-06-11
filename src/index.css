@@ -1191,7 +1191,7 @@ body {
   flex-direction: column;
 }
 .page.wide {
-  max-width: 1760px;
+  max-width: 1400px;
 }
 
 /* ===== Sol kenar navigasyon (icon rail) =============================== */
