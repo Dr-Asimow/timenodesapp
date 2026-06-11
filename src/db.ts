@@ -460,18 +460,35 @@ export async function loadDayPage(dayISO: string): Promise<Page | null> {
   return (data as PageRow) ?? null;
 }
 
-// Bir güne ait not sayfasını kaydet (upsert: user_id+day tekil)
+// Bir güne ait not sayfasını kaydet.
+// Not: pages tablosundaki tekil indeks "kısmi" (where day is not null) olduğu için
+// kolon-bazlı ON CONFLICT (upsert) eşleşmiyor (42P10). Bu yüzden önce var olan satırı
+// bulup güncelliyor, yoksa ekliyoruz.
 export async function saveDayPage(
   userId: string,
   dayISO: string,
   title: string,
   content: PageDoc
 ): Promise<void> {
-  const { error } = await supabase.from("pages").upsert(
-    { user_id: userId, day: dayISO, title, content },
-    { onConflict: "user_id,day" }
-  );
-  if (error) throw error;
+  const { data: existing, error: selErr } = await supabase
+    .from("pages")
+    .select("id")
+    .eq("day", dayISO)
+    .is("habit_id", null)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (existing) {
+    const { error } = await supabase
+      .from("pages")
+      .update({ title, content })
+      .eq("id", (existing as { id: string }).id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("pages")
+      .insert({ user_id: userId, day: dayISO, title, content });
+    if (error) throw error;
+  }
 }
 
 // Bir etkinliğe ait sayfayı yükle (yoksa null) — günden bağımsız, kalıcı
@@ -485,18 +502,32 @@ export async function loadHabitPage(habitId: string): Promise<Page | null> {
   return (data as PageRow) ?? null;
 }
 
-// Bir etkinliğe ait sayfayı kaydet (upsert: user_id+habit_id tekil)
+// Bir etkinliğe ait sayfayı kaydet.
+// (Aynı kısmi indeks nedeniyle upsert yerine önce-seç-sonra-güncelle/ekle deseni.)
 export async function saveHabitPage(
   userId: string,
   habitId: string,
   title: string,
   content: PageDoc
 ): Promise<void> {
-  const { error } = await supabase.from("pages").upsert(
-    { user_id: userId, habit_id: habitId, title, content },
-    { onConflict: "user_id,habit_id" }
-  );
-  if (error) throw error;
+  const { data: existing, error: selErr } = await supabase
+    .from("pages")
+    .select("id")
+    .eq("habit_id", habitId)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (existing) {
+    const { error } = await supabase
+      .from("pages")
+      .update({ title, content })
+      .eq("id", (existing as { id: string }).id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("pages")
+      .insert({ user_id: userId, habit_id: habitId, title, content });
+    if (error) throw error;
+  }
 }
 
 // Gün notu (tarih bazında) yaz

@@ -75,7 +75,14 @@ export function NotePage({
   }
 
   return (
-    <div className="note-overlay">
+    <div
+      className="note-overlay"
+      onMouseDown={(e) => {
+        // Yalnızca karartılmış alana (modalın dışına) tıklayınca kapat
+        if (e.target === e.currentTarget) close();
+      }}
+    >
+      <div className="note-modal">
       <div className="note-topbar">
         <button className="ghost-btn small" onClick={close}>
           ← Kapat
@@ -122,6 +129,7 @@ export function NotePage({
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

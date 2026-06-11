@@ -38,6 +38,7 @@
   --lvl-3: #5046e5;
   --lvl-4: #7c6af8;
   --lvl-5: #a5b4fc;
+  --row-hl: rgba(124, 106, 248, 0.16);
 }
 
 [data-theme="amber"] {
@@ -56,6 +57,7 @@
   --lvl-3: #b87a00;
   --lvl-4: #f0a020;
   --lvl-5: #fbbf24;
+  --row-hl: rgba(240, 160, 32, 0.14);
 }
 
 [data-theme="slate"] {
@@ -74,6 +76,7 @@
   --lvl-3: #0369a1;
   --lvl-4: #0ea5e9;
   --lvl-5: #38bdf8;
+  --row-hl: rgba(56, 189, 248, 0.14);
 }
 
 [data-theme="sand"] {
@@ -94,6 +97,26 @@
   --lvl-3: #f08a3c;
   --lvl-4: #d9580d;
   --lvl-5: #b34008;
+}
+
+[data-theme="lime"] {
+  --bg: #f1f1ec;
+  --panel: #fafaf8;
+  --panel-2: #e9e9e3;
+  --border: #dcdcd4;
+  --text: #17170f;
+  --muted: #8c8c83;
+  --accent: #cdfa00;
+  --accent-fg: #17170f;
+  --danger: #dc2626;
+  --row-hl: rgba(205, 250, 0, 0.18);
+  --lw-bg: #e7e7e0;
+  --lvl-0: #e9e9e3;
+  --lvl-1: #eef6b4;
+  --lvl-2: #ddee76;
+  --lvl-3: #c8e23c;
+  --lvl-4: #cdfa00;
+  --lvl-5: #93ad00;
 }
 
 * {
@@ -1229,7 +1252,8 @@ body {
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
 }
-[data-theme="sand"] .snav-btn:hover {
+[data-theme="sand"] .snav-btn:hover,
+[data-theme="lime"] .snav-btn:hover {
   background: rgba(0, 0, 0, 0.06);
 }
 .snav-btn.active {
@@ -2220,7 +2244,7 @@ button {
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 6px rgba(57, 211, 83, 0.7);
+  box-shadow: 0 0 6px var(--accent);
 }
 /* Sütun arkasında hafif ton (hücre boşluklarında görünür) */
 .today-col {
@@ -3321,7 +3345,7 @@ tr.drag-over th {
 .add-habit-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(57, 211, 83, 0.08);
+  background: var(--row-hl);
 }
 
 /* Yeni alışkanlık modalı */
@@ -3526,9 +3550,28 @@ tr.drag-over th {
   position: fixed;
   inset: 0;
   z-index: 120;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+[data-theme="sand"] .note-overlay {
+  background: rgba(0, 0, 0, 0.35);
+}
+/* Geniş popup kartı (tam ekran değil) */
+.note-modal {
+  width: 100%;
+  max-width: 1100px;
+  height: 88vh;
+  max-height: 920px;
   background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .note-topbar {
   display: flex;
@@ -3891,15 +3934,18 @@ tr.drag-over th {
 }
 
 /* --- Sand teması özel overridelar --------------------------------------- */
-[data-theme="sand"] .cell {
+[data-theme="sand"] .cell,
+[data-theme="lime"] .cell {
   border-color: rgba(0, 0, 0, 0.06);
 }
-[data-theme="sand"] .cell-val {
+[data-theme="sand"] .cell-val,
+[data-theme="lime"] .cell-val {
   mix-blend-mode: normal;
   color: var(--text);
 }
 [data-theme="sand"] .cell.lvl-4 .cell-val,
-[data-theme="sand"] .cell.lvl-5 .cell-val {
+[data-theme="sand"] .cell.lvl-5 .cell-val,
+[data-theme="lime"] .cell.lvl-5 .cell-val {
   color: #fff;
 }
 [data-theme="sand"] body {
