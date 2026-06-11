@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import frameUrl from "../assets/card/card_frame.png";
 import defaultImageUrl from "../assets/card/card_image.png";
+import { TiltedCard } from "./TiltedCard";
 
 // --- Skin tanımı (ileride market'ten değiştirilebilir) ---------------
 export type CardSkin = {
@@ -57,7 +58,8 @@ export function BadgeCard({
     name.length <= 22 ? 17 : 15;
 
   return (
-    <div className="badge-card">
+    <TiltedCard rotateAmplitude={8} scaleOnHover={1.04}>
+      <div className="badge-card">
       {/* 1) Frame (en altta, kendi rengiyle — tint YOK) */}
       <img className="bc-frame" src={skin.frame} alt="" />
 
@@ -114,6 +116,7 @@ export function BadgeCard({
 
       {/* 2) Clasp (CSS — tema rengiyle, asset yerine; üst orta) */}
       <div className="bc-clasp" aria-hidden="true" />
-    </div>
+      </div>
+    </TiltedCard>
   );
 }

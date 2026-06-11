@@ -747,6 +747,15 @@ body {
 }
 
 /* --- Yaka kartı (badge) — 5 katman ---------------------------------- */
+/* TiltedCard — profil kartına 3D eğim sarmalayıcısı (React Bits / motion).
+   .tilt-wrap perspektifi sağlar (kart genişliğine küçülür), .tilt-inner döner. */
+.tilt-wrap {
+  perspective: 1000px;
+  width: fit-content;
+}
+.tilt-inner {
+  will-change: transform;
+}
 .badge-card {
   position: relative;
   width: 212px;
