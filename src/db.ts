@@ -124,12 +124,18 @@ export async function signUp(
   const name = displayName.trim();
   if (!mail) throw new Error("E-posta boş olamaz.");
   if (!name) throw new Error("Görünen ad boş olamaz.");
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: mail,
     password,
-    options: { data: { display_name: name } },
+    options: {
+      data: { display_name: name },
+      // Onay linkine tıklayınca kullanıcı uygulamaya geri dönsün
+      emailRedirectTo: window.location.origin,
+    },
   });
   if (error) throw error;
+  // Onay e-postası akışında session null döner → onay bekleniyor demektir.
+  return { needsConfirm: !data.session };
 }
 
 export async function signIn(email: string, password: string) {
