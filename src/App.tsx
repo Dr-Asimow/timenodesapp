@@ -6,6 +6,7 @@ import {
   signOut,
   loadWeek,
   insertHabit,
+  sendCongratsEmail,
   deleteHabit,
   updateHabitPosition,
   updateHabitColor,
@@ -195,6 +196,9 @@ export function App() {
   const finishTimerRef = useRef<(t: ActiveTimer) => void>(() => {});
   // Günlük/modal açıkken otomatik yenilemeyi ertele (kullanıcıyı kesmesin)
   const reloadBlockedRef = useRef(false);
+  // Oturum içinde tebrik mailini en çok bir kez tetiklemek için (asıl tek-seferlik
+  // garanti Edge Function'daki profiles.congrats_email_sent bayrağında)
+  const congratsSentRef = useRef(false);
   // Aktif sayaç çubuklarının yüksekliği (.side-nav'ı aşağı kaydırmak için)
   const timersStackRef = useRef<HTMLDivElement>(null);
 
@@ -422,7 +426,14 @@ export function App() {
       // eklenen alışkanlıklar
       for (let i = 0; i < newW.habits.length; i++) {
         const h = newW.habits[i];
-        if (!oldIds.has(h.id)) await insertHabit(h.id, h.name, i);
+        if (!oldIds.has(h.id)) {
+          await insertHabit(h.id, h.name, i);
+          // Kullanıcının manuel eklediği ilk alışkanlık → tebrik maili (fire-and-forget)
+          if (!congratsSentRef.current) {
+            congratsSentRef.current = true;
+            void sendCongratsEmail();
+          }
+        }
       }
       // silinen alışkanlıklar
       for (const h of oldW.habits) {

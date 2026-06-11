@@ -162,6 +162,17 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+// Kullanıcı kendi eklediği ilk alışkanlığı oluşturduğunda tebrik e-postasını tetikler.
+// Tek-seferlik garanti Edge Function tarafında (profiles.congrats_email_sent) sağlanır;
+// burada hatayı sessizce yutarız ki kayıt akışını ve UI'ı etkilemesin.
+export async function sendCongratsEmail() {
+  try {
+    await supabase.functions.invoke("congrats-email");
+  } catch {
+    /* sessizce geç */
+  }
+}
+
 // Görünen adı güncelle: auth metadata (session anında) + profiles (arkadaş listesi)
 export async function updateDisplayName(name: string) {
   const v = name.trim();
