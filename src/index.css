@@ -2311,6 +2311,7 @@ tr.drag-over th {
 .cell-td {
   position: relative;
   text-align: center;
+  padding: 0;
 }
 .cell {
   position: relative;
@@ -2334,12 +2335,27 @@ tr.drag-over th {
 .cell.sel {
   box-shadow: 0 0 0 2px var(--accent);
 }
-/* Bugünün sütunundaki hücreler ince accent çerçeveyle vurgulanır */
-.cell-td.today-col .cell {
-  box-shadow: inset 0 0 0 1px var(--accent);
+/* Bugünün sütunu: hücre kenarlarını izleyen tek parça çerçeve */
+.cell-td.today-col::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0;
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  pointer-events: none;
+  z-index: 1;
 }
-.cell-td.today-col .cell.sel {
-  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px var(--accent);
+.grid tbody tr:first-child .cell-td.today-col::before {
+  top: 0;
+  border-top: 1px solid var(--accent);
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+.grid tbody tr:nth-last-child(2) .cell-td.today-col::before {
+  bottom: 0;
+  border-bottom: 1px solid var(--accent);
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
 }
 .cell-val {
   font-weight: 600;
