@@ -4,19 +4,30 @@ import defaultImageUrl from "../assets/card/card_image.png";
 import { TiltedCard } from "./TiltedCard";
 
 // --- Skin tanımı (ileride market'ten değiştirilebilir) ---------------
+// Konvansiyon: tüm katman asset'leri (frame, clasp, gelecekteki süslemeler)
+// aynı 252×486-oranlı tuvale çizilir (şablon: _skin_template.png, 2× = 504×1040,
+// her kenarda ~%8 bleed/taşma payı). Hepsi inset:0 ile üst üste hizalanır;
+// yalnızca kullanıcı görseli için `window` yüzdeleri verilir.
 export type CardSkin = {
   id: string;
-  frame: string;
+  frame: string; // 252×520 oranlı PNG, üstte askı boşluğu
+  clasp?: string; // opsiyonel ayrı katman (aynı tuval) — yoksa çizilmez
+  glass?: boolean; // app parıltısı (varsayılan açık)
   // Kullanıcı görselinin yerleştiği pencere (kart yüzdesi olarak)
   window: { top: number; left: number; right: number; bottom: number };
 };
 
-export const DEFAULT_SKIN: CardSkin = {
-  id: "default",
-  frame: frameUrl,
-  // card_image.png'nin opak alanından ölçüldü
-  window: { top: 24.7, left: 5.13, right: 5.13, bottom: 2.47 },
+// Yeni skin eklemek için: asset'leri şablona çiz, buraya bir kayıt ekle.
+export const SKINS: Record<string, CardSkin> = {
+  default: {
+    id: "default",
+    frame: frameUrl,
+    // _skin_template.png'deki görsel penceresi yüzdeleri
+    window: { top: 27, left: 12, right: 12, bottom: 11 },
+  },
 };
+
+export const DEFAULT_SKIN: CardSkin = SKINS.default;
 
 // userId'den sabit 12 haneli UID
 export function uidFromId(id: string): string {
@@ -64,13 +75,15 @@ export function BadgeCard({
       <img className="bc-frame" src={skin.frame} alt="" />
 
       {/* Glass — frame şekline maskeli (asset'e gömülü değil, uygulama üretir) */}
-      <div
-        className="bc-glass"
-        style={{
-          WebkitMaskImage: `url(${skin.frame})`,
-          maskImage: `url(${skin.frame})`,
-        }}
-      />
+      {skin.glass !== false ? (
+        <div
+          className="bc-glass"
+          style={{
+            WebkitMaskImage: `url(${skin.frame})`,
+            maskImage: `url(${skin.frame})`,
+          }}
+        />
+      ) : null}
 
       {/* 3) Kullanıcı görseli + 5) gradient + 4) bilgiler — iç pencerede */}
       <div
@@ -114,8 +127,10 @@ export function BadgeCard({
         ) : null}
       </div>
 
-      {/* 2) Clasp (CSS — tema rengiyle, asset yerine; üst orta) */}
-      <div className="bc-clasp" aria-hidden="true" />
+      {/* 2) Clasp — opsiyonel asset katmanı (aynı tuval, en üstte). Yoksa çizilmez. */}
+      {skin.clasp ? (
+        <img className="bc-clasp" src={skin.clasp} alt="" aria-hidden="true" />
+      ) : null}
       </div>
     </TiltedCard>
   );

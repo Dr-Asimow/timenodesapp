@@ -758,9 +758,10 @@ body {
 }
 .badge-card {
   position: relative;
-  width: 212px;
-  flex: 0 0 212px;
-  aspect-ratio: 234 / 486;
+  /* Tuval 252×520 (her kenarda ~%8 bleed); görünen gövde ~212px kalır */
+  width: 252px;
+  flex: 0 0 252px;
+  aspect-ratio: 252 / 520;
 }
 /* 1) Frame (en alt, kendi rengiyle) + DIŞ GLASS KENARI (alfa şekline uyar) */
 .bc-frame {
@@ -865,20 +866,13 @@ body {
 .bc-window.editable:hover .bc-cam {
   opacity: 1;
 }
-/* 2) Clasp — CSS ile çizilir (asset değil), tema rengini (--accent) alır.
-   Boyut/konum card_clasp asset'inden ölçüldü (üst orta, %24.8 × %20.2). */
+/* 2) Clasp — opsiyonel asset katmanı (frame ile aynı tuval, en üstte). */
 .bc-clasp {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24.8%;
-  height: 20.2%;
-  background: var(--accent);
-  border: 1px solid rgba(0, 0, 0, 0.32);
-  border-radius: 8px;
-  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
   z-index: 6;
   pointer-events: none;
 }
