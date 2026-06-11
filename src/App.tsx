@@ -49,6 +49,7 @@ import { MultiTaskModal } from "./components/MultiTaskModal";
 import { Brand, LoadingScreen } from "./components/Brand";
 import { type View, initials } from "./components/Home";
 import { Profile } from "./components/Profile";
+import { FriendsPage } from "./components/FriendsPage";
 import { WeeksPage } from "./components/WeeksPage";
 import { Stats } from "./components/Stats";
 import { DayPanel } from "./components/DayPanel";
@@ -93,6 +94,17 @@ function SettingsIcon() {
       stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="9" cy="9" r="2.5"/>
       <path d="M9 1.5v2M9 14.5v2M16.5 9h-2M3.5 9h-2M14.2 3.8l-1.4 1.4M5.2 12.8l-1.4 1.4M14.2 14.2l-1.4-1.4M5.2 5.2 3.8 3.8"/>
+    </svg>
+  );
+}
+function FriendsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6.5" cy="6" r="2.5"/>
+      <path d="M2 15.5c0-2.6 2-4.2 4.5-4.2s4.5 1.6 4.5 4.2"/>
+      <path d="M12.3 4a2.3 2.3 0 0 1 0 4.4"/>
+      <path d="M13.4 11.5c1.6.4 2.6 1.7 2.6 4"/>
     </svg>
   );
 }
@@ -183,6 +195,8 @@ export function App() {
   const finishTimerRef = useRef<(t: ActiveTimer) => void>(() => {});
   // Günlük/modal açıkken otomatik yenilemeyi ertele (kullanıcıyı kesmesin)
   const reloadBlockedRef = useRef(false);
+  // Aktif sayaç çubuklarının yüksekliği (.side-nav'ı aşağı kaydırmak için)
+  const timersStackRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id ?? null;
   const username =
@@ -381,6 +395,24 @@ export function App() {
         .finally(() => autoAddingRef.current.delete(tm.habitId));
     }
   }, [timers, todos, userId, week]);
+
+  // Aktif sayaç çubuklarının yüksekliğini izleyip .side-nav'ı buna göre kaydır
+  useEffect(() => {
+    const el = timersStackRef.current;
+    if (!el) return;
+    const update = () =>
+      document.documentElement.style.setProperty(
+        "--timers-h",
+        `${el.getBoundingClientRect().height}px`
+      );
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.setProperty("--timers-h", "0px");
+    };
+  }, []);
 
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
@@ -721,23 +753,25 @@ export function App() {
 
       {err ? <div className="banner-err">⚠️ {err}</div> : null}
 
-      <TimersStack
-        timers={timers}
-        week={week}
-        onPause={pauseTimer}
-        onResume={(t) =>
-          requestStart(t.habitId, t.day, {
-            workTargetMs: t.workTargetMs,
-            plannedBreakMs: t.plannedBreakMs,
-          })
-        }
-        onStartBreak={startBreak}
-        onResumeWork={resumeWork}
-        onAck={ackAlarm}
-        onUpdate={updateTimer}
-        onFinish={finishTimer}
-        onCancel={cancelTimer}
-      />
+      <div ref={timersStackRef}>
+        <TimersStack
+          timers={timers}
+          week={week}
+          onPause={pauseTimer}
+          onResume={(t) =>
+            requestStart(t.habitId, t.day, {
+              workTargetMs: t.workTargetMs,
+              plannedBreakMs: t.plannedBreakMs,
+            })
+          }
+          onStartBreak={startBreak}
+          onResumeWork={resumeWork}
+          onAck={ackAlarm}
+          onUpdate={updateTimer}
+          onFinish={finishTimer}
+          onCancel={cancelTimer}
+        />
+      </div>
 
       <main className="main">
         <div
@@ -843,6 +877,8 @@ export function App() {
             currentWeek={week.weekNumber}
             stats={yearStats}
           />
+        ) : view === "friends" ? (
+          <FriendsPage friendCode={friendCode} />
         ) : (
           <Profile
             userId={userId ?? ""}
@@ -921,6 +957,13 @@ export function App() {
           title="İstatistikler"
         >
           <StatsIcon />
+        </button>
+        <button
+          className={`snav-btn${view === "friends" ? " active" : ""}`}
+          onClick={() => navigate("friends")}
+          title="Arkadaşlar"
+        >
+          <FriendsIcon />
         </button>
         <button
           className={`snav-btn${view === "profile" ? " active" : ""}`}

@@ -16,8 +16,10 @@
   --lvl-3: #26a641;
   --lvl-4: #39d353;
   --lvl-5: #5ff584;
-  --row-hl: rgba(57, 211, 83, 0.08);
+  --row-hl: rgba(57, 211, 83, 0.16);
   --lw-bg: #0a0a0c;
+  /* Aktif sayaç çubuklarının toplam yüksekliği (JS ile güncellenir) */
+  --timers-h: 0px;
 }
 
 [data-theme="midnight"] {
@@ -84,7 +86,7 @@
   --accent: #d9580d;
   --accent-fg: #ffffff;
   --danger: #dc2626;
-  --row-hl: rgba(217, 88, 13, 0.07);
+  --row-hl: rgba(217, 88, 13, 0.14);
   --lw-bg: #e8e0d4;
   --lvl-0: #ede8e0;
   --lvl-1: #fddcc4;
@@ -1036,6 +1038,34 @@ body {
   padding: 2px 0;
 }
 
+/* --- Arkadaşlar sayfası (Faz 0 kabuğu) ------------------------------- */
+.friends {
+  max-width: 540px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.friends-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.friends-title {
+  margin: 0;
+  font-size: 22px;
+}
+.friends-soon {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+.friends-empty {
+  padding: 6px 0;
+}
+
 /* --- İstatistikler sayfası ------------------------------------------- */
 .stats-page {
   display: flex;
@@ -1165,7 +1195,8 @@ body {
 .side-nav {
   position: fixed;
   left: 0;
-  top: 77px; /* topbar yüksekliği (49px) + .main üst boşluğu (28px) */
+  /* topbar yüksekliği (49px) + .main üst boşluğu (28px) + aktif sayaç çubukları */
+  top: calc(77px + var(--timers-h));
   bottom: 0;
   width: 80px;
   display: flex;
@@ -1844,6 +1875,54 @@ body {
   .agenda-cols {
     flex-direction: column;
   }
+
+  /* --- Mobil: sol icon rail → alt tab bar -------------------------- */
+  /* Topbar/main artık sol rail için yer ayırmaz; alt bara yer bırakılır */
+  .topbar {
+    padding: 12px 14px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .user {
+    display: none; /* dar ekranda @kullanıcı gizlenir, yer açılır */
+  }
+  .main {
+    /* alt: 64px tab bar + 16px boşluk */
+    padding: 18px 12px 80px;
+  }
+
+  .side-nav {
+    left: 0;
+    right: 0;
+    top: auto; /* üstten konumlandırmayı iptal et (masaüstündeki calc) */
+    bottom: 0;
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 6px;
+    gap: 0;
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+  .snav-sep {
+    display: none; /* alt barda dikey ayraç gereksiz */
+  }
+  .snav-profile {
+    margin-bottom: 0;
+  }
+  .snav-btn.active {
+    box-shadow: inset 0 2px 0 var(--accent); /* vurgu çizgisi üst kenarda */
+  }
+
+  /* Müzik oynatıcı alt tab bar'ın üstüne taşınır */
+  .music-player.floating,
+  .music-player.floating.collapsed {
+    right: 12px;
+    bottom: 76px; /* 64px bar + 12px */
+  }
 }
 
 /* --- Butonlar --------------------------------------------------------- */
@@ -1888,7 +1967,8 @@ button {
   padding: 20px;
 }
 .login-card {
-  width: 340px;
+  width: 100%;
+  max-width: 340px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -2091,6 +2171,10 @@ button {
 }
 
 /* --- Bugünün sütunu --------------------------------------------------- */
+.day-col.today {
+  background: var(--row-hl);
+  border-radius: 8px 8px 0 0;
+}
 .day-col.today .day-label {
   color: var(--accent);
 }
@@ -2246,6 +2330,13 @@ tr.drag-over th {
 }
 .cell.sel {
   box-shadow: 0 0 0 2px var(--accent);
+}
+/* Bugünün sütunundaki hücreler ince accent çerçeveyle vurgulanır */
+.cell-td.today-col .cell {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.cell-td.today-col .cell.sel {
+  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px var(--accent);
 }
 .cell-val {
   font-weight: 600;
@@ -3770,4 +3861,47 @@ tr.drag-over th {
 }
 [data-theme="sand"] body {
   font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ====================================================================
+   Mobil: heatmap 7 günü tek ekrana sığdırır (yatay kaydırma yok)
+   NOT: Bu blok bilerek dosyanın SONUNDA — temel .grid/.day-col/.lw-hud
+   kuralları (satır ~2090+) bu media query'den ÖNCE tanımlı olduğundan,
+   override'ların kazanması için kaynak sırasında onlardan sonra gelmeli.
+   ==================================================================== */
+@media (max-width: 760px) {
+  /* "Geçen hafta" HUD'u mobilde gizlenir (7 güne yer açar) */
+  .lw-hud {
+    display: none;
+  }
+  /* Tablo akışkanlaşır: width:100% (zaten var) + fixed → sütunlar paylaşılır.
+     border-spacing 2→1: 7 güne biraz daha yer açar, taşmayı önler. */
+  .grid {
+    table-layout: fixed;
+    border-spacing: 1px;
+  }
+  .habit-col {
+    width: 100px; /* en uzun adın (Maneviyat) sığması için birkaç px ekstra */
+  }
+  /* İç boşluğu kıs → ada birkaç px daha yer (sütun genişliğini değiştirmeden) */
+  .habit-name {
+    gap: 5px;
+    padding-right: 2px;
+  }
+  .day-col,
+  .total-col {
+    width: auto; /* kalan genişlik 7 gün + toplam arasında eşit bölünür */
+  }
+  /* Uzun etkinlik adları taşmasın diye kırpılır; hover'a bağlı sil gizlenir.
+     13px font, uzun isimlerin (Maneviyat/Freelance) 96px'e sığması için. */
+  .habit-link {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  .row-del {
+    display: none;
+  }
 }

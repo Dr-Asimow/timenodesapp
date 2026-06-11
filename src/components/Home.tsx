@@ -1,4 +1,4 @@
-export type View = "week" | "weeks" | "profile" | "stats";
+export type View = "week" | "weeks" | "profile" | "stats" | "friends";
 
 export function initials(name: string): string {
   const s = name.trim();
