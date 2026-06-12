@@ -43,7 +43,6 @@ export function CellPopover({
   dayLabel,
   habitName,
   workMin,
-  breakMin,
   note,
   timerState,
   timer,
@@ -57,7 +56,6 @@ export function CellPopover({
   dayLabel: string;
   habitName: string;
   workMin: number;
-  breakMin: number;
   note: string | null;
   timerState: "" | "running" | "pausedt";
   timer: ActiveTimer | null;
@@ -103,7 +101,7 @@ export function CellPopover({
               </>
             ) : null}
             <div className="stat-edit-row">
-              <BigStat workMin={workMin} breakMin={breakMin} />
+              <BigStat workMin={workMin} />
               <DeltaPicker current={workMin} onApply={onAddWork} />
             </div>
             <div className="popover-divider" />
@@ -298,15 +296,27 @@ function NoteField({
   );
 }
 
-// Büyük çalışma süresi + yanında mola
-function BigStat({ workMin, breakMin }: { workMin: number; breakMin: number }) {
+// Büyük çalışma süresi: saat + dakika olarak (mola gösterilmez)
+function BigStat({ workMin }: { workMin: number }) {
+  const h = Math.floor(workMin / 60);
+  const m = workMin % 60;
+  if (h > 0) {
+    return (
+      <div className="bigstat">
+        <span className="bigstat-num">
+          {h}
+          <span className="bigstat-unit">saat</span>
+        </span>
+        {m > 0 ? <span className="bigstat-sub">{m} dakika</span> : null}
+      </div>
+    );
+  }
   return (
     <div className="bigstat">
       <span className="bigstat-num">
         {workMin}
-        <span className="bigstat-unit">dk</span>
+        <span className="bigstat-unit">dakika</span>
       </span>
-      <span className="bigstat-break">{breakMin}dk mola</span>
     </div>
   );
 }

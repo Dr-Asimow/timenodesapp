@@ -5,7 +5,7 @@ import { isRunning } from "../timer";
 import { heatLevel, formatMinutes, formatHours } from "../heat";
 import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
-import { Stat } from "./Profile";
+import petIconUrl from "../assets/icons/pet_icon.png";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const FULL_DAY_LABELS = [
@@ -553,7 +553,6 @@ export function WeekGrid({
                 } ${DAY_LABELS[sel.day]}`}
                 habitName={h.name}
                 workMin={week.minutes[h.id]?.[sel.day] ?? 0}
-                breakMin={week.breaks[h.id]?.[sel.day] ?? 0}
                 note={week.notes[h.id]?.[sel.day] ?? null}
                 timerState={timingState}
                 timer={timer ?? null}
@@ -628,17 +627,61 @@ export function WeekGrid({
       ) : null}
     </div>
     <aside className="week-side">
-      <Stat label="Bu hafta toplam" value={`${formatHours(grandTotal)} sa`} />
-      <Stat
-        label="Geçen haftaya göre"
-        value={
-          changePct === null ? "—" : `${changePct > 0 ? "+" : ""}${changePct}%`
-        }
-      />
-      <Stat
-        label="Tamamlanan etkinlik"
-        value={`${completedHabits} / ${week.habits.length}`}
-      />
+      <div className="side-card side-stats">
+        <div className="side-stat">
+          <div className="stat-value">{formatHours(grandTotal)} sa</div>
+          <div className="stat-label muted small">Bu hafta toplam</div>
+        </div>
+        <div className="side-divider" />
+        <div className="side-stat">
+          <div className="stat-value">
+            {changePct === null
+              ? "—"
+              : `${changePct > 0 ? "+" : ""}${changePct}%`}
+          </div>
+          <div className="stat-label muted small">Geçen haftaya göre</div>
+        </div>
+        <div className="side-divider" />
+        <div className="side-stat">
+          <div className="stat-value">
+            {completedHabits} / {week.habits.length}
+          </div>
+          <div className="stat-label muted small">Tamamlanan etkinlik</div>
+        </div>
+      </div>
+
+      <div className="side-card side-pet">
+        <img src={petIconUrl} alt="" className="side-pet-icon" />
+        <div className="muted small">
+          time pet
+          <br />
+          (yakında)
+        </div>
+      </div>
+
+      <div className="side-card side-music">
+        <div className="side-music-title">Music player</div>
+        <div className="side-music-thumb">
+          <div className="side-music-thumb-box" />
+          <span className="muted small">Kapak görseli</span>
+        </div>
+        <div className="side-music-link-row">
+          <input type="text" placeholder="Link yapıştır… (yakında)" disabled />
+          <button className="side-music-play" disabled>
+            ▶
+          </button>
+        </div>
+        <div className="side-music-loops">
+          <button className="loop-btn">White noise</button>
+          <button className="loop-btn">Fortress</button>
+          <button className="loop-btn">Brown noise</button>
+          <button className="loop-btn">Library</button>
+          <button className="loop-btn soon" disabled>
+            Lo-fi radyo (yakında)
+          </button>
+          <button className="loop-btn">Campfire</button>
+        </div>
+      </div>
     </aside>
     </>
   );
