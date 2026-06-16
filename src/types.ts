@@ -70,3 +70,23 @@ export type AppState = {
   // Her hücre (habitId+day) için en fazla bir sayaç.
   timers?: ActiveTimer[];
 };
+
+// Günlük hedef (goals tablosu)
+export type Goal = {
+  id: string;
+  day: string; // ISO tarih (YYYY-MM-DD)
+  text: string;
+};
+
+// Hatırlatıcı (reminders tablosu)
+export type Reminder = {
+  id: string;
+  title: string;
+  target_at: string; // ISO timestamp
+};
+
+// Cihaz-yerel sayaç tercihleri (localStorage)
+export type TimerSettings = {
+  alarmEnabled: boolean;
+  autoBreak: boolean; // true = mola otomatik başlar
+};

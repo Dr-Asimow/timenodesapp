@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Habit, TodoItem, WeekData } from "./types";
+import type { Goal, Habit, Reminder, TodoItem, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -210,6 +210,23 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
   });
   if (e2) throw e2;
   return url;
+}
+
+// Not görselini Storage'a yükle → public URL döndür (benzersiz dosya adı).
+// Not: not silindiğinde Storage'daki görsel yetim kalır; temizlik v1 kapsamı dışı.
+export async function uploadNoteImage(userId: string, file: File): Promise<string> {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("note-images")
+    .upload(path, file, {
+      upsert: false,
+      cacheControl: "31536000",
+      contentType: file.type || undefined,
+    });
+  if (error) throw error;
+  const { data } = supabase.storage.from("note-images").getPublicUrl(path);
+  return data.publicUrl; // benzersiz ad → önbellek kırıcıya gerek yok
 }
 
 export async function currentUsername(): Promise<string | null> {
@@ -542,5 +559,67 @@ export async function setDayNote(
       { user_id: userId, day: dayISO, note },
       { onConflict: "user_id,day" }
     );
+  if (error) throw error;
+}
+
+// --- Günlük hedefler (goals) -------------------------------------------
+
+export async function loadGoals(dayISO: string): Promise<Goal[]> {
+  const { data, error } = await supabase
+    .from("goals")
+    .select("id,day,text")
+    .eq("day", dayISO)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Goal[];
+}
+
+export async function addGoal(
+  userId: string,
+  dayISO: string,
+  text: string
+): Promise<Goal> {
+  const { data, error } = await supabase
+    .from("goals")
+    .insert({ user_id: userId, day: dayISO, text })
+    .select("id,day,text")
+    .single();
+  if (error) throw error;
+  return data as Goal;
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  const { error } = await supabase.from("goals").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// --- Hatırlatıcılar (reminders) ----------------------------------------
+
+export async function loadReminders(userId: string): Promise<Reminder[]> {
+  const { data, error } = await supabase
+    .from("reminders")
+    .select("id,title,target_at")
+    .eq("user_id", userId)
+    .order("target_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Reminder[];
+}
+
+export async function addReminder(
+  userId: string,
+  title: string,
+  targetAt: string
+): Promise<Reminder> {
+  const { data, error } = await supabase
+    .from("reminders")
+    .insert({ user_id: userId, title, target_at: targetAt })
+    .select("id,title,target_at")
+    .single();
+  if (error) throw error;
+  return data as Reminder;
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  const { error } = await supabase.from("reminders").delete().eq("id", id);
   if (error) throw error;
 }

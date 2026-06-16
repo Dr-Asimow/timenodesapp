@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { ActiveTimer, TimerConfig, WeekData } from "./types";
+import type { ActiveTimer, Goal, Reminder, TimerConfig, TimerSettings, WeekData } from "./types";
 import { supabase } from "./supabase";
 import {
   signOut,
@@ -20,6 +20,12 @@ import {
   saveDayPage,
   loadHabitPage,
   saveHabitPage,
+  loadGoals,
+  addGoal,
+  deleteGoal,
+  loadReminders,
+  addReminder,
+  deleteReminder,
 } from "./db";
 import {
   mondayOf,
@@ -45,17 +51,24 @@ import {
 } from "./timer";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
-import { TimersStack } from "./components/TimerBar";
-import { MultiTaskModal } from "./components/MultiTaskModal";
 import { Brand, LoadingScreen } from "./components/Brand";
 import { type View, initials } from "./components/Home";
 import { Profile } from "./components/Profile";
 import { FriendsPage } from "./components/FriendsPage";
 import { WeeksPage } from "./components/WeeksPage";
 import { Stats } from "./components/Stats";
-import { DayPanel } from "./components/DayPanel";
+import { TimerPanel } from "./components/TimerPanel";
+import { RightPanel } from "./components/RightPanel";
+import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
-import { MusicPlayer } from "./components/MusicPlayer";
+import { AmbientFloating } from "./components/AmbientPlayer";
+import {
+  playAmbient,
+  stopAmbient,
+  setAmbientVolume,
+  getAmbientVolume,
+  type AmbientId,
+} from "./ambient";
 import { FlyParticles, type Burst } from "./components/Particles";
 
 /* ── Sidebar ikon bileşenleri ────────────────────────────── */
@@ -109,6 +122,16 @@ function FriendsIcon() {
     </svg>
   );
 }
+function ShopIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 2h2l2.5 8h7l1.5-5H5.5"/>
+      <circle cx="7.5" cy="14.5" r="1"/>
+      <circle cx="13.5" cy="14.5" r="1"/>
+    </svg>
+  );
+}
 import type { TodoItem } from "./types";
 
 const TR_MONTHS = [
@@ -138,7 +161,6 @@ function newTimer(habitId: string, day: number, config: TimerConfig): ActiveTime
   };
 }
 
-type PendingStart = { habitId: string; day: number; config: TimerConfig };
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -146,8 +168,21 @@ export function App() {
   const [week, setWeek] = useState<WeekData | null>(null);
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  const [pending, setPending] = useState<PendingStart | null>(null);
   const [view, setView] = useState<View>("week");
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [timerSettings, setTimerSettings] = useState<TimerSettings>(() => {
+    try {
+      const s = localStorage.getItem("tn.timer-settings");
+      return s ? JSON.parse(s) : { alarmEnabled: true, autoBreak: false };
+    } catch { return { alarmEnabled: true, autoBreak: false }; }
+  });
+  // Ambient ses oynatıcısı durumu (motor src/ambient.ts'te, ses kesilmez)
+  const [ambient, setAmbient] = useState<{ id: AmbientId | null; playing: boolean }>(
+    { id: null, playing: false }
+  );
+  const [ambientVol, setAmbientVol] = useState(() => getAmbientVolume());
+  const [ambientCollapsed, setAmbientCollapsed] = useState(true);
   // Güncel hafta dışında bir hafta görüntülenirken o haftanın verisi (null=güncel)
   const [viewedWeek, setViewedWeek] = useState<WeekData | null>(null);
   const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
@@ -179,11 +214,7 @@ export function App() {
   // "Bitir & kaydet" partikül efekti
   const [bursts, setBursts] = useState<Burst[]>([]);
   // Popup'tan bitirildiğinde: popup kapanınca patlat (kaynak = modal konumu)
-  const pendingBurstRef = useRef<{
-    fromRect: DOMRect;
-    habitId: string;
-    day: number;
-  } | null>(null);
+  const pendingBurstRef = useRef<{ fromRect: DOMRect; habitId: string; day: number } | null>(null);
 
   // DB yazımlarını sıraya dizen zincir (yarış/FK sorunlarını önler)
   const chain = useRef<Promise<unknown>>(Promise.resolve());
@@ -199,8 +230,6 @@ export function App() {
   // Oturum içinde tebrik mailini en çok bir kez tetiklemek için (asıl tek-seferlik
   // garanti Edge Function'daki profiles.congrats_email_sent bayrağında)
   const congratsSentRef = useRef(false);
-  // Aktif sayaç çubuklarının yüksekliği (.side-nav'ı aşağı kaydırmak için)
-  const timersStackRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id ?? null;
   const username =
@@ -400,23 +429,13 @@ export function App() {
     }
   }, [timers, todos, userId, week]);
 
-  // Aktif sayaç çubuklarının yüksekliğini izleyip .side-nav'ı buna göre kaydır
+  // Bugünkü hedefleri ve hatırlatıcıları yükle
   useEffect(() => {
-    const el = timersStackRef.current;
-    if (!el) return;
-    const update = () =>
-      document.documentElement.style.setProperty(
-        "--timers-h",
-        `${el.getBoundingClientRect().height}px`
-      );
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      document.documentElement.style.setProperty("--timers-h", "0px");
-    };
-  }, []);
+    if (!userId) { setGoals([]); setReminders([]); return; }
+    const todayISO = toISODate(new Date());
+    loadGoals(todayISO).then(setGoals).catch(() => {});
+    loadReminders(userId).then(setReminders).catch(() => {});
+  }, [userId]);
 
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
@@ -557,12 +576,24 @@ export function App() {
     setTimers(next);
   };
 
+  // Tek sayaç modu: yeni sayaç başlatılınca çalışan diğer sayaçlar otomatik duraklatılır
   const requestStart = (habitId: string, day: number, config: TimerConfig) => {
-    const othersRunning = timers.some(
-      (t) => isRunning(t) && !sameCell(t, habitId, day)
-    );
-    if (othersRunning) setPending({ habitId, day, config });
-    else doStart(habitId, day, config, false);
+    doStart(habitId, day, config, true);
+  };
+
+  // Ambient ses: aynı sese basınca durdur, farklıya basınca onu çal
+  const toggleAmbient = (id: AmbientId) => {
+    if (ambient.id === id && ambient.playing) {
+      stopAmbient();
+      setAmbient({ id, playing: false });
+    } else {
+      playAmbient(id);
+      setAmbient({ id, playing: true });
+    }
+  };
+  const changeAmbientVol = (v: number) => {
+    setAmbientVolume(v);
+    setAmbientVol(v);
   };
 
   const pauseTimer = (target: ActiveTimer) => updateTimer(settle(target));
@@ -657,14 +688,7 @@ export function App() {
   // Interval ref'lerini her render'da güncel tut
   timersRef.current = timers;
   finishTimerRef.current = finishTimer;
-  reloadBlockedRef.current =
-    noteTarget !== null || habitPageTarget !== null || pending !== null;
-
-  const pendingOthers = pending
-    ? timers.filter(
-        (t) => isRunning(t) && !sameCell(t, pending.habitId, pending.day)
-      )
-    : [];
+  reloadBlockedRef.current = noteTarget !== null || habitPageTarget !== null;
 
   // --- Render ---
   if (!authReady) return <LoadingScreen />;
@@ -764,26 +788,6 @@ export function App() {
 
       {err ? <div className="banner-err">⚠️ {err}</div> : null}
 
-      <div ref={timersStackRef}>
-        <TimersStack
-          timers={timers}
-          week={week}
-          onPause={pauseTimer}
-          onResume={(t) =>
-            requestStart(t.habitId, t.day, {
-              workTargetMs: t.workTargetMs,
-              plannedBreakMs: t.plannedBreakMs,
-            })
-          }
-          onStartBreak={startBreak}
-          onResumeWork={resumeWork}
-          onAck={ackAlarm}
-          onUpdate={updateTimer}
-          onFinish={finishTimer}
-          onCancel={cancelTimer}
-        />
-      </div>
-
       <main className="main">
         <div
           className={`page ${
@@ -851,25 +855,78 @@ export function App() {
             }
             return (
               <div className="week-layout">
-                <DayPanel
-                  habits={week.habits}
-                  items={todos}
-                  todayMinutes={todayMinutes}
-                  runningHabitIds={runningHabitIds}
-                  onAddHabit={addHabitItem}
+                <TimerPanel
+                  timers={timers}
+                  week={week}
+                  todayIndex={todayIndex}
+                  goals={goals}
+                  settings={timerSettings}
+                  onUpdateSettings={(s) => {
+                    setTimerSettings(s);
+                    localStorage.setItem("tn.timer-settings", JSON.stringify(s));
+                  }}
+                  onAddGoal={async (text) => {
+                    if (!userId) return;
+                    try {
+                      const g = await addGoal(userId, todayISO, text);
+                      setGoals((cur) => [...cur, g]);
+                    } catch {}
+                  }}
+                  onDeleteGoal={async (id) => {
+                    setGoals((cur) => cur.filter((g) => g.id !== id));
+                    deleteGoal(id).catch(() => {});
+                  }}
+                  onPause={pauseTimer}
+                  onResume={(t) =>
+                    requestStart(t.habitId, t.day, {
+                      workTargetMs: t.workTargetMs,
+                      plannedBreakMs: t.plannedBreakMs,
+                    })
+                  }
+                  onStartBreak={startBreak}
+                  onResumeWork={resumeWork}
+                  onAck={ackAlarm}
+                  onFinish={finishTimer}
+                  onCancel={cancelTimer}
+                  onStartNew={requestStart}
+                />
+                <div className="week-main">{grid}</div>
+                <RightPanel
+                  todos={todos}
+                  todayISO={todayISO}
+                  goals={goals}
+                  reminders={reminders}
+                  onAddGoal={async (text) => {
+                    if (!userId) return;
+                    try {
+                      const g = await addGoal(userId, todayISO, text);
+                      setGoals((cur) => [...cur, g]);
+                    } catch {}
+                  }}
+                  onDeleteGoal={async (id) => {
+                    setGoals((cur) => cur.filter((g) => g.id !== id));
+                    deleteGoal(id).catch(() => {});
+                  }}
+                  onAddReminder={async (title, targetAt) => {
+                    if (!userId) return;
+                    try {
+                      const r = await addReminder(userId, title, targetAt);
+                      setReminders((cur) => [...cur, r]);
+                    } catch {}
+                  }}
+                  onDeleteReminder={async (id) => {
+                    setReminders((cur) => cur.filter((r) => r.id !== id));
+                    deleteReminder(id).catch(() => {});
+                  }}
                   onAddTodo={addTodoItem}
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
-                  onStartHabit={startHabit}
-                  onOpenHabit={openHabit}
-                  onOpenNote={() =>
-                    setNoteTarget({
-                      day: todayISO,
-                      label: `${dateLabel} ${dayName}`,
-                    })
-                  }
+                  ambientId={ambient.id}
+                  ambientPlaying={ambient.playing}
+                  ambientVol={ambientVol}
+                  onToggleAmbient={toggleAmbient}
+                  onAmbientVol={changeAmbientVol}
                 />
-                <div className="week-main">{grid}</div>
               </div>
             );
           })()
@@ -890,6 +947,8 @@ export function App() {
           />
         ) : view === "friends" ? (
           <FriendsPage friendCode={friendCode} />
+        ) : view === "shop" ? (
+          <ShopPage />
         ) : (
           <Profile
             userId={userId ?? ""}
@@ -906,29 +965,24 @@ export function App() {
         </div>
       </main>
 
-      {pending && pendingOthers.length > 0 && week ? (
-        <MultiTaskModal
-          runningTimers={pendingOthers}
-          week={week}
-          onPauseOthers={() => {
-            doStart(pending.habitId, pending.day, pending.config, true);
-            setPending(null);
-          }}
-          onKeepBoth={() => {
-            doStart(pending.habitId, pending.day, pending.config, false);
-            setPending(null);
-          }}
-          onCancel={() => setPending(null)}
-        />
-      ) : null}
 
       <FlyParticles
         bursts={bursts}
         onDone={(id) => setBursts((b) => b.filter((x) => x.id !== id))}
       />
 
-      {/* Her zaman mount: sayfa değişse de müzik (iframe) durmaz */}
-      <MusicPlayer />
+      {/* Hafta dışındaki sayfalarda yüzen ses oynatıcı belirir; hafta
+          görünümünde sağ panelde zaten gömülü oynatıcı var. Ses motoru
+          ambient.ts'te yaşadığı için sayfa değişince müzik kesilmez. */}
+      {view !== "week" ? (
+        <AmbientFloating
+          current={ambient.id}
+          playing={ambient.playing}
+          collapsed={ambientCollapsed}
+          onToggle={toggleAmbient}
+          onToggleCollapse={() => setAmbientCollapsed((c) => !c)}
+        />
+      ) : null}
 
       {/* ── Sağ kenar navigasyon ──────────────────────── */}
       <nav className="side-nav">
@@ -977,6 +1031,13 @@ export function App() {
           <FriendsIcon />
         </button>
         <button
+          className={`snav-btn${view === "shop" ? " active" : ""}`}
+          onClick={() => navigate("shop")}
+          title="Shop"
+        >
+          <ShopIcon />
+        </button>
+        <button
           className={`snav-btn${view === "profile" ? " active" : ""}`}
           onClick={() => navigate("profile")}
           title="Ayarlar"
@@ -989,6 +1050,7 @@ export function App() {
         <NotePage
           pageKey={`day:${noteTarget.day}`}
           headerLabel={`${noteTarget.label} · Günlük`}
+          userId={userId}
           load={() => loadDayPage(noteTarget.day)}
           save={(title, content) =>
             saveDayPage(userId, noteTarget.day, title, content)
@@ -1001,6 +1063,7 @@ export function App() {
         <NotePage
           pageKey={`habit:${habitPageTarget.habitId}`}
           headerLabel={`${habitPageTarget.name} · Etkinlik`}
+          userId={userId}
           load={() => loadHabitPage(habitPageTarget.habitId)}
           save={(title, content) =>
             saveHabitPage(userId, habitPageTarget.habitId, title, content)

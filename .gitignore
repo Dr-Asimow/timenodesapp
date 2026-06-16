@@ -11,3 +11,7 @@ dist-ssr
 
 # Local Claude/preview config
 .claude/
+.mcp.json
+
+# Supabase CLI yerel geçici dosyaları
+supabase/.temp/

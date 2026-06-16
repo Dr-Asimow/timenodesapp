@@ -84,6 +84,17 @@ const ITEMS: SlashItem[] = [
     keywords: "divider ayirici cizgi hr",
     run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run(),
   },
+  {
+    title: "Görsel",
+    hint: "Resim ekle",
+    icon: "🖼️",
+    keywords: "image gorsel görsel resim foto photo picture",
+    // "/" aralığını sil, sonra NoteEditor'daki gizli dosya seçiciyi aç
+    run: (e, r) => {
+      e.chain().focus().deleteRange(r).run();
+      window.dispatchEvent(new CustomEvent("note:pick-image"));
+    },
+  },
 ];
 
 function makeRenderer() {

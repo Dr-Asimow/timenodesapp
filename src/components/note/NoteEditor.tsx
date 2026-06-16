@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
@@ -7,8 +7,11 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
+import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import { SlashCommand } from "./SlashCommand";
-import type { PageDoc } from "../../db";
+import { uploadNoteImage, type PageDoc } from "../../db";
+import { compressImage } from "../../image";
 
 const TEXT_COLORS = [
   { name: "Varsayılan", v: null },
@@ -28,13 +31,54 @@ const HILITE_COLORS = [
   { name: "Mor", v: "rgba(192,132,252,0.25)" },
 ];
 
+// Görseli sıkıştır + yükle, sonra editöre ekle (verilen konuma ya da imlece).
+async function uploadAndInsert(
+  editor: Editor | null,
+  userId: string,
+  file: File,
+  pos: number | undefined,
+  onError: (msg: string) => void
+) {
+  if (!editor) return;
+  try {
+    const compressed = await compressImage(file);
+    const url = await uploadNoteImage(userId, compressed);
+    if (typeof pos === "number") {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(pos, { type: "image", attrs: { src: url } })
+        .run();
+    } else {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  } catch (err) {
+    console.error(err);
+    onError("Görsel yüklenemedi.");
+  }
+}
+
 export function NoteEditor({
   content,
   onChange,
+  userId,
 }: {
   content: PageDoc | null;
   onChange: (doc: PageDoc) => void;
+  userId: string;
 }) {
+  // editorProps closure'ı bir kez oluşur; güncel değerleri ref ile oku
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const editorRef = useRef<Editor | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const showErrRef = useRef<(msg: string) => void>(() => {});
+  showErrRef.current = (msg: string) => {
+    setUploadErr(msg);
+    window.setTimeout(() => setUploadErr(null), 4000);
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -50,6 +94,7 @@ export function NoteEditor({
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
+      Image.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({
         placeholder: "Yazmaya başla… blok eklemek için '/' yaz",
       }),
@@ -57,18 +102,103 @@ export function NoteEditor({
     ],
     content: content && Object.keys(content).length ? content : undefined,
     onUpdate: ({ editor }) => onChange(editor.getJSON() as PageDoc),
+    editorProps: {
+      // Dosyayı editöre sürükle-bırak → görselse yükle, değilse varsayılan davranış
+      handleDrop(view, event, _slice, moved) {
+        if (moved) return false; // blok taşıma (drag handle) → PM'e bırak
+        const files = Array.from(
+          (event as DragEvent).dataTransfer?.files ?? []
+        ).filter((f) => f.type.startsWith("image/"));
+        if (files.length === 0) return false;
+        event.preventDefault();
+        const coords = view.posAtCoords({
+          left: (event as DragEvent).clientX,
+          top: (event as DragEvent).clientY,
+        });
+        const pos = coords?.pos ?? view.state.selection.from;
+        files.forEach((f) => {
+          void uploadAndInsert(
+            editorRef.current,
+            userIdRef.current,
+            f,
+            pos,
+            showErrRef.current
+          );
+        });
+        return true;
+      },
+      // Panodan görsel yapıştır
+      handlePaste(_view, event) {
+        const files = Array.from(
+          (event as ClipboardEvent).clipboardData?.files ?? []
+        ).filter((f) => f.type.startsWith("image/"));
+        if (files.length === 0) return false;
+        event.preventDefault();
+        files.forEach((f) => {
+          void uploadAndInsert(
+            editorRef.current,
+            userIdRef.current,
+            f,
+            undefined,
+            showErrRef.current
+          );
+        });
+        return true;
+      },
+    },
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  // Slash menüsündeki "Görsel" öğesi gizli dosya seçiciyi açar
+  useEffect(() => {
+    const open = () => fileInputRef.current?.click();
+    window.addEventListener("note:pick-image", open);
+    return () => window.removeEventListener("note:pick-image", open);
+  }, []);
 
   if (!editor) return null;
   return (
     <div className="note-editor">
-      <Toolbar editor={editor} />
+      <Toolbar editor={editor} onPickImage={() => fileInputRef.current?.click()} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          files.forEach((f) => {
+            void uploadAndInsert(
+              editorRef.current,
+              userIdRef.current,
+              f,
+              undefined,
+              showErrRef.current
+            );
+          });
+          e.target.value = "";
+        }}
+      />
+      {uploadErr ? <div className="note-upload-err">{uploadErr}</div> : null}
+      <DragHandle editor={editor}>
+        <div className="note-drag-handle">⠿</div>
+      </DragHandle>
       <EditorContent editor={editor} className="note-content" />
     </div>
   );
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  onPickImage,
+}: {
+  editor: Editor;
+  onPickImage: () => void;
+}) {
   const [, force] = useReducer((x) => x + 1, 0);
   useEffect(() => {
     const fn = () => force();
@@ -126,6 +256,10 @@ function Toolbar({ editor }: { editor: Editor }) {
             v ? c().toggleHighlight({ color: v }).run() : c().unsetHighlight().run()
           }
         />
+      </div>
+      <div className="nt-sep" />
+      <div className="nt-group">
+        <Btn on={onPickImage} active={false} label="🖼️" title="Görsel ekle" />
       </div>
     </div>
   );

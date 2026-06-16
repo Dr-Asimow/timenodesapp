@@ -5,7 +5,6 @@ import { isRunning } from "../timer";
 import { heatLevel, formatMinutes, formatHours } from "../heat";
 import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
-import petIconUrl from "../assets/icons/pet_icon.png";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const FULL_DAY_LABELS = [
@@ -224,7 +223,6 @@ export function WeekGrid({
   const selectedLabel = `${days[selectedDay].date} ${
     MONTHS_TR[days[selectedDay].iso.getMonth()]
   } ${FULL_DAY_LABELS[selectedDay]}`;
-  const selectedHabitItems = dayTodos.filter((t) => t.habitId);
   const selectedTodoItems = dayTodos.filter((t) => !t.habitId);
 
   return (
@@ -462,9 +460,17 @@ export function WeekGrid({
           <span>
             <span className="ds-dot" /> {selectedLabel}
           </span>
-          <span className="day-detail-total">
-            Toplam {formatHours(selectedTotal)} saat
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span className="day-detail-total">
+              Toplam {formatHours(selectedTotal)} saat
+            </span>
+            <button
+              className="notebook-btn-sm"
+              onClick={() => onOpenDayNote(selectedISO, selectedLabel)}
+            >
+              📓 Günlük
+            </button>
+          </div>
         </div>
         <div className="day-detail-cols">
           <div className="day-detail-col">
@@ -499,19 +505,13 @@ export function WeekGrid({
             )}
           </div>
           <div className="day-detail-col">
-            <h4 className="ds-title">Gündem</h4>
+            <h4 className="ds-title">Yapılacaklar</h4>
             {dayTodosLoading ? (
               <p className="muted small">Yükleniyor…</p>
-            ) : dayTodos.length === 0 ? (
-              <p className="muted small">Bu güne gündem eklenmemiş.</p>
+            ) : selectedTodoItems.length === 0 ? (
+              <p className="muted small">Bu güne yapılacak eklenmemiş.</p>
             ) : (
               <div className="ds-list">
-                {selectedHabitItems.map((it) => (
-                  <div className="ds-item habit" key={it.id}>
-                    <span className="ds-dot" />
-                    <span className="ds-item-text">{it.title}</span>
-                  </div>
-                ))}
                 {selectedTodoItems.map((it) => (
                   <div
                     className={`ds-item todo ${it.done ? "done" : ""}`}
@@ -525,12 +525,6 @@ export function WeekGrid({
             )}
           </div>
         </div>
-        <button
-          className="notebook-btn ds-journal"
-          onClick={() => onOpenDayNote(selectedISO, selectedLabel)}
-        >
-          📓 Günlüğü aç
-        </button>
       </div>
 
       {sel
@@ -626,63 +620,6 @@ export function WeekGrid({
         </div>
       ) : null}
     </div>
-    <aside className="week-side">
-      <div className="side-card side-stats">
-        <div className="side-stat">
-          <div className="stat-value">{formatHours(grandTotal)} sa</div>
-          <div className="stat-label muted small">Bu hafta toplam</div>
-        </div>
-        <div className="side-divider" />
-        <div className="side-stat">
-          <div className="stat-value">
-            {changePct === null
-              ? "—"
-              : `${changePct > 0 ? "+" : ""}${changePct}%`}
-          </div>
-          <div className="stat-label muted small">Geçen haftaya göre</div>
-        </div>
-        <div className="side-divider" />
-        <div className="side-stat">
-          <div className="stat-value">
-            {completedHabits} / {week.habits.length}
-          </div>
-          <div className="stat-label muted small">Tamamlanan etkinlik</div>
-        </div>
-      </div>
-
-      <div className="side-card side-pet">
-        <img src={petIconUrl} alt="" className="side-pet-icon" />
-        <div className="muted small">
-          time pet
-          <br />
-          (yakında)
-        </div>
-      </div>
-
-      <div className="side-card side-music">
-        <div className="side-music-title">Music player</div>
-        <div className="side-music-thumb">
-          <div className="side-music-thumb-box" />
-          <span className="muted small">Kapak görseli</span>
-        </div>
-        <div className="side-music-link-row">
-          <input type="text" placeholder="Link yapıştır… (yakında)" disabled />
-          <button className="side-music-play" disabled>
-            ▶
-          </button>
-        </div>
-        <div className="side-music-loops">
-          <button className="loop-btn">White noise</button>
-          <button className="loop-btn">Fortress</button>
-          <button className="loop-btn">Brown noise</button>
-          <button className="loop-btn">Library</button>
-          <button className="loop-btn soon" disabled>
-            Lo-fi radyo (yakında)
-          </button>
-          <button className="loop-btn">Campfire</button>
-        </div>
-      </div>
-    </aside>
     </>
   );
 }

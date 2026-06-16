@@ -5,6 +5,7 @@ import { NoteEditor } from "./NoteEditor";
 export function NotePage({
   pageKey,
   headerLabel,
+  userId,
   load,
   save,
   onClose,
@@ -15,6 +16,8 @@ export function NotePage({
   pageKey: string;
   // Üst çubukta gösterilen etiket (ör. "10 Haz · Günlük" veya "Japonca · Etkinlik")
   headerLabel: string;
+  // Görsel yükleme için oturum sahibinin id'si
+  userId: string;
   load: () => Promise<Page | null>;
   save: (title: string, content: PageDoc) => Promise<void>;
   onClose: () => void;
@@ -121,6 +124,7 @@ export function NotePage({
               />
               <NoteEditor
                 content={doc}
+                userId={userId}
                 onChange={(d) => {
                   latest.current.doc = d;
                   scheduleSave();
