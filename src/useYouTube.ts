@@ -53,6 +53,13 @@ export function useYouTube() {
   const [videoId, setVideoId] = useState<string | null>(
     () => target?.videoId ?? null
   );
+  const [volume, setVol] = useState<number>(() => {
+    const s = localStorage.getItem("timenodes.music.vol");
+    const n = s != null ? Number(s) : 1;
+    return isNaN(n) ? 1 : Math.max(0, Math.min(1, n));
+  });
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
   targetRef.current = target;
 
   // YouTube IFrame API script'ini bir kez yükle
@@ -99,6 +106,7 @@ export function useYouTube() {
       playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
       events: {
         onReady: () => {
+          try { playerRef.current?.setVolume?.(Math.round(volumeRef.current * 100)); } catch { /* yoksay */ }
           if (targetRef.current) load(targetRef.current);
         },
         onStateChange: (e: any) => {
@@ -149,16 +157,24 @@ export function useYouTube() {
   };
   const next = () => playerRef.current?.nextVideo?.();
   const prev = () => playerRef.current?.previousVideo?.();
+  const setVolume = (v: number) => {
+    const cl = Math.max(0, Math.min(1, v));
+    setVol(cl);
+    localStorage.setItem("timenodes.music.vol", String(cl));
+    try { playerRef.current?.setVolume?.(Math.round(cl * 100)); } catch { /* yoksay */ }
+  };
 
   return {
     hasTarget: target != null,
     playing,
     title,
     videoId,
+    volume,
     loadInput,
     toggle,
     next,
     prev,
+    setVolume,
   };
 }
 

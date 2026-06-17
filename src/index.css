@@ -1492,13 +1492,50 @@ body {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
-.ambient-vol {
+/* Ses çubuğu — müzik ve ortam sesleri için ortak, tema uyumlu slider */
+.vol-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
-.ambient-vol input[type="range"] { flex: 1; accent-color: var(--accent); }
+.vol-ic { font-size: 13px; line-height: 1; flex: none; opacity: 0.85; }
+.vol-range {
+  flex: 1;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  cursor: pointer;
+  outline: none;
+}
+.vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+.vol-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+.vol-range::-moz-range-track {
+  height: 5px;
+  border-radius: 999px;
+  background: transparent;
+}
 
 /* Kompakt ambient (müzik kartının altında az yer kaplar) */
 .ambient-grid.compact {

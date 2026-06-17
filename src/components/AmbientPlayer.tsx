@@ -35,6 +35,35 @@ export function AmbientButtons({
   );
 }
 
+// Tema uyumlu ses çubuğu (hem müzik hem ortam sesleri için ortak).
+export function VolumeSlider({
+  value,
+  onChange,
+  icon = "🔉",
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  icon?: string;
+}) {
+  const pct = Math.round(value * 100);
+  return (
+    <div className="vol-row">
+      <span className="vol-ic">{icon}</span>
+      <input
+        className="vol-range"
+        type="range"
+        min={0}
+        max={100}
+        value={pct}
+        onChange={(e) => onChange(parseInt(e.target.value, 10) / 100)}
+        style={{
+          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--panel-2) ${pct}%, var(--panel-2) 100%)`,
+        }}
+      />
+    </div>
+  );
+}
+
 // YouTube kontrolleri (link kutusu + oynatıcı). Hem kart hem floating kullanır.
 function YouTubeControls({ yt }: { yt: YouTubeApi }) {
   const [input, setInput] = useState("");
@@ -73,6 +102,9 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
             <button onClick={yt.next} title="Sonraki">⏭</button>
           </div>
         </div>
+      ) : null}
+      {yt.hasTarget ? (
+        <VolumeSlider value={yt.volume} onChange={yt.setVolume} icon="🎵" />
       ) : null}
       <form className="yt-form" onSubmit={submit}>
         <input
@@ -118,16 +150,7 @@ export function MusicCard({
           compact
           onToggle={onToggle}
         />
-        <div className="ambient-vol">
-          <span className="muted small">🔉</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(volume * 100)}
-            onChange={(e) => onVolume(parseInt(e.target.value, 10) / 100)}
-          />
-        </div>
+        <VolumeSlider value={volume} onChange={onVolume} icon="🔉" />
       </div>
     </div>
   );
