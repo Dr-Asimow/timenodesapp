@@ -31,9 +31,20 @@ export async function loadYearTotals(
 }
 
 // İstatistik sayfası için yıl bazında özet
+// Bir etkinliğin günlük zaman serisi (çizgi grafiği için). Günlük kırılım
+// tutulur; haftalık/aylık görünümler client'ta bundan türetilir.
+export type HabitSeries = {
+  id: string;
+  name: string;
+  color: string | null;
+  daily: Record<string, number>; // gün ISO (YYYY-MM-DD) → çalışma dk
+};
+
 export type YearStats = {
   perWeek: Record<number, number>; // hafta no → toplam çalışma dk
-  perHabit: { name: string; min: number }[]; // alışkanlık bazında çalışma dk (azalan)
+  perHabit: { name: string; min: number; color: string | null }[]; // bu yıl, alışkanlık bazında çalışma dk (azalan)
+  allTimePerHabit: { name: string; min: number; color: string | null }[]; // tüm zamanlar, alışkanlık bazında
+  habitSeries: HabitSeries[]; // etkinlik bazında haftalık/aylık seri (çizgi grafiği)
   totalWork: number;
   totalBreak: number;
   activeDays: number; // çalışma>0 olan farklı gün sayısı
@@ -48,14 +59,21 @@ export async function loadYearStats(year: number): Promise<YearStats> {
     .lte("day", `${year}-12-31`);
   if (error) throw error;
 
-  const { data: habitRows } = await supabase.from("habits").select("id,name");
+  const { data: habitRows } = await supabase
+    .from("habits")
+    .select("id,name,color");
   const names = new Map<string, string>();
-  for (const h of (habitRows as { id: string; name: string }[]) ?? [])
+  const colors = new Map<string, string | null>();
+  for (const h of (habitRows as { id: string; name: string; color: string | null }[]) ?? []) {
     names.set(h.id, h.name);
+    colors.set(h.id, h.color);
+  }
 
   const perWeek: Record<number, number> = {};
   const perHabitMin = new Map<string, number>();
   const dayWork = new Map<string, number>();
+  // Etkinlik bazında günlük seri (gün ISO → dk)
+  const seriesMap = new Map<string, Record<string, number>>();
   let totalWork = 0;
   let totalBreak = 0;
 
@@ -67,19 +85,41 @@ export async function loadYearStats(year: number): Promise<YearStats> {
   }[]) ?? []) {
     totalWork += e.work_min;
     totalBreak += e.break_min;
-    const wk = isoWeekNumber(new Date(e.day + "T00:00:00"));
+    const d = new Date(e.day + "T00:00:00");
+    const wk = isoWeekNumber(d);
     perWeek[wk] = (perWeek[wk] ?? 0) + e.work_min;
     perHabitMin.set(
       e.habit_id,
       (perHabitMin.get(e.habit_id) ?? 0) + e.work_min
     );
     dayWork.set(e.day, (dayWork.get(e.day) ?? 0) + e.work_min);
+
+    let s = seriesMap.get(e.habit_id);
+    if (!s) {
+      s = {};
+      seriesMap.set(e.habit_id, s);
+    }
+    s[e.day] = (s[e.day] ?? 0) + e.work_min;
   }
 
   const perHabit = [...perHabitMin.entries()]
-    .map(([id, min]) => ({ name: names.get(id) ?? "—", min }))
+    .map(([id, min]) => ({ name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
     .filter((x) => x.min > 0)
     .sort((a, b) => b.min - a.min);
+
+  const habitSeries: HabitSeries[] = [...seriesMap.entries()]
+    .map(([id, daily]) => ({
+      id,
+      name: names.get(id) ?? "—",
+      color: colors.get(id) ?? null,
+      daily,
+    }))
+    .filter((h) => Object.values(h.daily).some((v) => v > 0))
+    .sort(
+      (a, b) =>
+        Object.values(b.daily).reduce((x, y) => x + y, 0) -
+        Object.values(a.daily).reduce((x, y) => x + y, 0)
+    );
 
   let activeDays = 0;
   let bestDay: { day: string; min: number } | null = null;
@@ -88,7 +128,19 @@ export async function loadYearStats(year: number): Promise<YearStats> {
     if (!bestDay || min > bestDay.min) bestDay = { day, min };
   }
 
-  return { perWeek, perHabit, totalWork, totalBreak, activeDays, bestDay };
+  // Tüm zamanlar dağılımı (yıl filtresi olmadan, alışkanlık bazında toplam)
+  const { data: allEntries } = await supabase
+    .from("entries")
+    .select("habit_id,work_min");
+  const allMap = new Map<string, number>();
+  for (const e of (allEntries as { habit_id: string; work_min: number }[]) ?? [])
+    allMap.set(e.habit_id, (allMap.get(e.habit_id) ?? 0) + e.work_min);
+  const allTimePerHabit = [...allMap.entries()]
+    .map(([id, min]) => ({ name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
+    .filter((x) => x.min > 0)
+    .sort((a, b) => b.min - a.min);
+
+  return { perWeek, perHabit, allTimePerHabit, habitSeries, totalWork, totalBreak, activeDays, bestDay };
 }
 
 // Bir haftanın (Pazartesi ISO) alışkanlık bazında toplam çalışma dk'sı
