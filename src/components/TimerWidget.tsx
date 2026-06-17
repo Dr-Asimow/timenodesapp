@@ -213,7 +213,9 @@ export function TimerSetup({
     return (
       <button
         className="timer-start-btn"
-        onClick={() => onStartTimer({ workTargetMs: null, plannedBreakMs: null })}
+        onClick={() =>
+          onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1 })
+        }
       >
         ▶ Sayaca devam et
       </button>
@@ -276,6 +278,7 @@ export function TimerSetup({
               onStartTimer({
                 workTargetMs: focus * 60000,
                 plannedBreakMs: brk * 60000,
+                cycles,
               })
             }
           >
@@ -290,7 +293,7 @@ export function TimerSetup({
           <button
             className="start-btn"
             onClick={() =>
-              onStartTimer({ workTargetMs: null, plannedBreakMs: null })
+              onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1 })
             }
           >
             ▶ Başlat

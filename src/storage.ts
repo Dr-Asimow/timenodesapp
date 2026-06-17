@@ -102,5 +102,7 @@ function normalizeTimer(
     plannedBreakMs: t.plannedBreakMs ?? null,
     workAlarmAck: t.workAlarmAck ?? t.workAlarmFired ?? false,
     breakAlarmAck: t.breakAlarmAck ?? t.breakAlarmFired ?? false,
+    cyclesTotal: t.cyclesTotal ?? 1,
+    cyclesDone: t.cyclesDone ?? 0,
   };
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Goal, Reminder, TodoItem } from "../types";
 import type { AmbientId } from "../ambient";
+import type { YouTubeApi } from "../useYouTube";
 import { GoalPopup } from "./GoalPopup";
-import { AmbientInline } from "./AmbientPlayer";
+import { MusicCard } from "./AmbientPlayer";
 
 type RightTab = "hedef" | "hatirlatici" | "todo";
 
@@ -30,6 +31,7 @@ export function RightPanel({
   onAddTodo,
   onToggleTodo,
   onDeleteItem,
+  yt,
   ambientId,
   ambientPlaying,
   ambientVol,
@@ -47,6 +49,7 @@ export function RightPanel({
   onAddTodo: (title: string) => void;
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
+  yt: YouTubeApi;
   ambientId: AmbientId | null;
   ambientPlaying: boolean;
   ambientVol: number;
@@ -105,7 +108,8 @@ export function RightPanel({
       </div>
 
       {/* Müzik player kartı */}
-      <AmbientInline
+      <MusicCard
+        yt={yt}
         current={ambientId}
         playing={ambientPlaying}
         volume={ambientVol}

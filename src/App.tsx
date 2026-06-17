@@ -48,7 +48,10 @@ import {
   workMinutes,
   workTotalMs,
   breakTotalMs,
+  targetReached,
+  phaseAcked,
 } from "./timer";
+import { playAlarm } from "./alarm";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
 import { Brand, LoadingScreen } from "./components/Brand";
@@ -61,7 +64,7 @@ import { TimerPanel } from "./components/TimerPanel";
 import { RightPanel } from "./components/RightPanel";
 import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
-import { AmbientFloating } from "./components/AmbientPlayer";
+import { MusicFloating } from "./components/AmbientPlayer";
 import {
   playAmbient,
   stopAmbient,
@@ -69,6 +72,7 @@ import {
   getAmbientVolume,
   type AmbientId,
 } from "./ambient";
+import { useYouTube } from "./useYouTube";
 import { FlyParticles, type Burst } from "./components/Particles";
 
 /* ── Sidebar ikon bileşenleri ────────────────────────────── */
@@ -158,6 +162,8 @@ function newTimer(habitId: string, day: number, config: TimerConfig): ActiveTime
     plannedBreakMs: config.plannedBreakMs,
     workAlarmAck: false,
     breakAlarmAck: false,
+    cyclesTotal: Math.max(1, config.cycles),
+    cyclesDone: 0,
   };
 }
 
@@ -174,8 +180,8 @@ export function App() {
   const [timerSettings, setTimerSettings] = useState<TimerSettings>(() => {
     try {
       const s = localStorage.getItem("tn.timer-settings");
-      return s ? JSON.parse(s) : { alarmEnabled: true, autoBreak: false };
-    } catch { return { alarmEnabled: true, autoBreak: false }; }
+      return s ? JSON.parse(s) : { alarmEnabled: true, autoBreak: true };
+    } catch { return { alarmEnabled: true, autoBreak: true }; }
   });
   // Ambient ses oynatıcısı durumu (motor src/ambient.ts'te, ses kesilmez)
   const [ambient, setAmbient] = useState<{ id: AmbientId | null; playing: boolean }>(
@@ -183,6 +189,8 @@ export function App() {
   );
   const [ambientVol, setAmbientVol] = useState(() => getAmbientVolume());
   const [ambientCollapsed, setAmbientCollapsed] = useState(true);
+  // YouTube müzik motoru (iframe App kökünde sabit → sayfa değişince kesilmez)
+  const yt = useYouTube();
   // Güncel hafta dışında bir hafta görüntülenirken o haftanın verisi (null=güncel)
   const [viewedWeek, setViewedWeek] = useState<WeekData | null>(null);
   const [yearTotals, setYearTotals] = useState<Record<number, number[]> | null>(
@@ -225,6 +233,9 @@ export function App() {
   // Interval içinden güncel değerlere erişim için ref'ler
   const timersRef = useRef<ActiveTimer[]>([]);
   const finishTimerRef = useRef<(t: ActiveTimer) => void>(() => {});
+  const autoAdvanceRef = useRef<(t: ActiveTimer) => void>(() => {});
+  const timerSettingsRef = useRef<TimerSettings>(timerSettings);
+  const lastAlarmRef = useRef<number>(0);
   // Günlük/modal açıkken otomatik yenilemeyi ertele (kullanıcıyı kesmesin)
   const reloadBlockedRef = useRef(false);
   // Oturum içinde tebrik mailini en çok bir kez tetiklemek için (asıl tek-seferlik
@@ -381,6 +392,28 @@ export function App() {
         location.reload();
       }
     }, 20000);
+    return () => clearInterval(id);
+  }, [userId]);
+
+  // Pomodoro: hedef dolunca alarm çal + (autoBreak açıksa) otomatik faz geçişi.
+  // Saniyede bir kontrol; ref'lerle güncel timers/ayarlara erişir.
+  useEffect(() => {
+    if (!userId) return;
+    const id = setInterval(() => {
+      const ts = timersRef.current;
+      const st = timerSettingsRef.current;
+      const ringing = ts.find(
+        (t) => isRunning(t) && targetReached(t) && !phaseAcked(t)
+      );
+      if (!ringing) return;
+      if (st.alarmEnabled && Date.now() - lastAlarmRef.current >= 2400) {
+        playAlarm();
+        lastAlarmRef.current = Date.now();
+      }
+      if (st.autoBreak) {
+        autoAdvanceRef.current(ringing);
+      }
+    }, 1000);
     return () => clearInterval(id);
   }, [userId]);
 
@@ -665,21 +698,70 @@ export function App() {
 
     const mins = workMinutes(target);
     const brkMins = Math.round(breakTotalMs(target) / 60000);
-    if (week && (mins > 0 || brkMins > 0)) {
-      const w: WeekData = { ...week };
-      if (mins > 0) {
-        const row = (w.minutes[target.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
-        row[target.day] += mins;
-        w.minutes = { ...w.minutes, [target.habitId]: row };
-      }
-      if (brkMins > 0) {
-        const br = (w.breaks[target.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
-        br[target.day] += brkMins;
-        w.breaks = { ...w.breaks, [target.habitId]: br };
-      }
-      applyWeek(w);
-    }
+    commitToWeek(target.habitId, target.day, mins, brkMins);
     setTimers(timers.filter((t) => !sameCell(t, target.habitId, target.day)));
+  };
+
+  // Verilen çalışma/mola dakikalarını ilgili hücreye EKLER (döngü geçişi ve
+  // finishTimer ortak kullanır). 0 ise o tür yazılmaz.
+  const commitToWeek = (
+    habitId: string,
+    day: number,
+    mins: number,
+    brkMins: number
+  ) => {
+    if (!week || (mins <= 0 && brkMins <= 0)) return;
+    const w: WeekData = { ...week };
+    if (mins > 0) {
+      const row = (w.minutes[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
+      row[day] += mins;
+      w.minutes = { ...w.minutes, [habitId]: row };
+    }
+    if (brkMins > 0) {
+      const br = (w.breaks[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
+      br[day] += brkMins;
+      w.breaks = { ...w.breaks, [habitId]: br };
+    }
+    applyWeek(w);
+  };
+
+  // Pomodoro otomatik faz geçişi (autoBreak açıkken hedef dolunca interval çağırır):
+  // odak bitti → o döngünün süresini hücreye yaz, son döngüyse sayacı bitir,
+  // değilse molaya geç. Mola bitti → molayı yaz, yeni odak fazına geç.
+  const autoAdvance = (t: ActiveTimer) => {
+    const s = settle(t); // canlı segment workMs/breakMs'e katıldı
+    if (t.phase === "work") {
+      commitToWeek(t.habitId, t.day, Math.round(s.workMs / 60000), 0);
+      const done = t.cyclesDone + 1;
+      if (done >= t.cyclesTotal) {
+        // Tüm döngüler tamamlandı → sayacı kaldır (son odaktan sonra mola yok)
+        setTimers(timers.filter((x) => !sameCell(x, t.habitId, t.day)));
+      } else {
+        updateTimer({
+          ...s,
+          phase: "break",
+          startedAt: Date.now(),
+          workMs: 0,
+          breakMs: 0,
+          breakTargetMs: t.plannedBreakMs,
+          workAlarmAck: false,
+          breakAlarmAck: false,
+          cyclesDone: done,
+        });
+      }
+    } else {
+      commitToWeek(t.habitId, t.day, 0, Math.round(s.breakMs / 60000));
+      updateTimer({
+        ...s,
+        phase: "work",
+        startedAt: Date.now(),
+        workMs: 0,
+        breakMs: 0,
+        breakTargetMs: null,
+        workAlarmAck: false,
+        breakAlarmAck: false,
+      });
+    }
   };
 
   const cancelTimer = (target: ActiveTimer) =>
@@ -688,6 +770,8 @@ export function App() {
   // Interval ref'lerini her render'da güncel tut
   timersRef.current = timers;
   finishTimerRef.current = finishTimer;
+  autoAdvanceRef.current = autoAdvance;
+  timerSettingsRef.current = timerSettings;
   reloadBlockedRef.current = noteTarget !== null || habitPageTarget !== null;
 
   // --- Render ---
@@ -759,7 +843,11 @@ export function App() {
   // "başla": sayacı başlat VE kare popup'ını aç (haftalıktaki gibi açık kalsın)
   const startHabit = (habitId: string) => {
     if (!todayInWeek) return;
-    requestStart(habitId, todayIndex, { workTargetMs: null, plannedBreakMs: null });
+    requestStart(habitId, todayIndex, {
+      workTargetMs: null,
+      plannedBreakMs: null,
+      cycles: 1,
+    });
     setCellSel({ habitId, day: todayIndex });
   };
   // Gündemdeki etkinliğe tekrar tıkla → o karenin (sayaç) popup'ını aç
@@ -808,6 +896,7 @@ export function App() {
                     requestStart(t.habitId, t.day, {
                       workTargetMs: t.workTargetMs,
                       plannedBreakMs: t.plannedBreakMs,
+                      cycles: t.cyclesTotal,
                     }),
                   startBreak: startBreak,
                   resumeWork: resumeWork,
@@ -881,6 +970,7 @@ export function App() {
                     requestStart(t.habitId, t.day, {
                       workTargetMs: t.workTargetMs,
                       plannedBreakMs: t.plannedBreakMs,
+                      cycles: t.cyclesTotal,
                     })
                   }
                   onStartBreak={startBreak}
@@ -921,6 +1011,7 @@ export function App() {
                   onAddTodo={addTodoItem}
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
+                  yt={yt}
                   ambientId={ambient.id}
                   ambientPlaying={ambient.playing}
                   ambientVol={ambientVol}
@@ -971,11 +1062,14 @@ export function App() {
         onDone={(id) => setBursts((b) => b.filter((x) => x.id !== id))}
       />
 
-      {/* Hafta dışındaki sayfalarda yüzen ses oynatıcı belirir; hafta
-          görünümünde sağ panelde zaten gömülü oynatıcı var. Ses motoru
-          ambient.ts'te yaşadığı için sayfa değişince müzik kesilmez. */}
+      {/* YouTube iframe React dışında (body'de gizli host) tutulur; bkz.
+          useYouTube. Burada ekstra bir mount gerekmez. */}
+
+      {/* Hafta dışındaki sayfalarda yüzen müzik/ses oynatıcı (küçük kare).
+          Hafta görünümünde sağ panelde zaten gömülü oynatıcı var. */}
       {view !== "week" ? (
-        <AmbientFloating
+        <MusicFloating
+          yt={yt}
           current={ambient.id}
           playing={ambient.playing}
           collapsed={ambientCollapsed}

@@ -55,12 +55,17 @@ export type ActiveTimer = {
   // Hedef dolunca alarm çalar; kullanıcı onaylayınca (ack) susar. Evre başına.
   workAlarmAck: boolean;
   breakAlarmAck: boolean;
+  // Pomodoro döngü sayısı (kaç odak fazı). Serbest/tek sayaçta 1.
+  cyclesTotal: number;
+  // Tamamlanan odak fazı sayısı (0..cyclesTotal)
+  cyclesDone: number;
 };
 
 // Sayaç başlatma yapılandırması (config popup'tan gelir)
 export type TimerConfig = {
   workTargetMs: number | null; // null = serbest (stopwatch)
   plannedBreakMs: number | null; // pomodoro mola süresi; serbestte null
+  cycles: number; // pomodoro döngü sayısı; serbestte 1
 };
 
 export type AppState = {
