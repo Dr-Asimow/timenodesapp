@@ -31,6 +31,7 @@ export type TimerActions = {
 
 export function WeekGrid({
   week,
+  userId,
   activeTimers,
   onChange,
   onStartTimer,
@@ -46,6 +47,7 @@ export function WeekGrid({
   onToday,
 }: {
   week: WeekData;
+  userId: string;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
   onStartTimer: (habitId: string, day: number, config: TimerConfig) => void;
@@ -545,6 +547,9 @@ export function WeekGrid({
                 dayLabel={`${days[sel.day].date} ${
                   MONTHS_TR[days[sel.day].iso.getMonth()]
                 } ${DAY_LABELS[sel.day]}`}
+                habitId={h.id}
+                dayISO={toISODate(days[sel.day].iso)}
+                userId={userId}
                 habitName={h.name}
                 workMin={week.minutes[h.id]?.[sel.day] ?? 0}
                 note={week.notes[h.id]?.[sel.day] ?? null}

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Goal, Habit, Reminder, TodoItem, WeekData } from "./types";
+import type { Goal, Habit, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -42,8 +42,8 @@ export type HabitSeries = {
 
 export type YearStats = {
   perWeek: Record<number, number>; // hafta no → toplam çalışma dk
-  perHabit: { name: string; min: number; color: string | null }[]; // bu yıl, alışkanlık bazında çalışma dk (azalan)
-  allTimePerHabit: { name: string; min: number; color: string | null }[]; // tüm zamanlar, alışkanlık bazında
+  perHabit: { id: string; name: string; min: number; color: string | null }[]; // bu yıl, alışkanlık bazında çalışma dk (azalan)
+  allTimePerHabit: { id: string; name: string; min: number; color: string | null }[]; // tüm zamanlar, alışkanlık bazında
   habitSeries: HabitSeries[]; // etkinlik bazında haftalık/aylık seri (çizgi grafiği)
   totalWork: number;
   totalBreak: number;
@@ -103,7 +103,7 @@ export async function loadYearStats(year: number): Promise<YearStats> {
   }
 
   const perHabit = [...perHabitMin.entries()]
-    .map(([id, min]) => ({ name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
+    .map(([id, min]) => ({ id, name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
     .filter((x) => x.min > 0)
     .sort((a, b) => b.min - a.min);
 
@@ -136,7 +136,7 @@ export async function loadYearStats(year: number): Promise<YearStats> {
   for (const e of (allEntries as { habit_id: string; work_min: number }[]) ?? [])
     allMap.set(e.habit_id, (allMap.get(e.habit_id) ?? 0) + e.work_min);
   const allTimePerHabit = [...allMap.entries()]
-    .map(([id, min]) => ({ name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
+    .map(([id, min]) => ({ id, name: names.get(id) ?? "—", min, color: colors.get(id) ?? null }))
     .filter((x) => x.min > 0)
     .sort((a, b) => b.min - a.min);
 
@@ -674,4 +674,125 @@ export async function addReminder(
 export async function deleteReminder(id: string): Promise<void> {
   const { error } = await supabase.from("reminders").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ── Konular (etkinliğe bağlı kalıcı) ───────────────────────────────
+
+export async function loadTopics(habitId: string): Promise<Topic[]> {
+  const { data, error } = await supabase
+    .from("topics")
+    .select("id,habit_id,name")
+    .eq("habit_id", habitId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data as { id: string; habit_id: string; name: string }[]) ?? []).map(
+    (r) => ({ id: r.id, habitId: r.habit_id, name: r.name })
+  );
+}
+
+export async function addTopic(
+  userId: string,
+  habitId: string,
+  name: string
+): Promise<Topic> {
+  const { data, error } = await supabase
+    .from("topics")
+    .insert({ user_id: userId, habit_id: habitId, name })
+    .select("id,habit_id,name")
+    .single();
+  if (error) throw error;
+  const r = data as { id: string; habit_id: string; name: string };
+  return { id: r.id, habitId: r.habit_id, name: r.name };
+}
+
+export async function deleteTopic(id: string): Promise<void> {
+  const { error } = await supabase.from("topics").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Bir konunun belirli gündeki süresine dakika ekler (yoksa oluşturur)
+export async function addTopicMinutes(
+  userId: string,
+  habitId: string,
+  dayISO: string,
+  topicId: string,
+  deltaMin: number
+): Promise<void> {
+  if (deltaMin <= 0) return;
+  const { data } = await supabase
+    .from("topic_minutes")
+    .select("id,work_min")
+    .eq("topic_id", topicId)
+    .eq("day", dayISO)
+    .maybeSingle();
+  if (data) {
+    const row = data as { id: string; work_min: number };
+    await supabase
+      .from("topic_minutes")
+      .update({ work_min: row.work_min + deltaMin })
+      .eq("id", row.id);
+  } else {
+    await supabase.from("topic_minutes").insert({
+      user_id: userId,
+      habit_id: habitId,
+      day: dayISO,
+      topic_id: topicId,
+      work_min: deltaMin,
+    });
+  }
+}
+
+// Bir hücrenin (habit + gün) konu bazında süre kırılımı (azalan)
+export async function loadTopicMinutes(
+  habitId: string,
+  dayISO: string
+): Promise<TopicMinute[]> {
+  const { data, error } = await supabase
+    .from("topic_minutes")
+    .select("topic_id,work_min,topics(name)")
+    .eq("habit_id", habitId)
+    .eq("day", dayISO);
+  if (error) throw error;
+  // PostgREST embed'i obje veya tek-elemanlı dizi döndürebilir; ikisini de karşıla
+  return (((data ?? []) as any[]))
+    .map((r) => ({
+      topicId: r.topic_id,
+      name: (Array.isArray(r.topics) ? r.topics[0]?.name : r.topics?.name) ?? "—",
+      min: r.work_min as number,
+    }))
+    .filter((t) => t.min > 0)
+    .sort((a, b) => b.min - a.min);
+}
+
+// Bir yıl içinde habit bazında konu dağılımı (istatistik için)
+export async function loadYearTopicStats(
+  year: number
+): Promise<Record<string, TopicMinute[]>> {
+  const { data, error } = await supabase
+    .from("topic_minutes")
+    .select("habit_id,topic_id,work_min,topics(name)")
+    .gte("day", `${year}-01-01`)
+    .lte("day", `${year}-12-31`);
+  if (error) throw error;
+  const byHabit = new Map<string, Map<string, { name: string; min: number }>>();
+  for (const r of ((data ?? []) as any[])) {
+    let m = byHabit.get(r.habit_id);
+    if (!m) {
+      m = new Map();
+      byHabit.set(r.habit_id, m);
+    }
+    const tname =
+      (Array.isArray(r.topics) ? r.topics[0]?.name : r.topics?.name) ?? "—";
+    const cur = m.get(r.topic_id);
+    if (cur) cur.min += r.work_min;
+    else m.set(r.topic_id, { name: tname, min: r.work_min });
+  }
+  const out: Record<string, TopicMinute[]> = {};
+  for (const [habitId, m] of byHabit) {
+    out[habitId] = [...m.entries()]
+      .map(([topicId, v]) => ({ topicId, name: v.name, min: v.min }))
+      .filter((t) => t.min > 0)
+      .sort((a, b) => b.min - a.min);
+  }
+  return out;
 }

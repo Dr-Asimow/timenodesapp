@@ -104,5 +104,6 @@ function normalizeTimer(
     breakAlarmAck: t.breakAlarmAck ?? t.breakAlarmFired ?? false,
     cyclesTotal: t.cyclesTotal ?? 1,
     cyclesDone: t.cyclesDone ?? 0,
+    topicId: t.topicId ?? null,
   };
 }

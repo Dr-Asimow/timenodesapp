@@ -1133,6 +1133,60 @@ body {
   white-space: nowrap;
 }
 
+/* Hücre popup'ında konu kırılımı */
+.topic-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.topic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.topic-row.muted .topic-name,
+.topic-row.muted .topic-val { color: var(--muted); }
+.topic-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topic-val { color: var(--muted); white-space: nowrap; flex: none; }
+
+/* İstatistik: etkinlik bar'ına tıklayınca konu kırılımı */
+.habit-bar-row.expandable { cursor: pointer; }
+.habit-expand-caret { color: var(--muted); font-size: 10px; margin-left: 2px; }
+.habit-topic-list {
+  list-style: none;
+  margin: 2px 0 8px;
+  padding: 6px 0 6px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 2px solid var(--border);
+  margin-left: 4px;
+}
+.habit-topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.habit-topic-row.muted .habit-topic-name,
+.habit-topic-row.muted .habit-topic-val { color: var(--muted); }
+.habit-topic-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habit-topic-val { color: var(--muted); white-space: nowrap; flex: none; }
+.topic-none { margin-bottom: 2px; }
+
 /* Etkinlik dağılımı zaman aralığı etiketleri (tag) */
 .range-tags {
   display: flex;
@@ -3746,18 +3800,21 @@ tr.drag-over th {
   flex: none;
   font-variant-numeric: tabular-nums;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.22);
-  transition: color 0.12s, font-size 0.12s;
+  color: var(--muted);
+  opacity: 0.55;
+  transition: color 0.12s, font-size 0.12s, opacity 0.12s;
   user-select: none;
 }
 .delta-item.near {
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text);
+  opacity: 0.7;
 }
 .delta-item.sel {
   font-size: 22px;
   font-weight: 800;
   color: var(--text);
+  opacity: 1;
 }
 .delta-item.sel.pos {
   color: var(--accent);

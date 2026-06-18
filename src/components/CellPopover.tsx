@@ -1,13 +1,19 @@
-import { useState } from "react";
-import type { ActiveTimer, TimerConfig } from "../types";
+import { useEffect, useState } from "react";
+import type { ActiveTimer, TimerConfig, Topic, TopicMinute } from "../types";
 import type { DayType } from "./WeekGrid";
 import { LiveTimer, TimerSetup, DeltaPicker, type PopTimerActions } from "./TimerWidget";
+import { loadTopicMinutes, loadTopics, addTopic, deleteTopic } from "../db";
+import { formatMinutes } from "../heat";
+import { TopicPopup } from "./TopicPopup";
 
 export type { PopTimerActions };
 
 export function CellPopover({
   dayType,
   dayLabel,
+  habitId,
+  dayISO,
+  userId,
   habitName,
   workMin,
   note,
@@ -21,6 +27,9 @@ export function CellPopover({
 }: {
   dayType: DayType;
   dayLabel: string;
+  habitId: string;
+  dayISO: string;
+  userId: string;
   habitName: string;
   workMin: number;
   note: string | null;
@@ -34,6 +43,51 @@ export function CellPopover({
 }) {
   const isFuture = dayType === "future";
   const hasTimer = !!(timer && timerActions);
+  const canStart = dayType === "today" && !hasTimer;
+
+  // Konu bazında süre kırılımı (Supabase'den)
+  const [topicMins, setTopicMins] = useState<TopicMinute[]>([]);
+  useEffect(() => {
+    if (workMin <= 0) {
+      setTopicMins([]);
+      return;
+    }
+    let cancel = false;
+    loadTopicMinutes(habitId, dayISO)
+      .then((t) => { if (!cancel) setTopicMins(t); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [habitId, dayISO, workMin]);
+
+  const topicSum = topicMins.reduce((a, t) => a + t.min, 0);
+  const untracked = Math.max(0, workMin - topicSum);
+
+  // Timer başlatırken konu seçimi (sadece bugün + sayaç yokken)
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
+  const [showTopicPopup, setShowTopicPopup] = useState(false);
+  const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
+  useEffect(() => {
+    if (!canStart) return;
+    let cancel = false;
+    loadTopics(habitId)
+      .then((t) => { if (!cancel) setTopics(t); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [habitId, canStart]);
+
+  async function handleAddTopic(name: string) {
+    if (!userId) return;
+    try {
+      const t = await addTopic(userId, habitId, name);
+      setTopics((cur) => [...cur, t]);
+    } catch { /* yoksay */ }
+  }
+  function handleDeleteTopic(id: string) {
+    if (selectedTopicId === id) setSelectedTopicId("");
+    setTopics((cur) => cur.filter((t) => t.id !== id));
+    deleteTopic(id).catch(() => {});
+  }
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal cell-modal" onClick={(e) => e.stopPropagation()}>
@@ -60,9 +114,24 @@ export function CellPopover({
               </>
             ) : dayType === "today" ? (
               <>
+                <div className="tp-goal-row">
+                  <span className="tp-settings-label muted small">Konu</span>
+                  <button
+                    type="button"
+                    className="tp-goal-select"
+                    onClick={() => setShowTopicPopup(true)}
+                  >
+                    <span className={selectedTopic ? "" : "muted"}>
+                      {selectedTopic ? selectedTopic.name : "Konusuz"}
+                    </span>
+                    <span className="tp-goal-caret">▾</span>
+                  </button>
+                </div>
                 <TimerSetup
                   timerState={timerState}
-                  onStartTimer={onStartTimer}
+                  onStartTimer={(config) =>
+                    onStartTimer({ ...config, topicId: selectedTopicId || null })
+                  }
                 />
                 <div className="popover-divider" />
               </>
@@ -71,12 +140,42 @@ export function CellPopover({
               <BigStat workMin={workMin} />
               <DeltaPicker current={workMin} onApply={onAddWork} />
             </div>
+            {workMin > 0 && topicMins.length > 0 ? (
+              <div className="topic-breakdown">
+                <span className="popover-label">Konular</span>
+                <ul className="topic-list">
+                  {topicMins.map((t) => (
+                    <li className="topic-row" key={t.topicId}>
+                      <span className="topic-name">{t.name}</span>
+                      <span className="topic-val">{formatMinutes(t.min)}</span>
+                    </li>
+                  ))}
+                  {untracked > 0 ? (
+                    <li className="topic-row muted">
+                      <span className="topic-name">Konusuz</span>
+                      <span className="topic-val">{formatMinutes(untracked)}</span>
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+            ) : null}
             <div className="popover-divider" />
           </>
         )}
 
         <NoteField note={note} onSetNote={onSetNote} />
       </div>
+
+      {showTopicPopup ? (
+        <TopicPopup
+          topics={topics}
+          selectedId={selectedTopicId}
+          onSelect={setSelectedTopicId}
+          onAdd={handleAddTopic}
+          onDelete={handleDeleteTopic}
+          onClose={() => setShowTopicPopup(false)}
+        />
+      ) : null}
     </div>
   );
 }

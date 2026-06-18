@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatHours, formatMinutes } from "../heat";
 import { mondayOf, addDays, toISODate } from "../storage";
 import type { HabitSeries, YearStats } from "../db";
+import type { TopicMinute } from "../types";
 
 const MONTHS_TR = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -31,15 +32,18 @@ export function Stats({
   year,
   weekTotalMin,
   stats,
+  topicsByHabit,
 }: {
   year: number;
   weekTotalMin: number;
   currentWeek: number;
   stats: YearStats | null;
+  topicsByHabit: Record<string, TopicMinute[]>;
 }) {
   const [mode, setMode] = useState<TrendMode>("weekly");
   const [offset, setOffset] = useState(0); // 0 = bu hafta/ay, negatif = geçmiş
   const [range, setRange] = useState<DistRange>("year");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (!stats) {
     return (
@@ -65,6 +69,7 @@ export function Stats({
       ? stats.perHabit
       : stats.habitSeries
           .map((h) => ({
+            id: h.id,
             name: h.name,
             color: h.color,
             min: sumDays(h, range === "month" ? thisMonthISOs : thisWeekISOs),
@@ -114,21 +119,53 @@ export function Stats({
           <p className="muted small">Bu aralıkta kayıt yok.</p>
         ) : (
           <div className="habit-bars">
-            {distribution.map((h, i) => (
-              <div className="habit-bar-row" key={h.name}>
-                <span className="habit-bar-name">
-                  <span className="habit-dot" style={{ background: colorOf(h, i) }} />
-                  <span className="habit-bar-name-text">{h.name}</span>
-                </span>
-                <div className="habit-bar-track">
+            {distribution.map((h, i) => {
+              const topics = topicsByHabit[h.id] ?? [];
+              const expanded = expandedId === h.id;
+              const topicSum = topics.reduce((a, t) => a + t.min, 0);
+              const untracked = Math.max(0, h.min - topicSum);
+              return (
+                <div key={h.id}>
                   <div
-                    className="habit-bar-fill"
-                    style={{ width: `${maxHabit > 0 ? (h.min / maxHabit) * 100 : 0}%` }}
-                  />
+                    className={`habit-bar-row${topics.length ? " expandable" : ""}${expanded ? " open" : ""}`}
+                    onClick={() =>
+                      topics.length && setExpandedId(expanded ? null : h.id)
+                    }
+                  >
+                    <span className="habit-bar-name">
+                      <span className="habit-dot" style={{ background: colorOf(h, i) }} />
+                      <span className="habit-bar-name-text">{h.name}</span>
+                      {topics.length ? (
+                        <span className="habit-expand-caret">{expanded ? "▾" : "▸"}</span>
+                      ) : null}
+                    </span>
+                    <div className="habit-bar-track">
+                      <div
+                        className="habit-bar-fill"
+                        style={{ width: `${maxHabit > 0 ? (h.min / maxHabit) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="habit-bar-val">{formatMinutes(h.min)}</span>
+                  </div>
+                  {expanded ? (
+                    <ul className="habit-topic-list">
+                      {topics.map((t) => (
+                        <li className="habit-topic-row" key={t.topicId}>
+                          <span className="habit-topic-name">{t.name}</span>
+                          <span className="habit-topic-val">{formatMinutes(t.min)}</span>
+                        </li>
+                      ))}
+                      {untracked > 0 ? (
+                        <li className="habit-topic-row muted">
+                          <span className="habit-topic-name">Konusuz</span>
+                          <span className="habit-topic-val">{formatMinutes(untracked)}</span>
+                        </li>
+                      ) : null}
+                    </ul>
+                  ) : null}
                 </div>
-                <span className="habit-bar-val">{formatMinutes(h.min)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

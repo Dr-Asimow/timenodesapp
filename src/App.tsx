@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { ActiveTimer, Goal, Reminder, TimerConfig, TimerSettings, WeekData } from "./types";
+import type { ActiveTimer, Goal, Reminder, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
 import { supabase } from "./supabase";
 import {
   signOut,
@@ -26,6 +26,10 @@ import {
   loadReminders,
   addReminder,
   deleteReminder,
+  loadTopics,
+  addTopic,
+  deleteTopic,
+  addTopicMinutes,
 } from "./db";
 import {
   mondayOf,
@@ -38,6 +42,7 @@ import {
 import {
   loadYearTotals,
   loadYearStats,
+  loadYearTopicStats,
   loadHabitTotalsForWeek,
   loadMyFriendCode,
   type YearStats,
@@ -164,6 +169,7 @@ function newTimer(habitId: string, day: number, config: TimerConfig): ActiveTime
     breakAlarmAck: false,
     cyclesTotal: Math.max(1, config.cycles),
     cyclesDone: 0,
+    topicId: config.topicId,
   };
 }
 
@@ -197,6 +203,7 @@ export function App() {
     null
   );
   const [yearStats, setYearStats] = useState<YearStats | null>(null);
+  const [yearTopics, setYearTopics] = useState<Record<string, TopicMinute[]>>({});
   // Gösterilen haftanın bir öncesinin alışkanlık-bazlı toplamları
   const [prevTotals, setPrevTotals] = useState<Record<string, number> | null>(
     null
@@ -300,12 +307,15 @@ export function App() {
     }
   }, [view, week?.year]);
 
-  // İstatistikler sayfasına girince yıl istatistiklerini çek
+  // İstatistikler sayfasına girince yıl istatistiklerini + konu dağılımını çek
   useEffect(() => {
     if (view === "stats" && week) {
       setYearStats(null);
       loadYearStats(week.year)
         .then(setYearStats)
+        .catch(() => {});
+      loadYearTopicStats(week.year)
+        .then(setYearTopics)
         .catch(() => {});
     }
   }, [view, week?.year]);
@@ -699,6 +709,7 @@ export function App() {
     const mins = workMinutes(target);
     const brkMins = Math.round(breakTotalMs(target) / 60000);
     commitToWeek(target.habitId, target.day, mins, brkMins);
+    commitTopic(target.habitId, target.day, target.topicId, mins);
     setTimers(timers.filter((t) => !sameCell(t, target.habitId, target.day)));
   };
 
@@ -725,13 +736,27 @@ export function App() {
     applyWeek(w);
   };
 
+  // Konu varsa o günün konu kırılımına çalışma dakikasını ekler (Supabase)
+  const commitTopic = (
+    habitId: string,
+    day: number,
+    topicId: string | null,
+    mins: number
+  ) => {
+    if (!userId || !topicId || mins <= 0 || !week) return;
+    const dayISO = toISODate(addDays(week.startDate, day));
+    addTopicMinutes(userId, habitId, dayISO, topicId, mins).catch(() => {});
+  };
+
   // Pomodoro otomatik faz geçişi (autoBreak açıkken hedef dolunca interval çağırır):
   // odak bitti → o döngünün süresini hücreye yaz, son döngüyse sayacı bitir,
   // değilse molaya geç. Mola bitti → molayı yaz, yeni odak fazına geç.
   const autoAdvance = (t: ActiveTimer) => {
     const s = settle(t); // canlı segment workMs/breakMs'e katıldı
     if (t.phase === "work") {
-      commitToWeek(t.habitId, t.day, Math.round(s.workMs / 60000), 0);
+      const wMin = Math.round(s.workMs / 60000);
+      commitToWeek(t.habitId, t.day, wMin, 0);
+      commitTopic(t.habitId, t.day, t.topicId, wMin);
       const done = t.cyclesDone + 1;
       if (done >= t.cyclesTotal) {
         // Tüm döngüler tamamlandı → sayacı kaldır (son odaktan sonra mola yok)
@@ -847,6 +872,7 @@ export function App() {
       workTargetMs: null,
       plannedBreakMs: null,
       cycles: 1,
+      topicId: null,
     });
     setCellSel({ habitId, day: todayIndex });
   };
@@ -887,6 +913,7 @@ export function App() {
             const grid = (
               <WeekGrid
                 week={shownWeek}
+                userId={userId ?? ""}
                 activeTimers={viewingOther ? [] : timers}
                 onChange={applyWeek}
                 onStartTimer={requestStart}
@@ -897,6 +924,7 @@ export function App() {
                       workTargetMs: t.workTargetMs,
                       plannedBreakMs: t.plannedBreakMs,
                       cycles: t.cyclesTotal,
+                      topicId: t.topicId,
                     }),
                   startBreak: startBreak,
                   resumeWork: resumeWork,
@@ -948,22 +976,11 @@ export function App() {
                   timers={timers}
                   week={week}
                   todayIndex={todayIndex}
-                  goals={goals}
+                  userId={userId ?? ""}
                   settings={timerSettings}
                   onUpdateSettings={(s) => {
                     setTimerSettings(s);
                     localStorage.setItem("tn.timer-settings", JSON.stringify(s));
-                  }}
-                  onAddGoal={async (text) => {
-                    if (!userId) return;
-                    try {
-                      const g = await addGoal(userId, todayISO, text);
-                      setGoals((cur) => [...cur, g]);
-                    } catch {}
-                  }}
-                  onDeleteGoal={async (id) => {
-                    setGoals((cur) => cur.filter((g) => g.id !== id));
-                    deleteGoal(id).catch(() => {});
                   }}
                   onPause={pauseTimer}
                   onResume={(t) =>
@@ -971,6 +988,7 @@ export function App() {
                       workTargetMs: t.workTargetMs,
                       plannedBreakMs: t.plannedBreakMs,
                       cycles: t.cyclesTotal,
+                      topicId: t.topicId,
                     })
                   }
                   onStartBreak={startBreak}
@@ -1035,6 +1053,7 @@ export function App() {
             weekTotalMin={weekTotalMin}
             currentWeek={week.weekNumber}
             stats={yearStats}
+            topicsByHabit={yearTopics}
           />
         ) : view === "friends" ? (
           <FriendsPage friendCode={friendCode} />

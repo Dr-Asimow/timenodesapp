@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import type { ActiveTimer, Goal, TimerConfig, TimerSettings, WeekData } from "../types";
+import type { ActiveTimer, Topic, TimerConfig, TimerSettings, WeekData } from "../types";
 import { isRunning, workTotalMs, phaseProgress } from "../timer";
 import { LiveTimer, TimerSetup, type PopTimerActions } from "./TimerWidget";
-import { GoalPopup } from "./GoalPopup";
+import { TopicPopup } from "./TopicPopup";
+import { loadTopics, addTopic, deleteTopic } from "../db";
 
 function GearIcon() {
   return (
@@ -18,11 +19,9 @@ export function TimerPanel({
   timers,
   week,
   todayIndex,
-  goals,
+  userId,
   settings,
   onUpdateSettings,
-  onAddGoal,
-  onDeleteGoal,
   onPause,
   onResume,
   onStartBreak,
@@ -35,11 +34,9 @@ export function TimerPanel({
   timers: ActiveTimer[];
   week: WeekData;
   todayIndex: number;
-  goals: Goal[];
+  userId: string;
   settings: TimerSettings;
   onUpdateSettings: (s: TimerSettings) => void;
-  onAddGoal: (text: string) => void;
-  onDeleteGoal: (id: string) => void;
   onPause: (t: ActiveTimer) => void;
   onResume: (t: ActiveTimer) => void;
   onStartBreak: (t: ActiveTimer, breakTargetMs: number | null) => void;
@@ -51,12 +48,13 @@ export function TimerPanel({
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedHabitId, setSelectedHabitId] = useState<string>("");
-  const [selectedGoalId, setSelectedGoalId] = useState<string>("");
-  const [showGoalPopup, setShowGoalPopup] = useState(false);
+  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [showTopicPopup, setShowTopicPopup] = useState(false);
   const todayTimers = timers.filter((t) => t.day === todayIndex);
   const runningTimer = todayTimers.find(isRunning) ?? null;
   const pausedTimers = todayTimers.filter((t) => !isRunning(t));
-  const selectedGoal = goals.find((g) => g.id === selectedGoalId) ?? null;
+  const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
 
   // Seçili etkinlik geçersizleştiyse sıfırla
   useEffect(() => {
@@ -65,12 +63,32 @@ export function TimerPanel({
     }
   }, [week.habits, selectedHabitId]);
 
-  // Seçili hedef silindiyse sıfırla
+  // Seçili etkinliğin konularını yükle (etkinlik değişince konu seçimi sıfırlanır)
   useEffect(() => {
-    if (selectedGoalId && !goals.find((g) => g.id === selectedGoalId)) {
-      setSelectedGoalId("");
+    setSelectedTopicId("");
+    if (!selectedHabitId) {
+      setTopics([]);
+      return;
     }
-  }, [goals, selectedGoalId]);
+    let cancel = false;
+    loadTopics(selectedHabitId)
+      .then((t) => { if (!cancel) setTopics(t); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [selectedHabitId]);
+
+  async function handleAddTopic(name: string) {
+    if (!selectedHabitId || !userId) return;
+    try {
+      const t = await addTopic(userId, selectedHabitId, name);
+      setTopics((cur) => [...cur, t]);
+    } catch { /* yoksay */ }
+  }
+  function handleDeleteTopic(id: string) {
+    if (selectedTopicId === id) setSelectedTopicId("");
+    setTopics((cur) => cur.filter((t) => t.id !== id));
+    deleteTopic(id).catch(() => {});
+  }
 
   const activeHabitName = runningTimer
     ? (week.habits.find((h) => h.id === runningTimer.habitId)?.name ?? "")
@@ -176,26 +194,31 @@ export function TimerPanel({
               </div>
             ) : null}
 
-            {/* Oturum hedefi */}
-            <div className="tp-goal-row">
-              <span className="tp-settings-label muted small">Oturum hedefi</span>
-              <button
-                type="button"
-                className="tp-goal-select"
-                onClick={() => setShowGoalPopup(true)}
-              >
-                <span className={selectedGoal ? "" : "muted"}>
-                  {selectedGoal ? selectedGoal.text : "— Hedef seç —"}
-                </span>
-                <span className="tp-goal-caret">▾</span>
-              </button>
-            </div>
+            {/* Konu (etkinliğe bağlı) — sadece etkinlik seçiliyse */}
+            {selectedHabitId ? (
+              <div className="tp-goal-row">
+                <span className="tp-settings-label muted small">Konu</span>
+                <button
+                  type="button"
+                  className="tp-goal-select"
+                  onClick={() => setShowTopicPopup(true)}
+                >
+                  <span className={selectedTopic ? "" : "muted"}>
+                    {selectedTopic ? selectedTopic.name : "Konusuz"}
+                  </span>
+                  <span className="tp-goal-caret">▾</span>
+                </button>
+              </div>
+            ) : null}
 
             <TimerSetup
               timerState={runningTimer ? "running" : ""}
               onStartTimer={(config) => {
                 if (!selectedHabitId) return;
-                onStartNew(selectedHabitId, todayIndex, config);
+                onStartNew(selectedHabitId, todayIndex, {
+                  ...config,
+                  topicId: selectedTopicId || null,
+                });
               }}
             />
           </>
@@ -220,18 +243,15 @@ export function TimerPanel({
         </div>
       ) : null}
 
-      {/* Hedef seç/ekle popup */}
-      {showGoalPopup ? (
-        <GoalPopup
-          goals={goals}
-          selectedId={selectedGoalId}
-          onSelect={setSelectedGoalId}
-          onAdd={onAddGoal}
-          onDelete={(id) => {
-            if (selectedGoalId === id) setSelectedGoalId("");
-            onDeleteGoal(id);
-          }}
-          onClose={() => setShowGoalPopup(false)}
+      {/* Konu seç/ekle popup */}
+      {showTopicPopup ? (
+        <TopicPopup
+          topics={topics}
+          selectedId={selectedTopicId}
+          onSelect={setSelectedTopicId}
+          onAdd={handleAddTopic}
+          onDelete={handleDeleteTopic}
+          onClose={() => setShowTopicPopup(false)}
         />
       ) : null}
     </aside>

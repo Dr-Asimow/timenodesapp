@@ -59,6 +59,8 @@ export type ActiveTimer = {
   cyclesTotal: number;
   // Tamamlanan odak fazı sayısı (0..cyclesTotal)
   cyclesDone: number;
+  // Çalışılan konu (kalıcı, etkinliğe bağlı). null = konusuz.
+  topicId: string | null;
 };
 
 // Sayaç başlatma yapılandırması (config popup'tan gelir)
@@ -66,6 +68,21 @@ export type TimerConfig = {
   workTargetMs: number | null; // null = serbest (stopwatch)
   plannedBreakMs: number | null; // pomodoro mola süresi; serbestte null
   cycles: number; // pomodoro döngü sayısı; serbestte 1
+  topicId: string | null; // çalışılan konu; null = konusuz
+};
+
+// Etkinliğe bağlı kalıcı konu (topics tablosu)
+export type Topic = {
+  id: string;
+  habitId: string;
+  name: string;
+};
+
+// Bir hücrenin konu bazında süre kırılımı (topic_minutes'ten)
+export type TopicMinute = {
+  topicId: string;
+  name: string;
+  min: number;
 };
 
 export type AppState = {
