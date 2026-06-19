@@ -65,8 +65,12 @@ export function LiveTimer({
     : running
     ? "çalışıyor"
     : "duraklatıldı";
+  // "Kalan" ana sayaçla (geçen süre, floor) senkron olsun diye yukarı yuvarlanır
+  // (ceil). Aksi halde kalan, geçenden ~1 sn önde düşer ve atlama hissi verir.
   const remain =
-    target != null ? formatClock(Math.max(0, target - total)) : null;
+    target != null
+      ? formatClock(Math.ceil(Math.max(0, target - total) / 1000) * 1000)
+      : null;
 
   function breakClick() {
     if (timer.plannedBreakMs != null) actions.startBreak(timer.plannedBreakMs);
@@ -214,7 +218,7 @@ export function TimerSetup({
       <button
         className="timer-start-btn"
         onClick={() =>
-          onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1, topicId: null })
+          onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1, topicId: null, topicName: null })
         }
       >
         ▶ Sayaca devam et
@@ -280,6 +284,7 @@ export function TimerSetup({
                 plannedBreakMs: brk * 60000,
                 cycles,
                 topicId: null,
+                topicName: null,
               })
             }
           >
@@ -294,7 +299,7 @@ export function TimerSetup({
           <button
             className="start-btn"
             onClick={() =>
-              onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1, topicId: null })
+              onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1, topicId: null, topicName: null })
             }
           >
             ▶ Başlat

@@ -105,5 +105,6 @@ function normalizeTimer(
     cyclesTotal: t.cyclesTotal ?? 1,
     cyclesDone: t.cyclesDone ?? 0,
     topicId: t.topicId ?? null,
+    topicName: t.topicName ?? null,
   };
 }

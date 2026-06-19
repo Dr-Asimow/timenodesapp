@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatHours, formatMinutes } from "../heat";
+import { formatMinutes } from "../heat";
 import { mondayOf, addDays, toISODate } from "../storage";
 import type { HabitSeries, YearStats } from "../db";
 import type { TopicMinute } from "../types";
@@ -90,12 +90,12 @@ export function Stats({
       <h2 className="stats-head">İstatistikler · {year}</h2>
 
       <div className="stats-cards">
-        <BigCard label={`${year} toplam`} value={`${formatHours(stats.totalWork)} sa`} />
-        <BigCard label="Bu hafta" value={`${formatHours(weekTotalMin)} sa`} />
+        <BigCard label={`${year} toplam`} value={formatMinutes(stats.totalWork)} />
+        <BigCard label="Bu hafta" value={formatMinutes(weekTotalMin)} />
         <BigCard label="Aktif gün" value={`${stats.activeDays}`} />
         <BigCard
           label="En verimli gün"
-          value={stats.bestDay ? `${formatHours(stats.bestDay.min)} sa` : "—"}
+          value={stats.bestDay ? formatMinutes(stats.bestDay.min) : "—"}
           sub={stats.bestDay ? dayLabel(stats.bestDay.day) : undefined}
         />
       </div>
@@ -124,6 +124,7 @@ export function Stats({
               const expanded = expandedId === h.id;
               const topicSum = topics.reduce((a, t) => a + t.min, 0);
               const untracked = Math.max(0, h.min - topicSum);
+              const maxTopic = Math.max(1, untracked, ...topics.map((t) => t.min));
               return (
                 <div key={h.id}>
                   <div
@@ -152,12 +153,27 @@ export function Stats({
                       {topics.map((t) => (
                         <li className="habit-topic-row" key={t.topicId}>
                           <span className="habit-topic-name">{t.name}</span>
+                          <div className="habit-topic-track">
+                            <div
+                              className="habit-topic-fill"
+                              style={{
+                                width: `${(t.min / maxTopic) * 100}%`,
+                                background: colorOf(h, i),
+                              }}
+                            />
+                          </div>
                           <span className="habit-topic-val">{formatMinutes(t.min)}</span>
                         </li>
                       ))}
                       {untracked > 0 ? (
                         <li className="habit-topic-row muted">
                           <span className="habit-topic-name">Konusuz</span>
+                          <div className="habit-topic-track">
+                            <div
+                              className="habit-topic-fill dim"
+                              style={{ width: `${(untracked / maxTopic) * 100}%` }}
+                            />
+                          </div>
                           <span className="habit-topic-val">{formatMinutes(untracked)}</span>
                         </li>
                       ) : null}
@@ -316,7 +332,7 @@ function TrendChart({
             <g key={idx}>
               <line x1={padL} y1={t.yPos} x2={W - padR} y2={t.yPos} className="lc-grid" />
               <text x={padL - 6} y={t.yPos + 3} className="lc-axis" textAnchor="end">
-                {formatHours(t.v)}
+                {formatMinutes(t.v)}
               </text>
             </g>
           ))}

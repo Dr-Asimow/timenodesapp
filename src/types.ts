@@ -61,6 +61,8 @@ export type ActiveTimer = {
   cyclesDone: number;
   // Çalışılan konu (kalıcı, etkinliğe bağlı). null = konusuz.
   topicId: string | null;
+  // Konu adı (gösterim için; topicId'den ayrı sorgu gerekmesin diye saklanır)
+  topicName: string | null;
 };
 
 // Sayaç başlatma yapılandırması (config popup'tan gelir)
@@ -69,6 +71,7 @@ export type TimerConfig = {
   plannedBreakMs: number | null; // pomodoro mola süresi; serbestte null
   cycles: number; // pomodoro döngü sayısı; serbestte 1
   topicId: string | null; // çalışılan konu; null = konusuz
+  topicName: string | null; // konu adı (gösterim için)
 };
 
 // Etkinliğe bağlı kalıcı konu (topics tablosu)

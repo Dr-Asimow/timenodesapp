@@ -130,7 +130,11 @@ export function CellPopover({
                 <TimerSetup
                   timerState={timerState}
                   onStartTimer={(config) =>
-                    onStartTimer({ ...config, topicId: selectedTopicId || null })
+                    onStartTimer({
+                      ...config,
+                      topicId: selectedTopicId || null,
+                      topicName: selectedTopic ? selectedTopic.name : null,
+                    })
                   }
                 />
                 <div className="popover-divider" />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatHours } from "../heat";
+import { formatMinutes } from "../heat";
 import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
 import { BadgeCard, dateDMY } from "./BadgeCard";
 import { BadgeRow } from "./Badges";
@@ -161,7 +161,7 @@ export function Profile({
 
           <div className="profile-stats">
             <Stat label="Time Coin" value={`${coins}`} />
-            <Stat label="Bu hafta" value={`${formatHours(weekTotalMin)} sa`} />
+            <Stat label="Bu hafta" value={formatMinutes(weekTotalMin)} />
             <Stat label="Seviye" value="1" />
             <Stat label="Seri" value="—" />
           </div>

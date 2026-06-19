@@ -1175,17 +1175,32 @@ body {
   margin-left: 4px;
 }
 .habit-topic-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 96px 1fr 60px;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   font-size: 12px;
 }
 .habit-topic-row.muted .habit-topic-name,
 .habit-topic-row.muted .habit-topic-val { color: var(--muted); }
 .habit-topic-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.habit-topic-val { color: var(--muted); white-space: nowrap; flex: none; }
+.habit-topic-val { color: var(--muted); white-space: nowrap; text-align: right; }
+.habit-topic-track {
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.habit-topic-fill {
+  height: 100%;
+  border-radius: 999px;
+  opacity: 0.85;
+}
+.habit-topic-fill.dim { background: var(--muted); opacity: 0.5; }
 .topic-none { margin-bottom: 2px; }
+
+/* Duraklatılmış sayaçta konu adı */
+.tp-paused-topic { padding: 1px 0 0 2px; font-size: 10px; }
 
 /* Etkinlik dağılımı zaman aralığı etiketleri (tag) */
 .range-tags {

@@ -1,5 +1,5 @@
 import { addDays } from "../storage";
-import { formatHours, heatLevel } from "../heat";
+import { formatMinutes, heatLevel } from "../heat";
 
 const MONTHS = [
   "Oca", "Şub", "Mar", "Nis", "May", "Haz",
@@ -60,7 +60,7 @@ export function WeeksPage({
               <div className="wk-top-row">
                 <span className="wk-no">{w.weekNumber}</span>
                 {total > 0 ? (
-                  <span className="wk-total">{formatHours(total)}s</span>
+                  <span className="wk-total">{formatMinutes(total)}</span>
                 ) : null}
               </div>
               <span className="wk-range muted">{rangeLabel(w.startISO)}</span>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ActiveTimer, Habit, TimerConfig, TodoItem, WeekData } from "../types";
 import { addDays, newId, toISODate } from "../storage";
 import { isRunning } from "../timer";
-import { heatLevel, formatMinutes, formatHours } from "../heat";
+import { heatLevel, formatMinutes } from "../heat";
 import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
 
@@ -402,7 +402,7 @@ export function WeekGrid({
                     </td>
                   );
                 })}
-                <td className="total-td">{formatHours(rowTotal(h.id))}</td>
+                <td className="total-td">{formatMinutes(rowTotal(h.id))}</td>
               </tr>
             ))}
             <tr className="add-habit-row">
@@ -424,10 +424,10 @@ export function WeekGrid({
                   }`}
                   onMouseEnter={() => setHoverDay(day)}
                 >
-                  {formatHours(colTotal(day))}
+                  {formatMinutes(colTotal(day))}
                 </td>
               ))}
-              <td className="total-td grand">{formatHours(grandTotal)}</td>
+              <td className="total-td grand">{formatMinutes(grandTotal)}</td>
             </tr>
           </tfoot>
           </table>
@@ -438,13 +438,13 @@ export function WeekGrid({
           <div className="lw-list">
             {week.habits.map((h) => (
               <div className="lw-row" key={h.id}>
-                {prevTotals ? formatHours(prevTotals[h.id] ?? 0) : "—"}
+                {prevTotals ? formatMinutes(prevTotals[h.id] ?? 0) : "—"}
               </div>
             ))}
           </div>
           <div className="lw-addspacer" />
           <div className="lw-foot">
-            {prevTotals ? formatHours(prevGrand) : "—"}
+            {prevTotals ? formatMinutes(prevGrand) : "—"}
           </div>
         </aside>
       </div>
@@ -464,7 +464,7 @@ export function WeekGrid({
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span className="day-detail-total">
-              Toplam {formatHours(selectedTotal)} saat
+              Toplam {formatMinutes(selectedTotal)}
             </span>
             <button
               className="notebook-btn-sm"

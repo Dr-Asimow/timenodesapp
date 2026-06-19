@@ -173,7 +173,10 @@ export function TimerPanel({
       <div className="tp-active">
         {runningTimer ? (
           <>
-            <div className="tp-habit-label muted small">{activeHabitName}</div>
+            <div className="tp-habit-label muted small">
+              {activeHabitName}
+              {runningTimer.topicName ? ` · 🎯 ${runningTimer.topicName}` : ""}
+            </div>
             <LiveTimer timer={runningTimer} actions={buildActions(runningTimer)} />
           </>
         ) : (
@@ -218,6 +221,7 @@ export function TimerPanel({
                 onStartNew(selectedHabitId, todayIndex, {
                   ...config,
                   topicId: selectedTopicId || null,
+                  topicName: selectedTopic ? selectedTopic.name : null,
                 });
               }}
             />
@@ -290,6 +294,9 @@ function PausedItem({
         <button className="tp-resume-btn" onClick={onResume}>▶ devam</button>
         <button className="tp-cancel-btn" onClick={onCancel}>×</button>
       </div>
+      {timer.topicName ? (
+        <div className="tp-paused-topic muted small">🎯 {timer.topicName}</div>
+      ) : null}
       {progress != null ? (
         <div className="tp-paused-bar">
           <div

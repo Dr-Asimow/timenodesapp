@@ -170,6 +170,7 @@ function newTimer(habitId: string, day: number, config: TimerConfig): ActiveTime
     cyclesTotal: Math.max(1, config.cycles),
     cyclesDone: 0,
     topicId: config.topicId,
+    topicName: config.topicName,
   };
 }
 
@@ -873,6 +874,7 @@ export function App() {
       plannedBreakMs: null,
       cycles: 1,
       topicId: null,
+      topicName: null,
     });
     setCellSel({ habitId, day: todayIndex });
   };
@@ -925,6 +927,7 @@ export function App() {
                       plannedBreakMs: t.plannedBreakMs,
                       cycles: t.cyclesTotal,
                       topicId: t.topicId,
+                      topicName: t.topicName,
                     }),
                   startBreak: startBreak,
                   resumeWork: resumeWork,
@@ -989,6 +992,7 @@ export function App() {
                       plannedBreakMs: t.plannedBreakMs,
                       cycles: t.cyclesTotal,
                       topicId: t.topicId,
+                      topicName: t.topicName,
                     })
                   }
                   onStartBreak={startBreak}
