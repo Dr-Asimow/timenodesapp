@@ -5261,20 +5261,58 @@ tr.drag-over th {
   }
   .timer-panel .pop-timer-actions { flex-wrap: wrap; justify-content: center; }
 
-  /* --- Sağ panel: Hedef ve Müzik kartları yan yana (eşit) --- */
+  /* --- Sağ panel: Hedef ve Müzik alt alta, tam genişlik --- */
   .right-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
-    align-items: start;
   }
   .right-panel .right-tabs-card,
   .right-panel .side-card.side-music {
     flex: none;
+    width: 100%;
     min-width: 0;
   }
-  /* Ortam sesleri mobilde 2 sütun (dar kartta sığsın) */
+  /* Ortam sesleri mobilde 2×2 grid */
   .right-panel .ambient-grid.compact {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* --- Cell modal: süre düzenleme satırı mobil uyum --- */
+  .stat-edit-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .stat-edit-row .bigstat {
+    text-align: center;
+  }
+  .delta-row {
+    justify-content: center;
+    gap: 14px;
+  }
+  .delta-picker-wrap {
+    width: 110px;
+  }
+  .delta-picker {
+    border-radius: 14px;
+    background: var(--panel);
+  }
+  .delta-item.sel {
+    font-size: 24px;
+  }
+  .delta-center-band {
+    height: 38px;
+    border-top: 1.5px solid rgba(57, 211, 83, 0.5);
+    border-bottom: 1.5px solid rgba(57, 211, 83, 0.5);
+    border-radius: 2px;
+  }
+  .delta-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+  .delta-preview {
+    font-size: 13px;
   }
 }
