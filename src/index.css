@@ -3452,6 +3452,161 @@ tr.drag-over th {
 .lvl-0 {
   background: var(--lvl-0);
 }
+/* Haftalar sayfası: yıllık + aylık ısı haritası (timeline) */
+.heatmap-section { margin-top: 28px; }
+.heatmap-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.heat-cell {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: none;
+  padding: 0;
+  background: var(--lvl-0);
+  cursor: pointer;
+  transition: outline 0.1s;
+}
+.heat-cell:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
+.heat-cell.empty { background: transparent; cursor: default; pointer-events: none; }
+
+/* Yıllık: haftalar yatay sütun, 7 gün dikey */
+.year-heat-scroll { overflow-x: auto; padding-bottom: 6px; }
+.year-heat-months {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.year-heat-month {
+  width: 13px;
+  flex: none;
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: visible;
+}
+.year-heat { display: flex; gap: 3px; }
+.year-heat-col { display: flex; flex-direction: column; gap: 3px; flex: none; }
+
+/* Aylık: 12 ay yatay şerit, her ay 7 sütunlu takvim */
+.month-heat-strip {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.month-heat { flex: none; }
+.month-heat-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.month-heat-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 13px);
+  gap: 3px;
+}
+/* Isı haritası timeline kaydırma çubukları (tema uyumlu) */
+.year-heat-scroll,
+.month-heat-strip {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.year-heat-scroll::-webkit-scrollbar,
+.month-heat-strip::-webkit-scrollbar {
+  height: 8px;
+}
+.year-heat-scroll::-webkit-scrollbar-track,
+.month-heat-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+.year-heat-scroll::-webkit-scrollbar-thumb,
+.month-heat-strip::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+.year-heat-scroll::-webkit-scrollbar-thumb:hover,
+.month-heat-strip::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Isı haritası hover ipucu (fare yanında) */
+.heat-tip {
+  position: fixed;
+  z-index: 90;
+  pointer-events: none;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  min-width: 150px;
+  max-width: 240px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+}
+.heat-tip-day { font-weight: 700; font-size: 11px; margin-bottom: 5px; }
+.heat-tip-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 44px;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.heat-tip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heat-tip-track { height: 5px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.heat-tip-fill { height: 100%; border-radius: 999px; }
+.heat-tip-val { color: var(--muted); white-space: nowrap; text-align: right; }
+
+/* Gün detay popup'ı */
+.day-popup {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  width: min(380px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.day-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.day-popup-title { font-weight: 700; font-size: 15px; }
+.day-popup-sec { display: flex; flex-direction: column; gap: 8px; }
+.day-popup-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.day-popup-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.day-popup-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 60px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.day-popup-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-popup-bar-track { height: 7px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+.day-popup-bar-fill { height: 100%; border-radius: 999px; }
+.day-popup-bar-val { color: var(--muted); white-space: nowrap; text-align: right; }
+.day-popup-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.day-popup-item { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.day-popup-item.done { color: var(--muted); text-decoration: line-through; }
+.day-popup-check { color: var(--accent); flex: none; }
+.day-popup-actions { display: flex; gap: 8px; margin-top: 2px; }
+.day-popup-actions .ghost-btn,
+.day-popup-actions .primary-btn { flex: 1; }
+
 .lvl-1 {
   background: var(--lvl-1);
 }
@@ -5077,5 +5232,49 @@ tr.drag-over th {
   }
   .row-del {
     display: none;
+  }
+
+  /* --- Sayaç paneli: tam genişlik, iç kaydırma yok, yatay form --- */
+  .timer-panel {
+    width: 100%;
+    flex: none;
+    max-height: none;
+    overflow: visible;
+  }
+  /* Boş sayaç formu öğeleri 2 sütun (Odak | Mola yan yana) */
+  .timer-panel .setup-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    align-items: end;
+  }
+  .timer-panel .setup-body .cycles-row,
+  .timer-panel .setup-body .start-btn,
+  .timer-panel .setup-body .stopwatch-desc {
+    grid-column: 1 / -1;
+  }
+  /* Etkinlik + konu seçici yan yana */
+  .timer-panel .tp-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .timer-panel .pop-timer-actions { flex-wrap: wrap; justify-content: center; }
+
+  /* --- Sağ panel: Hedef ve Müzik kartları yan yana (eşit) --- */
+  .right-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .right-panel .right-tabs-card,
+  .right-panel .side-card.side-music {
+    flex: none;
+    min-width: 0;
+  }
+  /* Ortam sesleri mobilde 2 sütun (dar kartta sığsın) */
+  .right-panel .ambient-grid.compact {
+    grid-template-columns: 1fr 1fr;
   }
 }

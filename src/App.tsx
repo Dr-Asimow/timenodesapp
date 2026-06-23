@@ -308,13 +308,16 @@ export function App() {
     }
   }, [view, week?.year]);
 
-  // İstatistikler sayfasına girince yıl istatistiklerini + konu dağılımını çek
+  // İstatistik/Haftalar sayfasına girince yıl istatistiklerini çek (Haftalar'daki
+  // ısı haritası gün popup'ı da habitSeries'ten beslenir). Konu dağılımı yalnız stats.
   useEffect(() => {
-    if (view === "stats" && week) {
+    if ((view === "stats" || view === "weeks") && week) {
       setYearStats(null);
       loadYearStats(week.year)
         .then(setYearStats)
         .catch(() => {});
+    }
+    if (view === "stats" && week) {
       loadYearTopicStats(week.year)
         .then(setYearTopics)
         .catch(() => {});
@@ -1048,8 +1051,11 @@ export function App() {
             year={week.year}
             weeks={weeksOfYear(week.year)}
             totals={yearTotals}
+            habitSeries={yearStats?.habitSeries ?? null}
+            reminders={reminders}
             currentStartISO={week.startDate}
             onOpenWeek={openWeek}
+            onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
           />
         ) : view === "stats" ? (
           <Stats
