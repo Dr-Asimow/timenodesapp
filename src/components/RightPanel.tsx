@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Goal, Reminder, TodoItem } from "../types";
 import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
@@ -224,6 +224,207 @@ function ReminderTab({
 
 // --- Hatırlatıcı ekleme popup'ı ---
 
+const MONTH_NAMES = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
+const DOW = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pa"];
+
+function MiniCal({
+  value,
+  onPick,
+}: {
+  value: string;
+  onPick: (iso: string) => void;
+}) {
+  const today = new Date();
+  const init = value ? new Date(value + "T00:00:00") : today;
+  const [year, setYear] = useState(init.getFullYear());
+  const [month, setMonth] = useState(init.getMonth());
+
+  const firstDay = new Date(year, month, 1);
+  const offset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  function prev() {
+    if (month === 0) { setMonth(11); setYear(year - 1); }
+    else setMonth(month - 1);
+  }
+  function next() {
+    if (month === 11) { setMonth(0); setYear(year + 1); }
+    else setMonth(month + 1);
+  }
+  function iso(d: number) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="mc">
+      <div className="mc-head">
+        <button type="button" className="mc-nav" onClick={prev}>‹</button>
+        <span className="mc-title">{MONTH_NAMES[month]} {year}</span>
+        <button type="button" className="mc-nav" onClick={next}>›</button>
+      </div>
+      <div className="mc-dow">
+        {DOW.map((d) => <span key={d} className="mc-dow-cell">{d}</span>)}
+      </div>
+      <div className="mc-grid">
+        {Array.from({ length: offset }).map((_, i) => (
+          <span key={`e${i}`} className="mc-cell mc-empty" />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const d = i + 1;
+          const dayISO = iso(d);
+          const sel = dayISO === value;
+          const isToday = dayISO === todayISO;
+          return (
+            <button
+              key={d}
+              type="button"
+              className={`mc-cell${sel ? " mc-sel" : ""}${isToday ? " mc-today" : ""}`}
+              onClick={() => onPick(dayISO)}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const WHEEL_H = 48;
+const WHEEL_VISIBLE = 5;
+const HOURS_LIST = Array.from({ length: 24 }, (_, i) => i);
+const MINS_LIST = Array.from({ length: 60 }, (_, i) => i);
+
+function ScrollWheel({
+  items,
+  initial,
+  onIndex,
+}: {
+  items: number[];
+  initial: number;
+  onIndex: (i: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ startY: number; startScroll: number } | null>(null);
+  const [idx, setIdx] = useState(initial);
+  const idxRef = useRef(initial);
+  const cbRef = useRef(onIndex);
+  cbRef.current = onIndex;
+
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.scrollTop = initial * WHEEL_H;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function idxFromScroll(st: number) {
+    return Math.max(0, Math.min(items.length - 1, Math.round(st / WHEEL_H)));
+  }
+  function onScroll() {
+    const el = ref.current;
+    if (!el) return;
+    const i = idxFromScroll(el.scrollTop);
+    if (i !== idxRef.current) { idxRef.current = i; setIdx(i); cbRef.current(i); }
+  }
+  function onPointerDown(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { startY: e.clientY, startScroll: el.scrollTop };
+    el.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!el || !drag.current) return;
+    el.scrollTop = drag.current.startScroll - (e.clientY - drag.current.startY);
+  }
+  function endDrag(e: React.PointerEvent) {
+    const el = ref.current;
+    if (!drag.current) return;
+    drag.current = null;
+    if (el) {
+      try { el.releasePointerCapture(e.pointerId); } catch {}
+      el.scrollTo({ top: idxFromScroll(el.scrollTop) * WHEEL_H, behavior: "smooth" });
+    }
+  }
+
+  const pad = ((WHEEL_VISIBLE - 1) / 2) * WHEEL_H;
+
+  return (
+    <div className="sw-wrap" style={{ height: WHEEL_VISIBLE * WHEEL_H }}>
+      <div
+        className="sw-scroll"
+        ref={ref}
+        onScroll={onScroll}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        style={{ height: WHEEL_VISIBLE * WHEEL_H }}
+      >
+        <div style={{ height: pad, flex: "none" }} />
+        {items.map((v, i) => {
+          const dist = Math.abs(i - idx);
+          return (
+            <div
+              key={v}
+              className={`sw-item${i === idx ? " sw-sel" : ""}${dist === 1 ? " sw-near" : ""}`}
+              style={{ height: WHEEL_H }}
+            >
+              {String(v).padStart(2, "0")}
+            </div>
+          );
+        })}
+        <div style={{ height: pad, flex: "none" }} />
+      </div>
+      <div className="sw-band" />
+    </div>
+  );
+}
+
+function TimePicker({
+  value,
+  onPick,
+}: {
+  value: string;
+  onPick: (hhmm: string) => void;
+}) {
+  const now = new Date();
+  const initH = value ? Number(value.split(":")[0]) : now.getHours();
+  const initM = value ? Number(value.split(":")[1]) : now.getMinutes();
+  const hourRef = useRef(initH);
+  const minRef = useRef(initM);
+
+  function emit() {
+    const hh = String(hourRef.current).padStart(2, "0");
+    const mm = String(minRef.current).padStart(2, "0");
+    onPick(`${hh}:${mm}`);
+  }
+
+  return (
+    <div className="tps">
+      <div className="tps-wheels">
+        <ScrollWheel
+          items={HOURS_LIST}
+          initial={initH}
+          onIndex={(i) => { hourRef.current = i; }}
+        />
+        <span className="tps-colon">:</span>
+        <ScrollWheel
+          items={MINS_LIST}
+          initial={initM}
+          onIndex={(i) => { minRef.current = i; }}
+        />
+      </div>
+      <button type="button" className="primary-btn rp-submit" onClick={emit}>
+        Tamam
+      </button>
+    </div>
+  );
+}
+
 function ReminderPopup({
   onAdd,
   onClose,
@@ -235,12 +436,19 @@ function ReminderPopup({
   const [desc, setDesc] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [showCal, setShowCal] = useState(false);
+  const [showTime, setShowTime] = useState(false);
 
   function submit() {
     const t = title.trim();
     if (!t || !date || !time) return;
     const iso = new Date(`${date}T${time}`).toISOString();
     onAdd(t, iso, desc.trim() || undefined);
+  }
+
+  function fmtDate(iso: string) {
+    const d = new Date(iso + "T00:00:00");
+    return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   }
 
   return (
@@ -269,30 +477,46 @@ function ReminderPopup({
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="Detay ekle…"
-            rows={3}
+            rows={2}
           />
         </div>
 
         <div className="rp-row">
           <div className="rp-field rp-half">
             <label className="rp-label">Tarih</label>
-            <input
-              className="rp-input"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <button
+              type="button"
+              className={`rp-input rp-picker-btn${date ? "" : " muted"}`}
+              onClick={() => { setShowCal(!showCal); setShowTime(false); }}
+            >
+              {date ? fmtDate(date) : "Gün seç"}
+            </button>
           </div>
           <div className="rp-field rp-half">
             <label className="rp-label">Saat</label>
-            <input
-              className="rp-input"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
+            <button
+              type="button"
+              className={`rp-input rp-picker-btn${time ? "" : " muted"}`}
+              onClick={() => { setShowTime(!showTime); setShowCal(false); }}
+            >
+              {time || "Saat seç"}
+            </button>
           </div>
         </div>
+
+        {showCal ? (
+          <MiniCal
+            value={date}
+            onPick={(d) => { setDate(d); setShowCal(false); }}
+          />
+        ) : null}
+
+        {showTime ? (
+          <TimePicker
+            value={time}
+            onPick={(t) => { setTime(t); setShowTime(false); }}
+          />
+        ) : null}
 
         <button
           className="primary-btn rp-submit"
