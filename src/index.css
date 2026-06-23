@@ -3207,7 +3207,7 @@ button {
 }
 .lw-head {
   flex: 0 0 auto;
-  height: 43px;
+  height: 39px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -3215,12 +3215,13 @@ button {
   padding-bottom: 6px;
 }
 .lw-list {
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: column;
 }
 .lw-row {
-  flex: 1;
+  flex: none;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3228,11 +3229,11 @@ button {
 }
 .lw-addspacer {
   flex: 0 0 auto;
-  height: 48px;
+  height: 40px;
 }
 .lw-foot {
   flex: 0 0 auto;
-  height: 30px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
