@@ -44,7 +44,7 @@ export function RightPanel({
   reminders: Reminder[];
   onAddGoal: (text: string) => void;
   onDeleteGoal: (id: string) => void;
-  onAddReminder: (title: string, targetAt: string) => void;
+  onAddReminder: (title: string, targetAt: string, description?: string) => void;
   onDeleteReminder: (id: string) => void;
   onAddTodo: (title: string) => void;
   onToggleTodo: (id: string, done: boolean) => void;
@@ -170,51 +170,21 @@ function ReminderTab({
   onDelete,
 }: {
   reminders: Reminder[];
-  onAdd: (title: string, targetAt: string) => void;
+  onAdd: (title: string, targetAt: string, description?: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [datetime, setDatetime] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
   const [, tick] = useState(0);
 
-  // Her dakika geri sayımı güncelle
   useEffect(() => {
     const id = setInterval(() => tick((v) => v + 1), 60000);
     return () => clearInterval(id);
   }, []);
 
-  function submit() {
-    const t = title.trim();
-    if (!t || !datetime) return;
-    // datetime-local → ISO string
-    const iso = new Date(datetime).toISOString();
-    onAdd(t, iso);
-    setTitle("");
-    setDatetime("");
-  }
-
   return (
     <div className="rtab-inner">
-      <form
-        className="rtab-reminder-form"
-        onSubmit={(e) => { e.preventDefault(); submit(); }}
-      >
-        <input
-          className="rtab-input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Hatırlatıcı başlığı…"
-        />
-        <input
-          className="rtab-input"
-          type="datetime-local"
-          value={datetime}
-          onChange={(e) => setDatetime(e.target.value)}
-        />
-        <button type="submit" className="rtab-add-btn-full">+ Hatırlatıcı ekle</button>
-      </form>
       {reminders.length === 0 ? (
-        <p className="rtab-empty muted small">Hatırlatıcı yok.</p>
+        <p className="rtab-empty muted small">Henüz hatırlatıcı eklenmemiş.</p>
       ) : (
         <ul className="rtab-list">
           {reminders.map((r) => {
@@ -223,8 +193,11 @@ function ReminderTab({
               <li key={r.id} className={`rtab-item reminder-item${expired ? " expired" : ""}`}>
                 <div className="reminder-info">
                   <span className="rtab-item-text">{r.title}</span>
-                  <span className={`reminder-countdown muted small${expired ? " expired" : ""}`}>
-                    {label}
+                  {r.description ? (
+                    <span className="reminder-desc muted small">{r.description}</span>
+                  ) : null}
+                  <span className={`reminder-countdown small${expired ? " expired" : ""}`}>
+                    {expired ? "⏰ " : "⏳ "}{label}
                   </span>
                 </div>
                 <button className="rtab-del-btn" onClick={() => onDelete(r.id)}>×</button>
@@ -233,6 +206,102 @@ function ReminderTab({
           })}
         </ul>
       )}
+      <button className="rtab-agenda-btn" onClick={() => setShowPopup(true)}>
+        + Hatırlatıcı ekle
+      </button>
+      {showPopup ? (
+        <ReminderPopup
+          onAdd={(title, targetAt, desc) => {
+            onAdd(title, targetAt, desc);
+            setShowPopup(false);
+          }}
+          onClose={() => setShowPopup(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+// --- Hatırlatıcı ekleme popup'ı ---
+
+function ReminderPopup({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (title: string, targetAt: string, description?: string) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+
+  function submit() {
+    const t = title.trim();
+    if (!t || !date || !time) return;
+    const iso = new Date(`${date}T${time}`).toISOString();
+    onAdd(t, iso, desc.trim() || undefined);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal reminder-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="popover-head">
+          <span className="popover-title">Hatırlatıcı ekle</span>
+          <button className="modal-x" onClick={onClose} aria-label="Kapat">×</button>
+        </div>
+
+        <div className="rp-field">
+          <label className="rp-label">Başlık</label>
+          <input
+            className="rp-input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ne hatırlatılsın?"
+            autoFocus
+          />
+        </div>
+
+        <div className="rp-field">
+          <label className="rp-label">Açıklama <span className="muted small">(opsiyonel)</span></label>
+          <textarea
+            className="rp-textarea"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Detay ekle…"
+            rows={3}
+          />
+        </div>
+
+        <div className="rp-row">
+          <div className="rp-field rp-half">
+            <label className="rp-label">Tarih</label>
+            <input
+              className="rp-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+          <div className="rp-field rp-half">
+            <label className="rp-label">Saat</label>
+            <input
+              className="rp-input"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <button
+          className="primary-btn rp-submit"
+          disabled={!title.trim() || !date || !time}
+          onClick={submit}
+        >
+          Kaydet
+        </button>
+      </div>
     </div>
   );
 }

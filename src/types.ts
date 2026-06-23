@@ -107,6 +107,7 @@ export type Goal = {
 export type Reminder = {
   id: string;
   title: string;
+  description: string | null;
   target_at: string; // ISO timestamp
 };
 

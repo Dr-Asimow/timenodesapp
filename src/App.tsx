@@ -184,6 +184,8 @@ export function App() {
   const [view, setView] = useState<View>("week");
   const [goals, setGoals] = useState<Goal[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [firedReminder, setFiredReminder] = useState<Reminder | null>(null);
+  const firedIdsRef = useRef<Set<string>>(new Set());
   const [timerSettings, setTimerSettings] = useState<TimerSettings>(() => {
     try {
       const s = localStorage.getItem("tn.timer-settings");
@@ -483,6 +485,26 @@ export function App() {
     loadGoals(todayISO).then(setGoals).catch(() => {});
     loadReminders(userId).then(setReminders).catch(() => {});
   }, [userId]);
+
+  // Hatırlatıcı alarm kontrolü — her 15 saniyede zamanı gelen hatırlatıcıyı tetikle
+  useEffect(() => {
+    if (!userId) return;
+    const check = () => {
+      const now = Date.now();
+      for (const r of reminders) {
+        if (firedIdsRef.current.has(r.id)) continue;
+        if (new Date(r.target_at).getTime() <= now) {
+          firedIdsRef.current.add(r.id);
+          setFiredReminder(r);
+          playAlarm();
+          break;
+        }
+      }
+    };
+    check();
+    const id = setInterval(check, 15_000);
+    return () => clearInterval(id);
+  }, [userId, reminders]);
 
   // --- DB kalıcılığı: eski vs yeni haftayı diff'leyip yaz ---
   function persist(oldW: WeekData, newW: WeekData) {
@@ -1022,10 +1044,10 @@ export function App() {
                     setGoals((cur) => cur.filter((g) => g.id !== id));
                     deleteGoal(id).catch(() => {});
                   }}
-                  onAddReminder={async (title, targetAt) => {
+                  onAddReminder={async (title, targetAt, description) => {
                     if (!userId) return;
                     try {
-                      const r = await addReminder(userId, title, targetAt);
+                      const r = await addReminder(userId, title, targetAt, description);
                       setReminders((cur) => [...cur, r]);
                     } catch {}
                   }}
@@ -1200,6 +1222,25 @@ export function App() {
             setHabitColor(habitPageTarget.habitId, color)
           }
         />
+      ) : null}
+
+      {/* Hatırlatıcı alarm popup'ı */}
+      {firedReminder ? (
+        <div className="modal-overlay" onClick={() => setFiredReminder(null)}>
+          <div className="modal reminder-alert" onClick={(e) => e.stopPropagation()}>
+            <div className="ra-icon">🔔</div>
+            <h3 className="ra-title">{firedReminder.title}</h3>
+            {firedReminder.description ? (
+              <p className="ra-desc">{firedReminder.description}</p>
+            ) : null}
+            <button
+              className="primary-btn"
+              onClick={() => setFiredReminder(null)}
+            >
+              Tamam
+            </button>
+          </div>
+        </div>
       ) : null}
     </div>
   );

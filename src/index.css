@@ -2311,22 +2311,121 @@ body {
   margin-top: 2px;
 }
 .rtab-agenda-btn:hover { border-color: var(--muted); color: var(--text); }
-.rtab-reminder-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .reminder-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
-.reminder-countdown { font-size: 10px; }
+.reminder-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reminder-countdown {
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 600;
+}
 .reminder-countdown.expired { color: var(--danger); }
 .reminder-item.expired { border: 1px solid var(--danger); }
 .habit-item {}
+
+/* --- Hatırlatıcı ekleme popup'ı --------------------------------------- */
+.reminder-popup {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rp-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.rp-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.rp-input:focus { border-color: var(--accent); }
+.rp-textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.rp-textarea:focus { border-color: var(--accent); }
+.rp-row {
+  display: flex;
+  gap: 12px;
+}
+.rp-half { flex: 1; }
+.rp-submit {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+.rp-submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- Hatırlatıcı alarm popup'ı ---------------------------------------- */
+.reminder-alert {
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  padding: 28px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.ra-icon {
+  font-size: 42px;
+  animation: ra-shake 0.5s ease-in-out infinite alternate;
+}
+@keyframes ra-shake {
+  0% { transform: rotate(-12deg); }
+  100% { transform: rotate(12deg); }
+}
+.ra-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+.ra-desc {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+  white-space: pre-wrap;
+}
 
 /* --- Günlük butonu (küçük, satır içi) -------------------------------- */
 .notebook-btn-sm {

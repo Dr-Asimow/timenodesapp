@@ -650,7 +650,7 @@ export async function deleteGoal(id: string): Promise<void> {
 export async function loadReminders(userId: string): Promise<Reminder[]> {
   const { data, error } = await supabase
     .from("reminders")
-    .select("id,title,target_at")
+    .select("id,title,description,target_at")
     .eq("user_id", userId)
     .order("target_at", { ascending: true });
   if (error) throw error;
@@ -660,12 +660,15 @@ export async function loadReminders(userId: string): Promise<Reminder[]> {
 export async function addReminder(
   userId: string,
   title: string,
-  targetAt: string
+  targetAt: string,
+  description?: string
 ): Promise<Reminder> {
+  const row: Record<string, unknown> = { user_id: userId, title, target_at: targetAt };
+  if (description) row.description = description;
   const { data, error } = await supabase
     .from("reminders")
-    .insert({ user_id: userId, title, target_at: targetAt })
-    .select("id,title,target_at")
+    .insert(row)
+    .select("id,title,description,target_at")
     .single();
   if (error) throw error;
   return data as Reminder;
