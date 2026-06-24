@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { Goal } from "../types";
 
 // Hedef seçme/ekleme popup'ı — hem sol panel (TimerPanel) hem sağ panel
@@ -27,7 +28,7 @@ export function GoalPopup({
     setText("");
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="goal-popup" onClick={(e) => e.stopPropagation()}>
         <div className="goal-popup-head">
@@ -90,6 +91,7 @@ export function GoalPopup({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

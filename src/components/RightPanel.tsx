@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Goal, Reminder, TodoItem } from "../types";
 import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
@@ -309,26 +310,39 @@ function ScrollWheel({
   initial: number;
   onIndex: (i: number) => void;
 }) {
+  const n = items.length;
+  const tripled = [...items, ...items, ...items];
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startY: number; startScroll: number } | null>(null);
   const [idx, setIdx] = useState(initial);
   const idxRef = useRef(initial);
   const cbRef = useRef(onIndex);
   cbRef.current = onIndex;
+  const wrapping = useRef(false);
 
   useLayoutEffect(() => {
-    if (ref.current) ref.current.scrollTop = initial * WHEEL_H;
+    if (ref.current) ref.current.scrollTop = (n + initial) * WHEEL_H;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function idxFromScroll(st: number) {
-    return Math.max(0, Math.min(items.length - 1, Math.round(st / WHEEL_H)));
+  function rawFromScroll(st: number) {
+    return Math.round(st / WHEEL_H);
+  }
+  function wrapToCenter(el: HTMLDivElement) {
+    const raw = rawFromScroll(el.scrollTop);
+    if (raw < n / 2 || raw >= n * 2 + n / 2) {
+      wrapping.current = true;
+      el.scrollTop = (n + idxRef.current) * WHEEL_H;
+      wrapping.current = false;
+    }
   }
   function onScroll() {
     const el = ref.current;
-    if (!el) return;
-    const i = idxFromScroll(el.scrollTop);
+    if (!el || wrapping.current) return;
+    const raw = rawFromScroll(el.scrollTop);
+    const i = ((raw % n) + n) % n;
     if (i !== idxRef.current) { idxRef.current = i; setIdx(i); cbRef.current(i); }
+    wrapToCenter(el);
   }
   function onPointerDown(e: React.PointerEvent) {
     const el = ref.current;
@@ -347,7 +361,8 @@ function ScrollWheel({
     drag.current = null;
     if (el) {
       try { el.releasePointerCapture(e.pointerId); } catch {}
-      el.scrollTo({ top: idxFromScroll(el.scrollTop) * WHEEL_H, behavior: "smooth" });
+      const raw = rawFromScroll(el.scrollTop);
+      el.scrollTo({ top: raw * WHEEL_H, behavior: "smooth" });
     }
   }
 
@@ -366,12 +381,14 @@ function ScrollWheel({
         style={{ height: WHEEL_VISIBLE * WHEEL_H }}
       >
         <div style={{ height: pad, flex: "none" }} />
-        {items.map((v, i) => {
-          const dist = Math.abs(i - idx);
+        {tripled.map((v, i) => {
+          const realIdx = ((i % n) + n) % n;
+          const dist = Math.abs(realIdx - idx);
+          const nearDist = Math.min(dist, n - dist);
           return (
             <div
-              key={v}
-              className={`sw-item${i === idx ? " sw-sel" : ""}${dist === 1 ? " sw-near" : ""}`}
+              key={i}
+              className={`sw-item${realIdx === idx ? " sw-sel" : ""}${nearDist === 1 ? " sw-near" : ""}`}
               style={{ height: WHEEL_H }}
             >
               {String(v).padStart(2, "0")}
@@ -452,7 +469,7 @@ function ReminderPopup({
     return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal reminder-popup" onClick={(e) => e.stopPropagation()}>
         <div className="popover-head">
@@ -527,7 +544,8 @@ function ReminderPopup({
           Kaydet
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

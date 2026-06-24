@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { Topic } from "../types";
 
 // Konu seçme/ekleme popup'ı (etkinliğe bağlı kalıcı konular).
@@ -27,7 +28,7 @@ export function TopicPopup({
     setText("");
   }
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => {
@@ -108,6 +109,7 @@ export function TopicPopup({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
