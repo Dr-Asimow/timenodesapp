@@ -669,11 +669,16 @@ export async function deleteGoal(id: string): Promise<void> {
 export async function loadReminders(userId: string): Promise<Reminder[]> {
   const { data, error } = await supabase
     .from("reminders")
-    .select("id,title,description,target_at")
+    .select("*")
     .eq("user_id", userId)
     .order("target_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as Reminder[];
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    description: (r.description as string) ?? null,
+    target_at: r.target_at as string,
+  }));
 }
 
 export async function addReminder(
@@ -687,10 +692,16 @@ export async function addReminder(
   const { data, error } = await supabase
     .from("reminders")
     .insert(row)
-    .select("id,title,description,target_at")
+    .select("*")
     .single();
   if (error) throw error;
-  return data as Reminder;
+  const r = data as Record<string, unknown>;
+  return {
+    id: r.id as string,
+    title: r.title as string,
+    description: (r.description as string) ?? null,
+    target_at: r.target_at as string,
+  };
 }
 
 export async function deleteReminder(id: string): Promise<void> {

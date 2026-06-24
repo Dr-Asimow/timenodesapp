@@ -1042,7 +1042,11 @@ export function App() {
                     try {
                       const r = await addReminder(userId, title, targetAt, description);
                       setReminders((cur) => [...cur, r]);
-                    } catch {}
+                    } catch (e: unknown) {
+                      const msg = e && typeof e === "object" && "message" in e ? String((e as {message:string}).message) : String(e);
+                      console.error("Hatırlatıcı eklenemedi:", msg, e);
+                      setErr("Hatırlatıcı eklenemedi: " + msg);
+                    }
                   }}
                   onDeleteReminder={async (id) => {
                     setReminders((cur) => cur.filter((r) => r.id !== id));
