@@ -3886,41 +3886,26 @@ tr.drag-over th {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.08s, box-shadow 0.12s;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.12s;
 }
 .cell:hover {
   transform: translateY(-1px);
   border-color: var(--muted);
+}
+.cell.lvl-1,
+.cell.lvl-2,
+.cell.lvl-3,
+.cell.lvl-4,
+.cell.lvl-5 {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.12s;
 }
 .cell.lvl-1:hover,
 .cell.lvl-2:hover,
 .cell.lvl-3:hover,
 .cell.lvl-4:hover,
 .cell.lvl-5:hover {
-  animation: cell-bounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform: none;
-}
-.cell.lvl-1.jelly,
-.cell.lvl-2.jelly,
-.cell.lvl-3.jelly,
-.cell.lvl-4.jelly,
-.cell.lvl-5.jelly {
-  animation: cell-settle 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes cell-bounce {
-  0%   { transform: scale(1) rotate(0deg); }
-  18%  { transform: scale(1.16) rotate(-2.5deg); }
-  36%  { transform: scale(0.94) rotate(2deg); }
-  54%  { transform: scale(1.08) rotate(-1.2deg); }
-  72%  { transform: scale(0.98) rotate(0.8deg); }
-  86%  { transform: scale(1.03) rotate(-0.3deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-@keyframes cell-settle {
-  0%   { transform: scale(1.06) rotate(-1deg); }
-  30%  { transform: scale(0.96) rotate(0.8deg); }
-  60%  { transform: scale(1.02) rotate(-0.3deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  transform: scale(1.12) rotate(-1.5deg);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s;
 }
 @media (prefers-reduced-motion: reduce) {
   .cell.lvl-1:hover,
@@ -3928,7 +3913,6 @@ tr.drag-over th {
   .cell.lvl-3:hover,
   .cell.lvl-4:hover,
   .cell.lvl-5:hover {
-    animation: none;
     transform: translateY(-1px);
   }
 }
