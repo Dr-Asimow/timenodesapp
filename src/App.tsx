@@ -3,7 +3,6 @@ import type { Session } from "@supabase/supabase-js";
 import type { ActiveTimer, Goal, Reminder, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
 import { supabase } from "./supabase";
 import {
-  signOut,
   loadWeek,
   insertHabit,
   sendCongratsEmail,
@@ -915,16 +914,7 @@ export function App() {
         <button className="brand-btn" onClick={() => navigate("week")}>
           <Brand size="sm" tagline={false} />
         </button>
-        <div className="topbar-right">
-          <div className="coin-hud" title="Time coin (yakında gamification)">
-            <span className="coin-ic">🪙</span>
-            <span className="coin-val">{coins}</span>
-          </div>
-          <span className="user">@{username}</span>
-          <button className="ghost-btn" onClick={() => signOut()}>
-            Çıkış
-          </button>
-        </div>
+        <div className="topbar-right" />
       </header>
 
       {err ? <div className="banner-err">⚠️ {err}</div> : null}
@@ -1144,6 +1134,11 @@ export function App() {
             </div>
           )}
         </button>
+
+        <div className="snav-coin" title="Time coin">
+          <span className="coin-ic">🪙</span>
+          <span className="coin-val">{coins}</span>
+        </div>
 
         <div className="snav-sep" />
 

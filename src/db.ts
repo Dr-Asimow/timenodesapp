@@ -200,6 +200,14 @@ export async function signIn(email: string, password: string) {
   if (error) throw error;
 }
 
+export async function signInWithGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) throw error;
+}
+
 // Oturum sahibinin benzersiz arkadaş kodu (UID) — profiles'tan
 export async function loadMyFriendCode(): Promise<string | null> {
   const { data, error } = await supabase
@@ -212,6 +220,17 @@ export async function loadMyFriendCode(): Promise<string | null> {
 
 export async function signOut() {
   await supabase.auth.signOut();
+}
+
+export async function deleteOwnAccount(email: string, password: string) {
+  const { error: authErr } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (authErr) throw new Error("Şifre doğrulanamadı.");
+
+  const { error } = await supabase.rpc("delete_own_account");
+  if (error) throw new Error("Hesap silinemedi: " + error.message);
 }
 
 // Kullanıcı kendi eklediği ilk alışkanlığı oluşturduğunda tebrik e-postasını tetikler.

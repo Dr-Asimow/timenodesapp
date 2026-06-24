@@ -977,6 +977,40 @@ body {
   margin-top: 4px;
   line-height: 1.5;
 }
+
+/* Tehlike bölgesi (çıkış + hesap sil) */
+.profile-danger-zone {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.danger-btn {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.danger-btn:hover { opacity: 0.85; }
+.danger-btn:disabled { opacity: 0.5; cursor: default; }
+.danger-btn.small { font-size: 13px; padding: 7px 14px; }
+.danger-text { color: var(--danger); }
+.delete-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.delete-account-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
 .stat-sub {
   margin-top: 2px;
 }
@@ -1487,6 +1521,19 @@ body {
   margin: 8px 0;
   flex-shrink: 0;
 }
+.snav-coin {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.snav-coin .coin-ic { font-size: 12px; }
+.snav-coin .coin-val { font-size: 12px; }
 
 /* --- Hafta görünümü: timer panel + grid + sağ panel ----------------- */
 .week-layout {
@@ -3232,6 +3279,9 @@ body {
   .snav-sep {
     display: none; /* alt barda dikey ayraç gereksiz */
   }
+  .snav-coin {
+    display: none; /* mobilde alt bar'da coin gösterilmez, topbar'da yer yok */
+  }
   .snav-profile {
     margin-bottom: 0;
   }
@@ -3326,6 +3376,38 @@ button {
   font-size: 13px;
   color: var(--danger);
   margin: 0;
+}
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.google-btn:hover {
+  background: var(--panel-2);
 }
 /* Kayıt sonrası "onay e-postası gönderildi" ekranı */
 .login-sent {

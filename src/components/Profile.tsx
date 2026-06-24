@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatMinutes } from "../heat";
-import { updateDisplayName, updatePassword, uploadAvatar } from "../db";
+import { signOut, updateDisplayName, updatePassword, uploadAvatar, deleteOwnAccount } from "../db";
 import { BadgeCard, dateDMY } from "./BadgeCard";
 import { BadgeRow } from "./Badges";
 import { THEMES, getSavedTheme, applyTheme, type ThemeId } from "../theme";
@@ -64,6 +64,10 @@ export function Profile({
   const [showPw, setShowPw] = useState(false);
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
+
+  const [showDelete, setShowDelete] = useState(false);
+  const [delPw, setDelPw] = useState("");
+  const [delConfirm, setDelConfirm] = useState("");
 
   async function uploadFile(file: File) {
     setBusy("avatar");
@@ -151,9 +155,6 @@ export function Profile({
           <div className="profile-id">
             <h2 className="profile-name">{name || username}</h2>
             <div className="muted">@{username}</div>
-            {contactEmail ? (
-              <div className="muted small">{contactEmail}</div>
-            ) : null}
             <div className="muted small">
               Üye: {memberSinceLabel(memberSince)}
             </div>
@@ -203,6 +204,15 @@ export function Profile({
 
           <div className="account-box">
             <h3 className="account-title">Hesap</h3>
+
+            {contactEmail ? (
+              <div className="account-row">
+                <label className="account-label">E-posta</label>
+                <div className="account-field">
+                  <span className="muted small">{contactEmail}</span>
+                </div>
+              </div>
+            ) : null}
 
             <div className="account-row">
               <label className="account-label">Görünen ad</label>
@@ -299,6 +309,81 @@ export function Profile({
             Kart çerçevesi ve clasp ileride market'ten değiştirilebilir skinler
             olacak. Varsayılan kart, görselinden otomatik renk alır.
           </p>
+
+          <div className="profile-danger-zone">
+            <button className="danger-btn" onClick={() => signOut()}>
+              Çıkış Yap
+            </button>
+
+            {!showDelete ? (
+              <button
+                className="ghost-btn small danger-text"
+                onClick={() => setShowDelete(true)}
+              >
+                Hesabı sil
+              </button>
+            ) : (
+              <form
+                className="delete-account-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (delConfirm !== "KALDIR") {
+                    setMsg('Onay kutusuna büyük harfle "KALDIR" yazın.');
+                    return;
+                  }
+                  setBusy("delete");
+                  setMsg(null);
+                  try {
+                    await deleteOwnAccount(contactEmail, delPw);
+                  } catch (err) {
+                    setMsg(
+                      err instanceof Error ? err.message : "Hesap silinemedi."
+                    );
+                    setBusy(null);
+                  }
+                }}
+              >
+                <p className="danger-text small">
+                  Bu işlem geri alınamaz. Tüm verileriniz kalıcı olarak silinecektir.
+                </p>
+                <input
+                  type="password"
+                  value={delPw}
+                  onChange={(e) => setDelPw(e.target.value)}
+                  placeholder="Şifrenizi girin"
+                  autoComplete="current-password"
+                  required
+                />
+                <input
+                  type="text"
+                  value={delConfirm}
+                  onChange={(e) => setDelConfirm(e.target.value)}
+                  placeholder='Onaylamak için "KALDIR" yazın'
+                  required
+                />
+                <div className="account-pw-actions">
+                  <button
+                    className="danger-btn small"
+                    type="submit"
+                    disabled={busy === "delete" || delConfirm !== "KALDIR" || !delPw}
+                  >
+                    {busy === "delete" ? "Siliniyor…" : "Hesabı Kalıcı Olarak Sil"}
+                  </button>
+                  <button
+                    className="ghost-btn small"
+                    type="button"
+                    onClick={() => {
+                      setShowDelete(false);
+                      setDelPw("");
+                      setDelConfirm("");
+                    }}
+                  >
+                    Vazgeç
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
