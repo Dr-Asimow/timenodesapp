@@ -311,91 +311,74 @@ function ScrollWheel({
   onIndex: (i: number) => void;
 }) {
   const n = items.length;
-  const tripled = [...items, ...items, ...items];
-  const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ startY: number; startScroll: number } | null>(null);
   const [idx, setIdx] = useState(initial);
   const idxRef = useRef(initial);
   const cbRef = useRef(onIndex);
   cbRef.current = onIndex;
-  const wrapping = useRef(false);
 
-  useLayoutEffect(() => {
-    if (ref.current) ref.current.scrollTop = (n + initial) * WHEEL_H;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function rawFromScroll(st: number) {
-    return Math.round(st / WHEEL_H);
-  }
-  function wrapToCenter(el: HTMLDivElement) {
-    const raw = rawFromScroll(el.scrollTop);
-    if (raw < n / 2 || raw >= n * 2 + n / 2) {
-      wrapping.current = true;
-      el.scrollTop = (n + idxRef.current) * WHEEL_H;
-      wrapping.current = false;
+  function go(next: number) {
+    const wrapped = ((next % n) + n) % n;
+    if (wrapped !== idxRef.current) {
+      idxRef.current = wrapped;
+      setIdx(wrapped);
+      cbRef.current(wrapped);
     }
   }
-  function onScroll() {
-    const el = ref.current;
-    if (!el || wrapping.current) return;
-    const raw = rawFromScroll(el.scrollTop);
-    const i = ((raw % n) + n) % n;
-    if (i !== idxRef.current) { idxRef.current = i; setIdx(i); cbRef.current(i); }
-    wrapToCenter(el);
-  }
+
+  const drag = useRef<{ startY: number; startIdx: number; moved: boolean } | null>(null);
+
   function onPointerDown(e: React.PointerEvent) {
-    const el = ref.current;
-    if (!el) return;
-    drag.current = { startY: e.clientY, startScroll: el.scrollTop };
-    el.setPointerCapture(e.pointerId);
+    drag.current = { startY: e.clientY, startIdx: idxRef.current, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
-    const el = ref.current;
-    if (!el || !drag.current) return;
-    el.scrollTop = drag.current.startScroll - (e.clientY - drag.current.startY);
+    if (!drag.current) return;
+    const dy = drag.current.startY - e.clientY;
+    const steps = Math.round(dy / (WHEEL_H * 0.6));
+    if (steps !== 0) drag.current.moved = true;
+    go(drag.current.startIdx + steps);
   }
   function endDrag(e: React.PointerEvent) {
-    const el = ref.current;
     if (!drag.current) return;
     drag.current = null;
-    if (el) {
-      try { el.releasePointerCapture(e.pointerId); } catch {}
-      const raw = rawFromScroll(el.scrollTop);
-      el.scrollTo({ top: raw * WHEEL_H, behavior: "smooth" });
-    }
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   }
 
-  const pad = ((WHEEL_VISIBLE - 1) / 2) * WHEEL_H;
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? 1 : -1;
+    go(idxRef.current + dir);
+  }
+
+  const visible: number[] = [];
+  const half = Math.floor(WHEEL_VISIBLE / 2);
+  for (let d = -half; d <= half; d++) {
+    visible.push(((idx + d) % n + n) % n);
+  }
 
   return (
-    <div className="sw-wrap" style={{ height: WHEEL_VISIBLE * WHEEL_H }}>
-      <div
-        className="sw-scroll"
-        ref={ref}
-        onScroll={onScroll}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        style={{ height: WHEEL_VISIBLE * WHEEL_H }}
-      >
-        <div style={{ height: pad, flex: "none" }} />
-        {tripled.map((v, i) => {
-          const realIdx = ((i % n) + n) % n;
-          const dist = Math.abs(realIdx - idx);
-          const nearDist = Math.min(dist, n - dist);
+    <div
+      className="sw-wrap"
+      style={{ height: WHEEL_VISIBLE * WHEEL_H }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onWheel={onWheel}
+    >
+      <div className="sw-list" style={{ height: WHEEL_VISIBLE * WHEEL_H }}>
+        {visible.map((v, i) => {
+          const dist = Math.abs(i - half);
           return (
             <div
-              key={i}
-              className={`sw-item${realIdx === idx ? " sw-sel" : ""}${nearDist === 1 ? " sw-near" : ""}`}
+              key={`${i}-${v}`}
+              className={`sw-item${dist === 0 ? " sw-sel" : ""}${dist === 1 ? " sw-near" : ""}`}
               style={{ height: WHEEL_H }}
             >
-              {String(v).padStart(2, "0")}
+              {String(items[v]).padStart(2, "0")}
             </div>
           );
         })}
-        <div style={{ height: pad, flex: "none" }} />
       </div>
       <div className="sw-band" />
     </div>

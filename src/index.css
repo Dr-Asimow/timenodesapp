@@ -2699,22 +2699,16 @@ body {
   position: relative;
   width: 80px;
   overflow: hidden;
-}
-.sw-scroll {
-  width: 100%;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  display: flex;
-  flex-direction: column;
   cursor: grab;
   user-select: none;
   touch-action: none;
 }
-.sw-scroll::-webkit-scrollbar { display: none; }
+.sw-wrap:active { cursor: grabbing; }
+.sw-list {
+  display: flex;
+  flex-direction: column;
+}
 .sw-item {
-  scroll-snap-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2723,7 +2717,7 @@ body {
   font-size: 18px;
   color: var(--muted);
   opacity: 0.3;
-  transition: color 0.12s, font-size 0.12s, opacity 0.12s;
+  transition: color 0.15s, font-size 0.15s, opacity 0.15s;
   user-select: none;
 }
 .sw-item.sw-near {
