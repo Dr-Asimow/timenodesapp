@@ -119,6 +119,26 @@
   --lvl-5: #93ad00;
 }
 
+[data-theme="minima"] {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --panel-2: #f0f1f4;
+  --border: #e8eaef;
+  --text: #1e2a38;
+  --muted: #8a919c;
+  --accent: #2db866;
+  --accent-fg: #ffffff;
+  --danger: #e5484d;
+  --row-hl: rgba(45, 184, 102, 0.08);
+  --lw-bg: #eef0f3;
+  --lvl-0: #f0f1f4;
+  --lvl-1: #d4f0df;
+  --lvl-2: #8edaaa;
+  --lvl-3: #4cc07a;
+  --lvl-4: #2db866;
+  --lvl-5: #1a9950;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1531,9 +1551,86 @@ body {
   border: 1px solid var(--border);
   font-size: 12px;
   flex-shrink: 0;
+  margin-bottom: 8px;
 }
 .snav-coin .coin-ic { font-size: 12px; }
 .snav-coin .coin-val { font-size: 12px; }
+
+/* --- Dock (dikey magnification) ---------------------------------------- */
+.dock-v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.dock-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  outline: none;
+  transition: color 0.13s, background 0.13s;
+  flex-shrink: 0;
+}
+.dock-item:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+[data-theme="sand"] .dock-item:hover,
+[data-theme="lime"] .dock-item:hover,
+[data-theme="minima"] .dock-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.dock-item.dock-active {
+  background: var(--panel-2);
+  color: var(--accent);
+}
+[data-theme="minima"] .dock-item.dock-active {
+  background: rgba(45, 184, 102, 0.10);
+}
+.dock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dock-item.dock-profile {
+  border-radius: 50%;
+}
+.dock-item.dock-profile .dock-icon {
+  width: 78%;
+  height: 78%;
+}
+.dock-item.dock-profile .snav-avatar {
+  width: 100%;
+  height: 100%;
+}
+.dock-label {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  margin-left: 4px;
+}
+[data-theme="minima"] .dock-label {
+  background: var(--panel);
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+}
 
 /* --- Hafta görünümü: timer panel + grid + sağ panel ----------------- */
 .week-layout {
@@ -3288,6 +3385,20 @@ body {
   .snav-btn.active {
     box-shadow: inset 0 2px 0 var(--accent); /* vurgu çizgisi üst kenarda */
   }
+  .dock-v {
+    flex-direction: row;
+    gap: 0;
+    justify-content: space-around;
+    flex: 1;
+  }
+  .dock-item.dock-active {
+    box-shadow: inset 0 2px 0 var(--accent);
+    border-radius: 0;
+    background: transparent;
+  }
+  .dock-label {
+    display: none;
+  }
 
   /* Müzik oynatıcı alt tab bar'ın üstüne taşınır */
   .music-player.floating,
@@ -3757,6 +3868,46 @@ tr.drag-over th {
 .cell:hover {
   transform: translateY(-1px);
   border-color: var(--muted);
+}
+.cell.lvl-1:hover,
+.cell.lvl-2:hover,
+.cell.lvl-3:hover,
+.cell.lvl-4:hover,
+.cell.lvl-5:hover {
+  animation: cell-bounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: none;
+}
+.cell.lvl-1.jelly,
+.cell.lvl-2.jelly,
+.cell.lvl-3.jelly,
+.cell.lvl-4.jelly,
+.cell.lvl-5.jelly {
+  animation: cell-settle 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes cell-bounce {
+  0%   { transform: scale(1) rotate(0deg); }
+  18%  { transform: scale(1.16) rotate(-2.5deg); }
+  36%  { transform: scale(0.94) rotate(2deg); }
+  54%  { transform: scale(1.08) rotate(-1.2deg); }
+  72%  { transform: scale(0.98) rotate(0.8deg); }
+  86%  { transform: scale(1.03) rotate(-0.3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes cell-settle {
+  0%   { transform: scale(1.06) rotate(-1deg); }
+  30%  { transform: scale(0.96) rotate(0.8deg); }
+  60%  { transform: scale(1.02) rotate(-0.3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell.lvl-1:hover,
+  .cell.lvl-2:hover,
+  .cell.lvl-3:hover,
+  .cell.lvl-4:hover,
+  .cell.lvl-5:hover {
+    animation: none;
+    transform: translateY(-1px);
+  }
 }
 .cell.sel {
   box-shadow: 0 0 0 2px var(--accent);
@@ -5528,6 +5679,675 @@ tr.drag-over th {
 }
 [data-theme="sand"] body {
   font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ===== Samsung Health teması — kapsamlı görsel dönüşüm =============== */
+
+[data-theme="minima"] body {
+  font-family: -apple-system, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+}
+
+/* --- Topbar ------------------------------------------------------------ */
+[data-theme="minima"] .topbar {
+  background: var(--bg);
+  border-bottom: none;
+}
+
+/* --- Sidebar ----------------------------------------------------------- */
+[data-theme="minima"] .side-nav {
+  background: var(--bg);
+  border-right: none;
+}
+[data-theme="minima"] .snav-btn:hover {
+  background: rgba(45, 184, 102, 0.08);
+  color: var(--text);
+}
+[data-theme="minima"] .snav-btn.active {
+  background: rgba(45, 184, 102, 0.10);
+  color: var(--accent);
+  box-shadow: none;
+  border-radius: 14px;
+}
+[data-theme="minima"] .snav-coin {
+  background: rgba(45, 184, 102, 0.08);
+  border: none;
+}
+[data-theme="minima"] .snav-sep {
+  background: transparent;
+}
+
+/* --- Genel kartlar: containerless -------------------------------------- */
+[data-theme="minima"] .side-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+[data-theme="minima"] .account-box {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .stat-card {
+  background: var(--panel);
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .uid-copy {
+  background: var(--panel);
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .uid-copy:hover:not(:disabled) {
+  box-shadow: 0 2px 8px rgba(45, 184, 102, 0.12);
+}
+[data-theme="minima"] .badge-section {
+  background: var(--panel);
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .day-detail {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+[data-theme="minima"] .wk-tile {
+  background: var(--panel);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .wk-tile:hover {
+  box-shadow: 0 2px 10px rgba(45, 184, 102, 0.12);
+  border-color: transparent;
+}
+[data-theme="minima"] .wk-tile.current {
+  background: rgba(45, 184, 102, 0.06);
+  border: none;
+  box-shadow: 0 1px 6px rgba(45, 184, 102, 0.12);
+}
+
+/* --- Timer panel ------------------------------------------------------- */
+[data-theme="minima"] .timer-panel {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+[data-theme="minima"] .tp-settings-popup {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+[data-theme="minima"] .tp-settings-btn:hover {
+  background: rgba(45, 184, 102, 0.08);
+}
+[data-theme="minima"] .tp-paused-item {
+  background: var(--bg);
+  border: none;
+  border-radius: 12px;
+}
+[data-theme="minima"] .goal-popup {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .goal-popup-item {
+  background: var(--bg);
+  border: none;
+  border-radius: 12px;
+}
+[data-theme="minima"] .goal-popup-item.sel {
+  background: rgba(45, 184, 102, 0.08);
+}
+
+/* --- Sağ panel (hedef / hatırlat / todo) ------------------------------- */
+[data-theme="minima"] .right-tabs-card {
+  border-radius: 20px;
+}
+[data-theme="minima"] .rtab-btn:hover {
+  background: rgba(45, 184, 102, 0.06);
+}
+[data-theme="minima"] .rtab-item {
+  background: var(--bg);
+  border-radius: 12px;
+}
+[data-theme="minima"] .rtab-check {
+  border-radius: 50%;
+  border-color: var(--muted);
+  background: var(--panel);
+}
+[data-theme="minima"] .rtab-agenda-btn {
+  border: 1px dashed #d0d4dc;
+  border-radius: 12px;
+}
+
+/* --- Grid hücreleri ---------------------------------------------------- */
+[data-theme="minima"] .cell {
+  border-radius: 8px;
+  border: none;
+  color: var(--text);
+}
+[data-theme="minima"] .cell:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: transparent;
+}
+[data-theme="minima"] .cell.sel {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+[data-theme="minima"] .cell-val {
+  mix-blend-mode: normal;
+  color: var(--text);
+}
+[data-theme="minima"] .cell.lvl-4 .cell-val,
+[data-theme="minima"] .cell.lvl-5 .cell-val {
+  color: #fff;
+}
+[data-theme="minima"] .cell.lvl-1 {
+  background: linear-gradient(135deg, #e0f5e8 0%, #c8ecd5 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(45, 140, 80, 0.08);
+}
+[data-theme="minima"] .cell.lvl-2 {
+  background: linear-gradient(135deg, #a8e4be 0%, #78d49a 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(30, 120, 60, 0.12);
+}
+[data-theme="minima"] .cell.lvl-3 {
+  background: linear-gradient(135deg, #5cc882 0%, #3cb86e 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 3px rgba(20, 90, 45, 0.15);
+}
+[data-theme="minima"] .cell.lvl-4 {
+  background: linear-gradient(135deg, #38b86a 0%, #22a254 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.18), inset 0 -2px 3px rgba(10, 70, 35, 0.20);
+}
+[data-theme="minima"] .cell.lvl-5 {
+  background: linear-gradient(135deg, #22a254 0%, #148a40 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15), inset 0 -2px 4px rgba(5, 60, 28, 0.25);
+}
+[data-theme="minima"] .cell-td.today-col::before {
+  border-color: rgba(45, 184, 102, 0.35);
+}
+[data-theme="minima"] .today-dot {
+  box-shadow: 0 0 4px rgba(45, 184, 102, 0.4);
+}
+
+/* --- Popover / Modal --------------------------------------------------- */
+[data-theme="minima"] .popover {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .modal {
+  background: var(--panel);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .modal-overlay {
+  background: rgba(30, 42, 56, 0.35);
+  backdrop-filter: blur(6px);
+}
+[data-theme="minima"] .badge-popup-overlay {
+  background: rgba(30, 42, 56, 0.35);
+  backdrop-filter: blur(6px);
+}
+[data-theme="minima"] .badge-popup {
+  background: var(--panel);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .day-popup {
+  background: var(--panel);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .reminder-popup {
+  border-radius: 24px;
+}
+[data-theme="minima"] .heat-tip {
+  background: var(--panel);
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+}
+
+/* --- Butonlar ---------------------------------------------------------- */
+[data-theme="minima"] .primary-btn {
+  border-radius: 12px;
+  font-weight: 700;
+}
+[data-theme="minima"] .primary-btn:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 2px 10px rgba(45, 184, 102, 0.20);
+}
+[data-theme="minima"] .ghost-btn {
+  border-color: #d0d4dc;
+  border-radius: 12px;
+}
+[data-theme="minima"] .ghost-btn:hover {
+  border-color: #b0b6c0;
+  background: rgba(0, 0, 0, 0.02);
+}
+[data-theme="minima"] .start-btn {
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(45, 184, 102, 0.18);
+}
+[data-theme="minima"] .danger-btn {
+  border-radius: 12px;
+}
+[data-theme="minima"] .back-btn {
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(45, 184, 102, 0.15);
+}
+
+/* --- Inputlar ---------------------------------------------------------- */
+[data-theme="minima"] .login-card input,
+[data-theme="minima"] .add-habit input,
+[data-theme="minima"] .cell-modal input:not([type="range"]),
+[data-theme="minima"] .habit-modal-input,
+[data-theme="minima"] .rp-input,
+[data-theme="minima"] .rp-textarea,
+[data-theme="minima"] .note-area,
+[data-theme="minima"] .rtab-input,
+[data-theme="minima"] .tp-habit-select,
+[data-theme="minima"] .tp-goal-select,
+[data-theme="minima"] .yt-input,
+[data-theme="minima"] .side-music-link-row input {
+  background: var(--bg);
+  border: 1px solid #dfe2e8;
+  border-radius: 12px;
+}
+[data-theme="minima"] .login-card input:focus,
+[data-theme="minima"] .add-habit input:focus,
+[data-theme="minima"] .cell-modal input:not([type="range"]):focus,
+[data-theme="minima"] .habit-modal-input:focus,
+[data-theme="minima"] .rp-input:focus,
+[data-theme="minima"] .rp-textarea:focus,
+[data-theme="minima"] .note-area:focus,
+[data-theme="minima"] .rtab-input:focus,
+[data-theme="minima"] .tp-habit-select:focus,
+[data-theme="minima"] .yt-input:focus,
+[data-theme="minima"] .side-music-link-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45, 184, 102, 0.10);
+}
+[data-theme="minima"] .account-box input {
+  border: 1px solid #dfe2e8;
+  border-radius: 12px;
+}
+[data-theme="minima"] .account-box input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45, 184, 102, 0.10);
+}
+
+/* --- Login ------------------------------------------------------------- */
+[data-theme="minima"] .login-card {
+  background: var(--panel);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+[data-theme="minima"] .google-btn {
+  background: var(--panel);
+  border: 1px solid #dfe2e8;
+  border-radius: 12px;
+}
+[data-theme="minima"] .google-btn:hover {
+  background: var(--bg);
+}
+
+/* --- Mode toggle (Pomodoro / Serbest) ---------------------------------- */
+[data-theme="minima"] .mode-toggle {
+  background: var(--bg);
+  border: none;
+  border-radius: 14px;
+}
+[data-theme="minima"] .mode-toggle button {
+  border-radius: 12px;
+}
+[data-theme="minima"] .mode-toggle button.on {
+  background: var(--panel);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* --- Ambient / Müzik --------------------------------------------------- */
+[data-theme="minima"] .ambient-btn {
+  background: var(--bg);
+  border: none;
+  border-radius: 14px;
+}
+[data-theme="minima"] .ambient-btn:hover {
+  background: rgba(45, 184, 102, 0.06);
+}
+[data-theme="minima"] .ambient-btn.on {
+  background: rgba(45, 184, 102, 0.08);
+  border: none;
+}
+[data-theme="minima"] .loop-btn {
+  border: 1px solid #dfe2e8;
+  border-radius: 12px;
+}
+[data-theme="minima"] .yt-thumb {
+  border: none;
+  border-radius: 10px;
+}
+[data-theme="minima"] .yt-controls button {
+  border: 1px solid #dfe2e8;
+  border-radius: 8px;
+}
+[data-theme="minima"] .side-music-thumb-box {
+  border: none;
+  border-radius: 10px;
+}
+
+/* --- Yüzen müzik + ambient --------------------------------------------- */
+[data-theme="minima"] .ambient-fab {
+  border: none;
+  background: var(--panel);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+}
+[data-theme="minima"] .ambient-floating {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+[data-theme="minima"] .music-player.floating {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Delta picker ------------------------------------------------------ */
+[data-theme="minima"] .delta-picker {
+  background: var(--panel);
+  border: 1px solid #dfe2e8;
+  border-radius: 16px;
+}
+[data-theme="minima"] .delta-center-band {
+  border-color: rgba(45, 184, 102, 0.30);
+}
+[data-theme="minima"] .delta-btn {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(45, 184, 102, 0.15);
+}
+
+/* --- Heatmap ----------------------------------------------------------- */
+[data-theme="minima"] .heat-cell {
+  border-radius: 4px;
+}
+[data-theme="minima"] .heat-cell.lvl-1 {
+  background: linear-gradient(135deg, #e0f5e8, #c8ecd5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(45, 140, 80, 0.08);
+}
+[data-theme="minima"] .heat-cell.lvl-2 {
+  background: linear-gradient(135deg, #a8e4be, #78d49a);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), inset 0 -1px 1px rgba(30, 120, 60, 0.10);
+}
+[data-theme="minima"] .heat-cell.lvl-3 {
+  background: linear-gradient(135deg, #5cc882, #3cb86e);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), inset 0 -1px 2px rgba(20, 90, 45, 0.12);
+}
+[data-theme="minima"] .heat-cell.lvl-4 {
+  background: linear-gradient(135deg, #38b86a, #22a254);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 2px rgba(10, 70, 35, 0.18);
+}
+[data-theme="minima"] .heat-cell.lvl-5 {
+  background: linear-gradient(135deg, #22a254, #148a40);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12), inset 0 -1px 2px rgba(5, 60, 28, 0.22);
+}
+[data-theme="minima"] .heat-cell:hover {
+  outline-color: var(--accent);
+}
+
+/* --- Timer bar (üstteki canlı sayaç) ----------------------------------- */
+[data-theme="minima"] .timer-bar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="minima"] .timer-bar.paused {
+  background: var(--bg);
+}
+[data-theme="minima"] .timer-bar.running {
+  border-bottom-color: rgba(45, 184, 102, 0.3);
+}
+[data-theme="minima"] .timer-bar.ringing {
+  background: rgba(229, 72, 77, 0.05);
+}
+
+/* --- Cycles / slider kontrolleri --------------------------------------- */
+[data-theme="minima"] .cycles-ctrl button {
+  background: var(--panel);
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+}
+[data-theme="minima"] .slider-row input[type="range"] {
+  background: #e4e7ec;
+  border-radius: 999px;
+}
+[data-theme="minima"] .vol-range {
+  background: #e4e7ec;
+}
+
+/* --- Break menü -------------------------------------------------------- */
+[data-theme="minima"] .break-menu {
+  background: var(--panel);
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .break-menu button {
+  background: var(--bg);
+  border: none;
+  border-radius: 10px;
+}
+
+/* --- Viewing banner ---------------------------------------------------- */
+[data-theme="minima"] .viewing-banner {
+  background: rgba(45, 184, 102, 0.06);
+  border: 1px solid rgba(45, 184, 102, 0.2);
+  border-radius: 14px;
+}
+
+/* --- Add habit --------------------------------------------------------- */
+[data-theme="minima"] .add-habit-btn {
+  border: 1px dashed #d0d4dc;
+  border-radius: 12px;
+}
+[data-theme="minima"] .add-habit-btn:hover {
+  background: rgba(45, 184, 102, 0.04);
+}
+
+/* --- Banner hata ------------------------------------------------------- */
+[data-theme="minima"] .banner-err {
+  background: rgba(229, 72, 77, 0.06);
+  border-bottom: none;
+}
+
+/* --- Profil msg -------------------------------------------------------- */
+[data-theme="minima"] .profile-msg {
+  background: rgba(45, 184, 102, 0.06);
+  border: 1px solid rgba(45, 184, 102, 0.2);
+  border-radius: 14px;
+}
+
+/* --- Tema picker (profil) ---------------------------------------------- */
+[data-theme="minima"] .theme-swatch {
+  border-radius: 14px;
+}
+
+/* --- Editrow ----------------------------------------------------------- */
+[data-theme="minima"] .editrow button {
+  border-radius: 12px;
+}
+
+/* --- Popover içindekiler ----------------------------------------------- */
+[data-theme="minima"] .popover-row button {
+  background: var(--bg);
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+}
+[data-theme="minima"] .timer-start-btn {
+  background: rgba(45, 184, 102, 0.06);
+  border: 1px solid rgba(45, 184, 102, 0.25);
+  border-radius: 10px;
+}
+[data-theme="minima"] .timer-start-btn:hover:not(:disabled) {
+  background: rgba(45, 184, 102, 0.12);
+}
+
+/* --- DS items (gün detayı listelemesi) --------------------------------- */
+[data-theme="minima"] .ds-item {
+  background: var(--panel);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+[data-theme="minima"] .ds-item.habit {
+  border-left: 3px solid var(--accent);
+}
+
+/* --- Day popup bars ---------------------------------------------------- */
+[data-theme="minima"] .day-popup-bar-track {
+  background: #e8eaef;
+  border-radius: 999px;
+}
+[data-theme="minima"] .day-popup-bar-fill {
+  background: linear-gradient(180deg, #4cc87a 0%, #2aaa58 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+[data-theme="minima"] .pop-timer-fill {
+  background: linear-gradient(180deg, #4cc87a 0%, #2aaa58 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+[data-theme="minima"] .tp-paused-fill {
+  background: linear-gradient(90deg, #4cc87a 0%, #2aaa58 100%);
+}
+[data-theme="minima"] .heat-tip-fill {
+  background: linear-gradient(90deg, #4cc87a 0%, #2aaa58 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* --- Scrollbar --------------------------------------------------------- */
+[data-theme="minima"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme="minima"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="minima"] ::-webkit-scrollbar-thumb {
+  background: #d0d4dc;
+  border-radius: 999px;
+}
+[data-theme="minima"] ::-webkit-scrollbar-thumb:hover {
+  background: #b0b6c0;
+}
+
+/* --- Partikül efekti --------------------------------------------------- */
+[data-theme="minima"] .particle {
+  background: radial-gradient(circle, #d1f7e0 0%, var(--accent) 55%, #1a9950 100%);
+  box-shadow: 0 0 10px 2px rgba(45, 184, 102, 0.7),
+    0 0 18px 4px rgba(45, 184, 102, 0.3);
+}
+
+/* --- Week nav butonları ------------------------------------------------ */
+[data-theme="minima"] .week-nav-btn {
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+}
+[data-theme="minima"] .week-nav-today {
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+}
+
+/* --- Note sayfası ------------------------------------------------------ */
+[data-theme="minima"] .note-overlay {
+  background: rgba(30, 42, 56, 0.30);
+}
+[data-theme="minima"] .note-modal {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10);
+}
+[data-theme="minima"] .note-topbar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+/* --- Menu kartları (home) ---------------------------------------------- */
+[data-theme="minima"] .menu-card {
+  background: var(--panel);
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .menu-card:hover {
+  box-shadow: 0 2px 12px rgba(45, 184, 102, 0.12);
+  border-color: transparent;
+}
+[data-theme="minima"] .menu-card.primary {
+  background: rgba(45, 184, 102, 0.05);
+  border: none;
+}
+[data-theme="minima"] .menu-title {
+  color: var(--text);
+}
+[data-theme="minima"] .home-hero {
+  background: var(--panel);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+[data-theme="minima"] .home-hero.as-button:hover {
+  border-color: transparent;
+  box-shadow: 0 2px 12px rgba(45, 184, 102, 0.12);
+}
+[data-theme="minima"] .lvl-badge {
+  background: rgba(45, 184, 102, 0.06);
+  border: none;
+}
+
+/* --- Coin rengi -------------------------------------------------------- */
+[data-theme="minima"] .coin-val {
+  color: #e8a800;
+}
+
+/* --- Ghost accent override --------------------------------------------- */
+[data-theme="minima"] .ghost-btn.accent {
+  border-color: rgba(45, 184, 102, 0.4);
+}
+[data-theme="minima"] .ghost-btn.accent:hover {
+  background: rgba(45, 184, 102, 0.06);
+}
+
+/* --- Mobil alt bar ------------------------------------------------------ */
+@media (max-width: 900px) {
+  [data-theme="minima"] .side-nav {
+    border-top: none;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="minima"] .snav-btn.active {
+    box-shadow: none;
+    background: rgba(45, 184, 102, 0.10);
+  }
 }
 
 /* ====================================================================

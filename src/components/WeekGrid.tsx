@@ -389,6 +389,13 @@ export function WeekGrid({
                         onClick={() =>
                           setSel(isSel ? null : { habitId: h.id, day })
                         }
+                        onMouseLeave={(e) => {
+                          if (lvl > 0) {
+                            const el = e.currentTarget;
+                            el.classList.add("jelly");
+                            el.addEventListener("animationend", () => el.classList.remove("jelly"), { once: true });
+                          }
+                        }}
                       >
                         {timer ? (
                           <span

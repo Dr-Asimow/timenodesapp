@@ -69,6 +69,8 @@ import { RightPanel } from "./components/RightPanel";
 import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
 import { MusicFloating } from "./components/AmbientPlayer";
+import Dock from "./components/Dock";
+import type { DockItemData } from "./components/Dock";
 import {
   playAmbient,
   stopAmbient,
@@ -1119,71 +1121,32 @@ export function App() {
         />
       ) : null}
 
-      {/* ── Sağ kenar navigasyon ──────────────────────── */}
+      {/* ── Sol kenar navigasyon (Dock) ──────────────────────── */}
       <nav className="side-nav">
-        <button
-          className={`snav-btn snav-profile${view === "profile" ? " active" : ""}`}
-          onClick={() => navigate("profile")}
-          title="Profil"
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} className="snav-avatar" alt="" />
-          ) : (
-            <div className="snav-avatar snav-initials">
-              {initials(displayName || username)}
-            </div>
-          )}
-        </button>
-
         <div className="snav-coin" title="Time coin">
           <span className="coin-ic">🪙</span>
           <span className="coin-val">{coins}</span>
         </div>
 
-        <div className="snav-sep" />
-
-        <button
-          className={`snav-btn${view === "week" ? " active" : ""}`}
-          onClick={() => navigate("week")}
-          title="Dashboard"
-        >
-          <WeekIcon />
-        </button>
-        <button
-          className={`snav-btn${view === "weeks" ? " active" : ""}`}
-          onClick={() => navigate("weeks")}
-          title="Takvim"
-        >
-          <WeeksIcon />
-        </button>
-        <button
-          className={`snav-btn${view === "stats" ? " active" : ""}`}
-          onClick={() => navigate("stats")}
-          title="İstatistikler"
-        >
-          <StatsIcon />
-        </button>
-        <button
-          className={`snav-btn${view === "friends" ? " active" : ""}`}
-          onClick={() => navigate("friends")}
-          title="Arkadaşlar"
-        >
-          <FriendsIcon />
-        </button>
-        <button
-          className={`snav-btn${view === "shop" ? " active" : ""}`}
-          onClick={() => navigate("shop")}
-          title="Shop"
-        >
-          <ShopIcon />
-        </button>
-        <button
-          className={`snav-btn${view === "profile" ? " active" : ""}`}
-          onClick={() => navigate("profile")}
-          title="Ayarlar"
-        >
-          <SettingsIcon />
-        </button>
+        <Dock
+          items={[
+            {
+              icon: avatarUrl
+                ? <img src={avatarUrl} className="snav-avatar" alt="" />
+                : <div className="snav-avatar snav-initials">{initials(displayName || username)}</div>,
+              label: "Profil",
+              onClick: () => navigate("profile"),
+              active: view === "profile",
+              className: "dock-profile",
+            },
+            { icon: <WeekIcon />, label: "Dashboard", onClick: () => navigate("week"), active: view === "week" },
+            { icon: <WeeksIcon />, label: "Takvim", onClick: () => navigate("weeks"), active: view === "weeks" },
+            { icon: <StatsIcon />, label: "İstatistikler", onClick: () => navigate("stats"), active: view === "stats" },
+            { icon: <FriendsIcon />, label: "Arkadaşlar", onClick: () => navigate("friends"), active: view === "friends" },
+            { icon: <ShopIcon />, label: "Shop", onClick: () => navigate("shop"), active: view === "shop" },
+            { icon: <SettingsIcon />, label: "Ayarlar", onClick: () => navigate("profile"), active: view === "profile" },
+          ] satisfies DockItemData[]}
+        />
       </nav>
 
       {noteTarget && userId ? (
