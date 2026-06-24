@@ -12,6 +12,7 @@ import {
   formatClock,
 } from "../timer";
 import { playAlarm } from "../alarm";
+import { IconBell } from "./Icons";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const BREAK_OPTIONS = [5, 10, 15]; // dakika
@@ -212,7 +213,7 @@ function TimerCard({
       {ringing ? (
         <div className="alarm-area">
           <span className="alarm-text">
-            🔔 {onBreak ? "Mola süresi doldu!" : "Hedef süre doldu!"}
+            <IconBell size={14} /> {onBreak ? "Mola süresi doldu!" : "Hedef süre doldu!"}
           </span>
           <button className="alarm-btn" onClick={onAck}>
             Alarmı durdur ve devam et

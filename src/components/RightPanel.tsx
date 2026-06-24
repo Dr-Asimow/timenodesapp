@@ -4,6 +4,7 @@ import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
 import { GoalPopup } from "./GoalPopup";
 import { MusicCard } from "./AmbientPlayer";
+import { IconTarget, IconBell, IconCheck } from "./Icons";
 
 type RightTab = "hedef" | "hatirlatici" | "todo";
 
@@ -68,21 +69,21 @@ export function RightPanel({
             onClick={() => setTab("hedef")}
             title="Hedefler"
           >
-            🎯 Hedef
+            <IconTarget size={14} /> Hedef
           </button>
           <button
             className={`rtab-btn${tab === "hatirlatici" ? " active" : ""}`}
             onClick={() => setTab("hatirlatici")}
             title="Hatırlatıcılar"
           >
-            🔔 Hatırlat
+            <IconBell size={14} /> Hatırlat
           </button>
           <button
             className={`rtab-btn${tab === "todo" ? " active" : ""}`}
             onClick={() => setTab("todo")}
             title="Yapılacaklar"
           >
-            ✓ To-do
+            <IconCheck size={14} /> To-do
           </button>
         </div>
 

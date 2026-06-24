@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IconCopy, IconCheck } from "./Icons";
 
 // Arkadaşlar sayfası — KABUK (Faz 0). Henüz backend yok: UID ile ekleme,
 // arkadaş listesi ve gelen istekler statik/placeholder olarak gösterilir.
@@ -42,7 +43,7 @@ export function FriendsPage({ friendCode }: { friendCode: string | null }) {
           title="UID'ni kopyala (arkadaşların seni eklemesi için)"
         >
           <span className="uid-copy-code">UID&nbsp;{friendCode ?? "········"}</span>
-          <span className="uid-copy-ic">{copied ? "✓ kopyalandı" : "⧉"}</span>
+          <span className="uid-copy-ic">{copied ? <><IconCheck size={12} /> kopyalandı</> : <IconCopy size={12} />}</span>
         </button>
       </div>
 

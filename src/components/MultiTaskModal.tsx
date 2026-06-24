@@ -1,4 +1,5 @@
 import type { ActiveTimer, WeekData } from "../types";
+import { IconWarning } from "./Icons";
 
 export function MultiTaskModal({
   runningTimers,
@@ -22,7 +23,7 @@ export function MultiTaskModal({
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-icon">⚠️</div>
+        <div className="modal-icon"><IconWarning size={28} /></div>
         <h2 className="modal-title">Multi-task yapmaya çalışıyorsun</h2>
         <p className="modal-body muted">
           Şu an{" "}

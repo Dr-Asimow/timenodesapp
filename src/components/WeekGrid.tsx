@@ -5,6 +5,7 @@ import { isRunning } from "../timer";
 import { heatLevel, formatMinutes } from "../heat";
 import { loadDayTodos } from "../db";
 import { CellPopover } from "./CellPopover";
+import { IconNote, IconCheck, IconCircle } from "./Icons";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const FULL_DAY_LABELS = [
@@ -368,7 +369,7 @@ export function WeekGrid({
                   const isFuture = dayTypeOf(day) === "future";
                   const hasNote = !!week.notes[h.id]?.[day];
                   const tip = hasNote
-                    ? `📝 ${week.notes[h.id]![day]}`
+                    ? `✎ ${week.notes[h.id]![day]}`
                     : isFuture
                     ? "Gelecek gün — plan/not bırakabilirsin"
                     : mins > 0 || brk > 0
@@ -526,7 +527,7 @@ export function WeekGrid({
                     className={`ds-item todo ${it.done ? "done" : ""}`}
                     key={it.id}
                   >
-                    <span className="ds-check">{it.done ? "✓" : "○"}</span>
+                    <span className="ds-check">{it.done ? <IconCheck size={13} /> : <IconCircle size={13} />}</span>
                     <span className="ds-item-text">{it.title}</span>
                   </div>
                 ))}

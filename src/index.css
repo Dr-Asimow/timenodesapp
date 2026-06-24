@@ -277,6 +277,9 @@ body {
 }
 .coin-ic {
   font-size: 14px;
+  color: #f0c000;
+  display: flex;
+  align-items: center;
 }
 .coin-val {
   font-weight: 700;
@@ -5718,7 +5721,7 @@ tr.drag-over th {
 
 /* --- Genel kartlar: containerless -------------------------------------- */
 [data-theme="minima"] .side-card {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(245, 247, 250, 0.55));
+  background: linear-gradient(to top, rgba(235, 238, 244, 0.65), rgba(255, 255, 255, 0.80));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -5753,7 +5756,7 @@ tr.drag-over th {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 [data-theme="minima"] .day-detail {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(245, 247, 250, 0.55));
+  background: linear-gradient(to top, rgba(235, 238, 244, 0.65), rgba(255, 255, 255, 0.80));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -5778,7 +5781,7 @@ tr.drag-over th {
 
 /* --- Timer panel ------------------------------------------------------- */
 [data-theme="minima"] .timer-panel {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(245, 247, 250, 0.55));
+  background: linear-gradient(to top, rgba(235, 238, 244, 0.65), rgba(255, 255, 255, 0.80));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);

@@ -3,6 +3,7 @@ import { formatMinutes } from "../heat";
 import { signOut, updateDisplayName, updatePassword, uploadAvatar, deleteOwnAccount } from "../db";
 import { BadgeCard, dateDMY } from "./BadgeCard";
 import { BadgeRow } from "./Badges";
+import { IconCopy, IconCheck } from "./Icons";
 import { THEMES, getSavedTheme, applyTheme, type ThemeId } from "../theme";
 
 const MONTHS_TR = [
@@ -145,7 +146,7 @@ export function Profile({
             <span className="uid-copy-code">
               UID&nbsp;{friendCode ?? "········"}
             </span>
-            <span className="uid-copy-ic">{copied ? "✓ kopyalandı" : "⧉"}</span>
+            <span className="uid-copy-ic">{copied ? <><IconCheck size={12} /> kopyalandı</> : <IconCopy size={12} />}</span>
           </button>
 
           <BadgeRow />

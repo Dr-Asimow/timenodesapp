@@ -3,6 +3,7 @@ import type { ActiveTimer, Topic, TimerConfig, TimerSettings, WeekData } from ".
 import { isRunning, workTotalMs, phaseProgress } from "../timer";
 import { LiveTimer, TimerSetup, type PopTimerActions } from "./TimerWidget";
 import { TopicPopup } from "./TopicPopup";
+import { IconTarget } from "./Icons";
 import { loadTopics, addTopic, deleteTopic } from "../db";
 
 function GearIcon() {
@@ -175,7 +176,7 @@ export function TimerPanel({
           <>
             <div className="tp-habit-label muted small">
               {activeHabitName}
-              {runningTimer.topicName ? ` · 🎯 ${runningTimer.topicName}` : ""}
+              {runningTimer.topicName ? <> · <IconTarget size={12} /> {runningTimer.topicName}</> : ""}
             </div>
             <LiveTimer timer={runningTimer} actions={buildActions(runningTimer)} />
           </>
@@ -295,7 +296,7 @@ function PausedItem({
         <button className="tp-cancel-btn" onClick={onCancel}>×</button>
       </div>
       {timer.topicName ? (
-        <div className="tp-paused-topic muted small">🎯 {timer.topicName}</div>
+        <div className="tp-paused-topic muted small"><IconTarget size={12} /> {timer.topicName}</div>
       ) : null}
       {progress != null ? (
         <div className="tp-paused-bar">

@@ -4,6 +4,7 @@ import { formatMinutes, heatLevel } from "../heat";
 import { loadDayTodos } from "../db";
 import type { HabitSeries } from "../db";
 import type { Reminder, TodoItem } from "../types";
+import { IconCheck, IconCircle, IconBell } from "./Icons";
 
 const MONTHS = [
   "Oca", "Şub", "Mar", "Nis", "May", "Haz",
@@ -305,7 +306,7 @@ function DayPopup({
             <ul className="day-popup-list">
               {todos.map((t) => (
                 <li className={`day-popup-item${t.done ? " done" : ""}`} key={t.id}>
-                  <span className="day-popup-check">{t.done ? "✓" : "○"}</span>
+                  <span className="day-popup-check">{t.done ? <IconCheck size={13} /> : <IconCircle size={13} />}</span>
                   {t.title}
                 </li>
               ))}
@@ -320,7 +321,7 @@ function DayPopup({
             <ul className="day-popup-list">
               {reminders.map((r) => (
                 <li className="day-popup-item" key={r.id}>
-                  🔔 {r.title}
+                  <IconBell size={13} /> {r.title}
                 </li>
               ))}
             </ul>

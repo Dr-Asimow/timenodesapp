@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signIn, signUp, signInWithGoogle } from "../db";
 import { Brand } from "./Brand";
+import { IconMail } from "./Icons";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -59,7 +60,7 @@ export function Login() {
       <div className="login-wrap">
         <div className="login-card login-sent">
           <Brand />
-          <div className="login-sent-icon">✉️</div>
+          <div className="login-sent-icon"><IconMail size={32} /></div>
           <h2 className="login-sent-title">E-postanı kontrol et</h2>
           <p className="login-sent-text">
             <strong>{sentTo}</strong> adresine bir onay bağlantısı gönderdik.

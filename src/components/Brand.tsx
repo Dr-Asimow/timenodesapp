@@ -1,3 +1,4 @@
+import { IconWarning } from "./Icons";
 // timenodes. marka işareti — sondaki nokta yazılıyormuş gibi fade in/out yapar
 export function Brand({
   size = "lg",
@@ -26,7 +27,7 @@ export function LoadingScreen({ error }: { error?: string | null } = {}) {
       <Brand />
       {error ? (
         <div className="loading-error">
-          <p>⚠️ {error}</p>
+          <p><IconWarning size={14} /> {error}</p>
           <button className="primary-btn small" onClick={() => window.location.reload()}>
             Tekrar dene
           </button>

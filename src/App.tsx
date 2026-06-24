@@ -70,6 +70,7 @@ import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
 import { MusicFloating } from "./components/AmbientPlayer";
 import Dock from "./components/Dock";
+import { IconCoin, IconWarning, IconBell } from "./components/Icons";
 import type { DockItemData } from "./components/Dock";
 import {
   playAmbient,
@@ -919,7 +920,7 @@ export function App() {
         <div className="topbar-right" />
       </header>
 
-      {err ? <div className="banner-err">⚠️ {err}</div> : null}
+      {err ? <div className="banner-err"><IconWarning size={14} /> {err}</div> : null}
 
       <main className="main">
         <div
@@ -1124,7 +1125,7 @@ export function App() {
       {/* ── Sol kenar navigasyon (Dock) ──────────────────────── */}
       <nav className="side-nav">
         <div className="snav-coin" title="Time coin">
-          <span className="coin-ic">🪙</span>
+          <span className="coin-ic"><IconCoin size={14} /></span>
           <span className="coin-val">{coins}</span>
         </div>
 
@@ -1186,7 +1187,7 @@ export function App() {
       {firedReminder ? (
         <div className="modal-overlay" onClick={() => setFiredReminder(null)}>
           <div className="modal reminder-alert" onClick={(e) => e.stopPropagation()}>
-            <div className="ra-icon">🔔</div>
+            <div className="ra-icon"><IconBell size={28} /></div>
             <h3 className="ra-title">{firedReminder.title}</h3>
             {firedReminder.description ? (
               <p className="ra-desc">{firedReminder.description}</p>
