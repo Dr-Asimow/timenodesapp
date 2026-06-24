@@ -1,4 +1,4 @@
-export type ThemeId = "github" | "midnight" | "amber" | "slate" | "sand" | "lime" | "minima";
+export type ThemeId = "github" | "midnight" | "amber" | "slate" | "sand" | "lime" | "minima" | "minima-dark";
 
 export interface ThemeInfo {
   id: ThemeId;
@@ -66,13 +66,21 @@ export const THEMES: ThemeInfo[] = [
     border: "#ebedf0",
     accent: "#2db866",
   },
+  {
+    id: "minima-dark",
+    label: "Minima Dark",
+    bg: "#111215",
+    panel: "#1a1b1f",
+    border: "#2a2b30",
+    accent: "#2db866",
+  },
 ];
 
 const KEY = "tn-theme";
 
 export function getSavedTheme(): ThemeId {
   const v = localStorage.getItem(KEY);
-  if (v === "midnight" || v === "amber" || v === "slate" || v === "sand" || v === "lime" || v === "minima") return v;
+  if (v === "midnight" || v === "amber" || v === "slate" || v === "sand" || v === "lime" || v === "minima" || v === "minima-dark") return v;
   return "github";
 }
 
