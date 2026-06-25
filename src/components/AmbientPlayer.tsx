@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SOUNDS, type AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
+import { MusicSearch } from "./MusicSearch";
 
 // Ortak ambient ses butonları. compact=true daha küçük yerleşim.
 export function AmbientButtons({
@@ -64,6 +65,46 @@ export function VolumeSlider({
   );
 }
 
+// Playlist şarkı listesi
+function PlaylistView({ yt }: { yt: YouTubeApi }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (yt.playlistItems.length === 0) return null;
+
+  return (
+    <div className="pl-view">
+      <button
+        className="pl-toggle"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="pl-toggle-ic">{expanded ? "▾" : "▸"}</span>
+        <span className="pl-toggle-lbl">
+          Playlist ({yt.playlistItems.length} şarkı)
+        </span>
+      </button>
+      {expanded && (
+        <div className="pl-list">
+          {yt.playlistItems.map((item, i) => {
+            const active = i === yt.playlistIndex;
+            return (
+              <button
+                key={`${item.videoId}-${i}`}
+                className={`pl-item${active ? " active" : ""}`}
+                onClick={() => yt.playAt(i)}
+                title={item.title}
+              >
+                <span className="pl-item-no">{i + 1}</span>
+                <span className="pl-item-title">{item.title}</span>
+                {active && <span className="pl-item-eq">♪</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // YouTube kontrolleri (link kutusu + oynatıcı). Hem kart hem floating kullanır.
 function YouTubeControls({ yt }: { yt: YouTubeApi }) {
   const [input, setInput] = useState("");
@@ -79,8 +120,15 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
     }
   }
 
+  const hasPlaylist = yt.playlistItems.length > 0;
+
   return (
     <div className="yt-block">
+      {/* Arama (API key varsa) */}
+      {yt.hasApiKey && (
+        <MusicSearch apiKey={yt.apiKey} onPlay={yt.playVideo} />
+      )}
+
       {yt.hasTarget ? (
         <div className="yt-now">
           <div className="yt-thumb">
@@ -95,17 +143,40 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
             {yt.title || "Yükleniyor…"}
           </div>
           <div className="yt-controls">
+            {hasPlaylist && (
+              <button
+                className={`yt-ctrl-btn${yt.shuffled ? " on" : ""}`}
+                onClick={yt.toggleShuffle}
+                title={yt.shuffled ? "Karışık: Açık" : "Karışık: Kapalı"}
+              >
+                🔀
+              </button>
+            )}
             <button onClick={yt.prev} title="Önceki">⏮</button>
             <button className="yt-play" onClick={yt.toggle} title="Oynat/Duraklat">
               {yt.playing ? "❚❚" : "▶"}
             </button>
             <button onClick={yt.next} title="Sonraki">⏭</button>
+            {hasPlaylist && (
+              <button
+                className={`yt-ctrl-btn${yt.repeat === "all" ? " on" : ""}`}
+                onClick={yt.toggleRepeat}
+                title={yt.repeat === "all" ? "Tekrar: Açık" : "Tekrar: Kapalı"}
+              >
+                🔁
+              </button>
+            )}
           </div>
         </div>
       ) : null}
+
       {yt.hasTarget ? (
         <VolumeSlider value={yt.volume} onChange={yt.setVolume} icon="🎵" />
       ) : null}
+
+      {/* Playlist şarkı listesi */}
+      <PlaylistView yt={yt} />
+
       <form className="yt-form" onSubmit={submit}>
         <input
           className={`yt-input${err ? " err" : ""}`}

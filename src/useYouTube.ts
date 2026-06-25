@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { getPlaylistItems, type YTPlaylistItem } from "./youtubeApi";
 
 // YouTube IFrame Player API — basit tipler
 declare global {
@@ -9,6 +10,7 @@ declare global {
 }
 
 const LS_KEY = "timenodes.music.last";
+const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string | undefined;
 
 export type YTTarget = { videoId?: string; listId?: string };
 
@@ -32,6 +34,18 @@ export function parseYouTube(input: string): YTTarget | null {
   }
   return null;
 }
+
+// Fisher-Yates shuffle (orijinali değiştirmez)
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export type RepeatMode = "off" | "all";
 
 // YouTube oynatıcı motoru. iframe'i `holderRef`'e bağlar; bu div App kökünde
 // SABİT mount edilmeli (taşınırsa/unmount olursa iframe yeniden yüklenir → ses
@@ -62,6 +76,21 @@ export function useYouTube() {
   volumeRef.current = volume;
   targetRef.current = target;
 
+  // Playlist state
+  const [playlistItems, setPlaylistItems] = useState<YTPlaylistItem[]>([]);
+  const [playlistIndex, setPlaylistIndex] = useState(-1);
+  const [shuffled, setShuffled] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatMode>("off");
+  const [playOrder, setPlayOrder] = useState<number[]>([]);
+  const playOrderRef = useRef<number[]>([]);
+  const playlistIndexRef = useRef(-1);
+  const repeatRef = useRef<RepeatMode>("off");
+  playOrderRef.current = playOrder;
+  playlistIndexRef.current = playlistIndex;
+  repeatRef.current = repeat;
+  const playlistItemsRef = useRef<YTPlaylistItem[]>([]);
+  playlistItemsRef.current = playlistItems;
+
   // YouTube IFrame API script'ini bir kez yükle
   useEffect(() => {
     if (window.YT && window.YT.Player) {
@@ -88,6 +117,30 @@ export function useYouTube() {
     return () => clearInterval(id);
   }, []);
 
+  // Playlist bitti → sonraki şarkı veya repeat
+  const handleVideoEnd = useCallback(() => {
+    const order = playOrderRef.current;
+    const idx = playlistIndexRef.current;
+    if (order.length === 0) return;
+
+    const posInOrder = order.indexOf(idx);
+    if (posInOrder < order.length - 1) {
+      const nextIdx = order[posInOrder + 1];
+      setPlaylistIndex(nextIdx);
+      const item = playlistItemsRef.current[nextIdx];
+      if (item && playerRef.current) {
+        playerRef.current.loadVideoById(item.videoId);
+      }
+    } else if (repeatRef.current === "all") {
+      const firstIdx = order[0];
+      setPlaylistIndex(firstIdx);
+      const item = playlistItemsRef.current[firstIdx];
+      if (item && playerRef.current) {
+        playerRef.current.loadVideoById(item.videoId);
+      }
+    }
+  }, []);
+
   // API hazır olunca player'ı oluştur (bir kez). iframe'i React'in DIŞINDA,
   // doğrudan body'ye eklenen gizli bir host'ta tutarız; böylece App yeniden
   // render olunca React iframe'i kaldırmaz → müzik kesilmez.
@@ -111,10 +164,23 @@ export function useYouTube() {
         },
         onStateChange: (e: any) => {
           setPlaying(e.data === window.YT.PlayerState.PLAYING);
+          if (e.data === window.YT.PlayerState.ENDED) {
+            handleVideoEnd();
+          }
           try {
             const d = playerRef.current?.getVideoData?.();
             if (d?.title) setTitle(d.title);
-            if (d?.video_id) setVideoId(d.video_id);
+            if (d?.video_id) {
+              setVideoId(d.video_id);
+              // Playlist'te çalan videoyu bul ve index'i güncelle
+              const items = playlistItemsRef.current;
+              if (items.length > 0) {
+                const foundIdx = items.findIndex(
+                  (it) => it.videoId === d.video_id
+                );
+                if (foundIdx >= 0) setPlaylistIndex(foundIdx);
+              }
+            }
           } catch {
             /* yoksay */
           }
@@ -134,8 +200,23 @@ export function useYouTube() {
     if (!p) return;
     if (t.listId) {
       p.loadPlaylist({ list: t.listId, listType: "playlist" });
+      // API key varsa playlist detaylarını çek
+      if (API_KEY) {
+        getPlaylistItems(t.listId, API_KEY).then((items) => {
+          setPlaylistItems(items);
+          const order = items.map((_, i) => i);
+          setPlayOrder(order);
+          setPlaylistIndex(0);
+          setShuffled(false);
+        }).catch(() => {
+          /* API hatası, playlist detaysız devam */
+        });
+      }
     } else if (t.videoId) {
       p.loadVideoById(t.videoId);
+      setPlaylistItems([]);
+      setPlayOrder([]);
+      setPlaylistIndex(-1);
     }
   }
 
@@ -150,13 +231,91 @@ export function useYouTube() {
     return true;
   }
 
+  // Tek video çal (arama sonucundan)
+  function playVideo(vid: string) {
+    const p = playerRef.current;
+    if (!p) return;
+    setTarget({ videoId: vid });
+    setVideoId(vid);
+    localStorage.setItem(LS_KEY, JSON.stringify({ videoId: vid }));
+    p.loadVideoById(vid);
+    setPlaylistItems([]);
+    setPlayOrder([]);
+    setPlaylistIndex(-1);
+  }
+
   const toggle = () => {
     const p = playerRef.current;
     if (!p) return;
     playing ? p.pauseVideo() : p.playVideo();
   };
-  const next = () => playerRef.current?.nextVideo?.();
-  const prev = () => playerRef.current?.previousVideo?.();
+
+  const next = () => {
+    const order = playOrderRef.current;
+    const idx = playlistIndexRef.current;
+    if (order.length > 0) {
+      const posInOrder = order.indexOf(idx);
+      const nextPos = posInOrder < order.length - 1 ? posInOrder + 1 : 0;
+      const nextIdx = order[nextPos];
+      setPlaylistIndex(nextIdx);
+      const item = playlistItemsRef.current[nextIdx];
+      if (item && playerRef.current) {
+        playerRef.current.loadVideoById(item.videoId);
+      }
+    } else {
+      playerRef.current?.nextVideo?.();
+    }
+  };
+
+  const prev = () => {
+    const order = playOrderRef.current;
+    const idx = playlistIndexRef.current;
+    if (order.length > 0) {
+      const posInOrder = order.indexOf(idx);
+      const prevPos = posInOrder > 0 ? posInOrder - 1 : order.length - 1;
+      const prevIdx = order[prevPos];
+      setPlaylistIndex(prevIdx);
+      const item = playlistItemsRef.current[prevIdx];
+      if (item && playerRef.current) {
+        playerRef.current.loadVideoById(item.videoId);
+      }
+    } else {
+      playerRef.current?.previousVideo?.();
+    }
+  };
+
+  // Playlist'te belirli şarkıyı çal
+  const playAt = (index: number) => {
+    const item = playlistItemsRef.current[index];
+    if (!item || !playerRef.current) return;
+    setPlaylistIndex(index);
+    playerRef.current.loadVideoById(item.videoId);
+  };
+
+  const toggleShuffle = () => {
+    const items = playlistItemsRef.current;
+    if (items.length === 0) return;
+    if (shuffled) {
+      const order = items.map((_, i) => i);
+      setPlayOrder(order);
+      setShuffled(false);
+    } else {
+      const currentIdx = playlistIndexRef.current;
+      const rest = items
+        .map((_, i) => i)
+        .filter((i) => i !== currentIdx);
+      const shuffledRest = shuffleArray(rest);
+      setPlayOrder(
+        currentIdx >= 0 ? [currentIdx, ...shuffledRest] : shuffledRest
+      );
+      setShuffled(true);
+    }
+  };
+
+  const toggleRepeat = () => {
+    setRepeat((r) => (r === "off" ? "all" : "off"));
+  };
+
   const setVolume = (v: number) => {
     const cl = Math.max(0, Math.min(1, v));
     setVol(cl);
@@ -171,10 +330,22 @@ export function useYouTube() {
     videoId,
     volume,
     loadInput,
+    playVideo,
     toggle,
     next,
     prev,
     setVolume,
+    // Playlist
+    playlistItems,
+    playlistIndex,
+    shuffled,
+    repeat,
+    playAt,
+    toggleShuffle,
+    toggleRepeat,
+    // API key varlığı
+    hasApiKey: !!API_KEY,
+    apiKey: API_KEY ?? "",
   };
 }
 
