@@ -81,3 +81,12 @@ export function IconCircle({ size = 16 }: { size?: number }) {
     </svg>
   );
 }
+
+export function IconPencil({ size = 16 }: { size?: number }) {
+  return (
+    <svg {...S} width={size} height={size}>
+      <path d="M11 2.5 13.5 5 5 13.5 2 14l0.5-3L11 2.5Z" />
+      <path d="M9.5 4 12 6.5" />
+    </svg>
+  );
+}

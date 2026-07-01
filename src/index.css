@@ -5516,6 +5516,146 @@ tr.drag-over th {
   color: rgba(255, 255, 255, 0.18);
 }
 
+/* --- Etkinlik detay sayfası (HabitDetailPage) ------------------------- */
+.hp-notes-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hp-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.hp-title {
+  margin-bottom: 0;
+}
+.hp-title-edit-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  border-radius: 6px;
+}
+.hp-title-edit-btn:hover {
+  color: var(--accent);
+  background: var(--panel-2);
+}
+.hp-title-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  padding: 4px 10px;
+}
+.hp-title-input:focus {
+  outline: none;
+}
+.hp-created {
+  margin: 8px 0 20px;
+}
+.hp-stats {
+  margin-bottom: 28px;
+}
+.hp-section {
+  margin-bottom: 28px;
+}
+.hp-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.hp-stats .stat-card,
+.hp-health,
+.hp-topic-card {
+  border: 1px solid color-mix(in srgb, var(--border) 45%, var(--muted));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.hp-health {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.hp-health-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.hp-health-label {
+  font-weight: 800;
+  font-size: 15px;
+}
+.hp-health-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--muted) 30%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--border) 45%, var(--muted));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+.hp-health-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.2s;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+.hp-health-note {
+  margin: 8px 0 0;
+}
+.hp-topic-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hp-topic-card {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.hp-topic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hp-topic-name {
+  font-weight: 700;
+}
+.hp-topic-created {
+  margin: 2px 0 8px;
+}
+.hp-topic-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+}
+.hp-topic-stats em {
+  font-style: normal;
+  color: var(--muted);
+  margin-left: 3px;
+}
+.hp-topic-add {
+  max-width: 320px;
+}
+
 /* Toolbar */
 .note-toolbar {
   position: sticky;

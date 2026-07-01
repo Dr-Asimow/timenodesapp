@@ -4,6 +4,7 @@ import {
   isoWeekNumber,
   toISODate,
   addDays,
+  mondayOf,
   emptyMinutes,
   emptyNotes,
 } from "./storage";
@@ -434,6 +435,15 @@ export async function updateHabitColor(id: string, color: string | null) {
   if (error) throw error;
 }
 
+// Bir alışkanlığın adını güncelle
+export async function updateHabitName(id: string, name: string) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ name })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 // Bir hücreyi (habit + tarih) yazar: çalışma, mola ve aktivite notu.
 export async function upsertEntry(
   habitId: string,
@@ -828,4 +838,132 @@ export async function loadYearTopicStats(
       .sort((a, b) => b.min - a.min);
   }
   return out;
+}
+
+// ── Etkinlik detay sayfası (ad, kategoriler, zaman istatistikleri, sağlık) ──
+
+export type HabitTimeStats = {
+  allTime: number;
+  year: number;
+  month: number;
+  week: number;
+};
+
+export type HabitTopicDetail = Topic & HabitTimeStats & { createdAt: string };
+
+// Etkinlik sağlığı: son (en fazla 7, etkinlik daha yeniyse ömrü kadar) gün
+// içinde kaç farklı günde çalışma yapıldığına dayanır. Az da olsa her gün
+// çalışılan etkinlikler yüksek, günlerdir dokunulmayanlar düşük skor alır.
+export type HabitHealth = {
+  score: number; // 0..100
+  activeDays: number;
+  windowDays: number;
+  lastActiveDay: string | null;
+};
+
+export type HabitDetail = {
+  createdAt: string; // YYYY-MM-DD
+  stats: HabitTimeStats;
+  health: HabitHealth;
+  topics: HabitTopicDetail[];
+};
+
+function sumTimeStats(
+  rows: { day: string; work_min: number }[],
+  yearStart: string,
+  monthStart: string,
+  weekStart: string
+): HabitTimeStats {
+  let allTime = 0,
+    year = 0,
+    month = 0,
+    week = 0;
+  for (const r of rows) {
+    allTime += r.work_min;
+    if (r.day >= yearStart) year += r.work_min;
+    if (r.day >= monthStart) month += r.work_min;
+    if (r.day >= weekStart) week += r.work_min;
+  }
+  return { allTime, year, month, week };
+}
+
+export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
+  const today = new Date();
+  const todayISO = toISODate(today);
+  const yearStart = `${today.getFullYear()}-01-01`;
+  const monthStart = toISODate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const weekStart = toISODate(mondayOf(today));
+
+  const [habitRes, entriesRes, topicsRes, topicMinRes] = await Promise.all([
+    supabase.from("habits").select("created_at").eq("id", habitId).single(),
+    supabase.from("entries").select("day,work_min").eq("habit_id", habitId),
+    supabase
+      .from("topics")
+      .select("id,habit_id,name,created_at")
+      .eq("habit_id", habitId)
+      .order("created_at", { ascending: true }),
+    supabase.from("topic_minutes").select("topic_id,day,work_min").eq("habit_id", habitId),
+  ]);
+  if (habitRes.error) throw habitRes.error;
+  if (entriesRes.error) throw entriesRes.error;
+  if (topicsRes.error) throw topicsRes.error;
+  if (topicMinRes.error) throw topicMinRes.error;
+
+  const entryRows = (entriesRes.data as { day: string; work_min: number }[]) ?? [];
+  const stats = sumTimeStats(entryRows, yearStart, monthStart, weekStart);
+
+  const createdAt = (
+    (habitRes.data as { created_at: string } | null)?.created_at ?? today.toISOString()
+  ).slice(0, 10);
+  const daysSinceCreated = Math.max(
+    0,
+    Math.round(
+      (new Date(todayISO + "T00:00:00").getTime() -
+        new Date(createdAt + "T00:00:00").getTime()) /
+        86400000
+    )
+  );
+  const windowDays = Math.min(7, daysSinceCreated + 1);
+  const windowStart = toISODate(addDays(todayISO, -(windowDays - 1)));
+  const activeDaySet = new Set(
+    entryRows
+      .filter((r) => r.day >= windowStart && r.day <= todayISO && r.work_min > 0)
+      .map((r) => r.day)
+  );
+  const lastActiveDay =
+    entryRows
+      .filter((r) => r.work_min > 0)
+      .map((r) => r.day)
+      .sort()
+      .pop() ?? null;
+  const score = windowDays > 0 ? Math.round((activeDaySet.size / windowDays) * 100) : 0;
+
+  const topicMinRows =
+    (topicMinRes.data as { topic_id: string; day: string; work_min: number }[]) ?? [];
+  const byTopic = new Map<string, { day: string; work_min: number }[]>();
+  for (const r of topicMinRows) {
+    let arr = byTopic.get(r.topic_id);
+    if (!arr) {
+      arr = [];
+      byTopic.set(r.topic_id, arr);
+    }
+    arr.push(r);
+  }
+
+  const topics: HabitTopicDetail[] = (
+    (topicsRes.data as { id: string; habit_id: string; name: string; created_at: string }[]) ?? []
+  ).map((t) => ({
+    id: t.id,
+    habitId: t.habit_id,
+    name: t.name,
+    createdAt: t.created_at.slice(0, 10),
+    ...sumTimeStats(byTopic.get(t.id) ?? [], yearStart, monthStart, weekStart),
+  }));
+
+  return {
+    createdAt,
+    stats,
+    health: { score, activeDays: activeDaySet.size, windowDays, lastActiveDay },
+    topics,
+  };
 }

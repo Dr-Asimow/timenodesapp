@@ -9,6 +9,7 @@ import {
   deleteHabit,
   updateHabitPosition,
   updateHabitColor,
+  updateHabitName,
   upsertEntry,
   setDayNote,
   loadDayTodos,
@@ -17,8 +18,6 @@ import {
   deleteTodo,
   loadDayPage,
   saveDayPage,
-  loadHabitPage,
-  saveHabitPage,
   loadGoals,
   addGoal,
   deleteGoal,
@@ -68,6 +67,7 @@ import { TimerPanel } from "./components/TimerPanel";
 import { RightPanel } from "./components/RightPanel";
 import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
+import { HabitDetailPage } from "./components/HabitDetailPage";
 import { MusicFloating } from "./components/AmbientPlayer";
 import Dock from "./components/Dock";
 import { IconCoin, IconWarning, IconBell } from "./components/Icons";
@@ -583,6 +583,21 @@ export function App() {
     chain.current = chain.current
       .then(() => updateHabitColor(habitId, color))
       .catch((e) => setErr(e instanceof Error ? e.message : "Renk kaydedilemedi"));
+  }
+
+  // Bir etkinliğin adını güncelle: yerel state (güncel + görüntülenen hafta) + DB
+  function setHabitName(habitId: string, name: string) {
+    const n = name.trim();
+    if (!n) return;
+    const update = (w: WeekData): WeekData => ({
+      ...w,
+      habits: w.habits.map((h) => (h.id === habitId ? { ...h, name: n } : h)),
+    });
+    setWeek((w) => (w ? update(w) : w));
+    setViewedWeek((w) => (w ? update(w) : w));
+    chain.current = chain.current
+      .then(() => updateHabitName(habitId, n))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Ad kaydedilemedi"));
   }
 
   // Hafta değişimini uygula: doğru haftayı (güncel ya da görüntülenen) güncelle + DB'ye yaz
@@ -1168,15 +1183,13 @@ export function App() {
       ) : null}
 
       {habitPageTarget && userId ? (
-        <NotePage
-          pageKey={`habit:${habitPageTarget.habitId}`}
-          headerLabel={`${habitPageTarget.name} · Etkinlik`}
-          userId={userId}
-          load={() => loadHabitPage(habitPageTarget.habitId)}
-          save={(title, content) =>
-            saveHabitPage(userId, habitPageTarget.habitId, title, content)
+        <HabitDetailPage
+          habitId={habitPageTarget.habitId}
+          name={
+            shownWeek.habits.find((h) => h.id === habitPageTarget.habitId)
+              ?.name ?? habitPageTarget.name
           }
-          onClose={() => setHabitPageTarget(null)}
+          userId={userId}
           accentColor={
             shownWeek.habits.find((h) => h.id === habitPageTarget.habitId)
               ?.color ?? null
@@ -1184,6 +1197,8 @@ export function App() {
           onAccentColorChange={(color) =>
             setHabitColor(habitPageTarget.habitId, color)
           }
+          onRename={(name) => setHabitName(habitPageTarget.habitId, name)}
+          onClose={() => setHabitPageTarget(null)}
         />
       ) : null}
 

@@ -152,7 +152,7 @@ const HABIT_COLORS = [
   { name: "Gri", v: "#9aa4b2" },
 ];
 
-function HabitColorPicker({
+export function HabitColorPicker({
   color,
   onChange,
 }: {
