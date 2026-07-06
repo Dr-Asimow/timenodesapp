@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ActiveTimer, Habit, TimerConfig, TodoItem, WeekData } from "../types";
+import type { ActiveTimer, Habit, TodoItem, WeekData } from "../types";
 import { addDays, newId, toISODate } from "../storage";
 import { isRunning } from "../timer";
 import { heatLevel, formatMinutes } from "../heat";
@@ -19,24 +19,11 @@ const MONTHS_TR = [
 type CellSel = { habitId: string; day: number } | null;
 export type DayType = "today" | "past" | "future";
 
-// Belirli bir sayaca (ActiveTimer) etki eden kontrol fonksiyonları
-export type TimerActions = {
-  pause: (t: ActiveTimer) => void;
-  resume: (t: ActiveTimer) => void;
-  startBreak: (t: ActiveTimer, breakTargetMs: number | null) => void;
-  resumeWork: (t: ActiveTimer) => void;
-  ack: (t: ActiveTimer) => void;
-  finish: (t: ActiveTimer) => void;
-  cancel: (t: ActiveTimer) => void;
-};
-
 export function WeekGrid({
   week,
   userId,
   activeTimers,
   onChange,
-  onStartTimer,
-  timerActions,
   sel,
   onSelChange,
   onOpenDayNote,
@@ -51,8 +38,6 @@ export function WeekGrid({
   userId: string;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
-  onStartTimer: (habitId: string, day: number, config: TimerConfig) => void;
-  timerActions: TimerActions;
   // Seçili hücre (popover) App'te tutulur ki DayPanel de açabilsin
   sel: CellSel;
   onSelChange: (sel: CellSel) => void;
@@ -534,14 +519,6 @@ export function WeekGrid({
         ? (() => {
             const h = week.habits.find((x) => x.id === sel.habitId);
             if (!h) return null;
-            const timer = activeTimers.find(
-              (t) => t.habitId === sel.habitId && t.day === sel.day
-            );
-            const timingState = timer
-              ? isRunning(timer)
-                ? "running"
-                : "pausedt"
-              : "";
             return (
               <CellPopover
                 dayType={dayTypeOf(sel.day)}
@@ -554,27 +531,6 @@ export function WeekGrid({
                 habitName={h.name}
                 workMin={week.minutes[h.id]?.[sel.day] ?? 0}
                 note={week.notes[h.id]?.[sel.day] ?? null}
-                timerState={timingState}
-                timer={timer ?? null}
-                timerActions={
-                  timer
-                    ? {
-                        pause: () => timerActions.pause(timer),
-                        resume: () => timerActions.resume(timer),
-                        startBreak: (target) =>
-                          timerActions.startBreak(timer, target),
-                        resumeWork: () => timerActions.resumeWork(timer),
-                        ack: () => timerActions.ack(timer),
-                        finish: () => timerActions.finish(timer),
-                        cancel: () => timerActions.cancel(timer),
-                      }
-                    : null
-                }
-                onStartTimer={(config) => {
-                  // Başlat'ta popup'ı KAPATMA: kullanıcı çalışan sayacı
-                  // büyükçe popup içinde görsün, geri dönüp dönmemek ona kalsın.
-                  onStartTimer(h.id, sel.day, config);
-                }}
                 onAddWork={(d) => addMinutes(h.id, sel.day, d)}
                 onSetNote={(note) => setActivityNote(h.id, sel.day, note)}
                 onClose={() => setSel(null)}

@@ -753,7 +753,7 @@ export async function deleteTopic(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// Bir konunun belirli gündeki süresine dakika ekler (yoksa oluşturur)
+// Bir konunun belirli gündeki süresine dakika ekler/çıkarır (yoksa oluşturur, 0'ın altına düşmez)
 export async function addTopicMinutes(
   userId: string,
   habitId: string,
@@ -761,7 +761,7 @@ export async function addTopicMinutes(
   topicId: string,
   deltaMin: number
 ): Promise<void> {
-  if (deltaMin <= 0) return;
+  if (deltaMin === 0) return;
   const { data } = await supabase
     .from("topic_minutes")
     .select("id,work_min")
@@ -772,9 +772,9 @@ export async function addTopicMinutes(
     const row = data as { id: string; work_min: number };
     await supabase
       .from("topic_minutes")
-      .update({ work_min: row.work_min + deltaMin })
+      .update({ work_min: Math.max(0, row.work_min + deltaMin) })
       .eq("id", row.id);
-  } else {
+  } else if (deltaMin > 0) {
     await supabase.from("topic_minutes").insert({
       user_id: userId,
       habit_id: habitId,

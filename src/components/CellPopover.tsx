@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import type { ActiveTimer, TimerConfig, Topic, TopicMinute } from "../types";
+import type { Topic, TopicMinute } from "../types";
 import type { DayType } from "./WeekGrid";
-import { LiveTimer, TimerSetup, DeltaPicker, type PopTimerActions } from "./TimerWidget";
-import { loadTopicMinutes, loadTopics, addTopic, deleteTopic } from "../db";
+import { DeltaPicker } from "./TimerWidget";
+import { loadTopicMinutes, loadTopics, addTopic, deleteTopic, addTopicMinutes } from "../db";
 import { formatMinutes } from "../heat";
 import { TopicPopup } from "./TopicPopup";
-
-export type { PopTimerActions };
 
 export function CellPopover({
   dayType,
@@ -17,10 +15,6 @@ export function CellPopover({
   habitName,
   workMin,
   note,
-  timerState,
-  timer,
-  timerActions,
-  onStartTimer,
   onAddWork,
   onSetNote,
   onClose,
@@ -33,17 +27,11 @@ export function CellPopover({
   habitName: string;
   workMin: number;
   note: string | null;
-  timerState: "" | "running" | "pausedt";
-  timer: ActiveTimer | null;
-  timerActions: PopTimerActions | null;
-  onStartTimer: (config: TimerConfig) => void;
   onAddWork: (deltaMin: number) => void;
   onSetNote: (note: string) => void;
   onClose: () => void;
 }) {
   const isFuture = dayType === "future";
-  const hasTimer = !!(timer && timerActions);
-  const canStart = dayType === "today" && !hasTimer;
 
   // Konu bazında süre kırılımı (Supabase'den)
   const [topicMins, setTopicMins] = useState<TopicMinute[]>([]);
@@ -61,20 +49,40 @@ export function CellPopover({
 
   const topicSum = topicMins.reduce((a, t) => a + t.min, 0);
   const untracked = Math.max(0, workMin - topicSum);
+  // Barlar toplam süreye göre ölçeklenir (kırılım toplamı aşarsa ona göre)
+  const barMax = Math.max(workMin, topicSum, 1);
 
-  // Timer başlatırken konu seçimi (sadece bugün + sayaç yokken)
+  // Süre ekleme/çıkarmanın hedefi olan konu seçimi
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [showTopicPopup, setShowTopicPopup] = useState(false);
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
+  const selectedTopicMin =
+    topicMins.find((t) => t.topicId === selectedTopicId)?.min ?? 0;
   useEffect(() => {
-    if (!canStart) return;
+    if (isFuture) return;
     let cancel = false;
     loadTopics(habitId)
       .then((t) => { if (!cancel) setTopics(t); })
       .catch(() => {});
     return () => { cancel = true; };
-  }, [habitId, canStart]);
+  }, [habitId, isFuture]);
+
+  // Konu seçiliyse süre o konudan (ve genel toplamdan) eklenir/çıkar
+  async function applyDelta(delta: number) {
+    let d = delta;
+    if (selectedTopic) {
+      // Konu 0'ın altına düşmesin: çıkarılacak miktarı konunun süresiyle sınırla
+      if (d < 0) d = -Math.min(-d, selectedTopicMin);
+      if (d === 0) return;
+      try {
+        await addTopicMinutes(userId, habitId, dayISO, selectedTopic.id, d);
+      } catch {
+        return; // konu yazılamadıysa genel toplamı da değiştirme
+      }
+    }
+    if (d !== 0) onAddWork(d);
+  }
 
   async function handleAddTopic(name: string) {
     if (!userId) return;
@@ -100,69 +108,67 @@ export function CellPopover({
           </button>
         </div>
 
-        {isFuture && !hasTimer ? (
+        {isFuture ? (
           <p className="future-note muted small">
             İleri tarih — burada zaman takibi yok, ama plan/aktivite notu
             bırakabilirsin.
           </p>
         ) : (
           <>
-            {hasTimer ? (
-              <>
-                <LiveTimer timer={timer!} actions={timerActions!} />
-                <div className="popover-divider" />
-              </>
-            ) : dayType === "today" ? (
-              <>
-                <div className="tp-goal-row">
-                  <span className="tp-settings-label muted small">Konu</span>
-                  <button
-                    type="button"
-                    className="tp-goal-select"
-                    onClick={() => setShowTopicPopup(true)}
-                  >
-                    <span className={selectedTopic ? "" : "muted"}>
-                      {selectedTopic ? selectedTopic.name : "Konusuz"}
-                    </span>
-                    <span className="tp-goal-caret">▾</span>
-                  </button>
-                </div>
-                <TimerSetup
-                  timerState={timerState}
-                  onStartTimer={(config) =>
-                    onStartTimer({
-                      ...config,
-                      topicId: selectedTopicId || null,
-                      topicName: selectedTopic ? selectedTopic.name : null,
-                    })
-                  }
-                />
-                <div className="popover-divider" />
-              </>
-            ) : null}
-            <div className="stat-edit-row">
+            <div className="cell-bigstat">
               <BigStat workMin={workMin} />
-              <DeltaPicker current={workMin} onApply={onAddWork} />
             </div>
-            {workMin > 0 && topicMins.length > 0 ? (
+            {topicMins.length > 0 ? (
               <div className="topic-breakdown">
                 <span className="popover-label">Konular</span>
                 <ul className="topic-list">
                   {topicMins.map((t) => (
                     <li className="topic-row" key={t.topicId}>
                       <span className="topic-name">{t.name}</span>
+                      <span className="topic-bar-track">
+                        <span
+                          className="topic-bar-fill"
+                          style={{ width: `${Math.min(100, (t.min / barMax) * 100)}%` }}
+                        />
+                      </span>
                       <span className="topic-val">{formatMinutes(t.min)}</span>
                     </li>
                   ))}
                   {untracked > 0 ? (
                     <li className="topic-row muted">
                       <span className="topic-name">Konusuz</span>
+                      <span className="topic-bar-track">
+                        <span
+                          className="topic-bar-fill"
+                          style={{ width: `${Math.min(100, (untracked / barMax) * 100)}%` }}
+                        />
+                      </span>
                       <span className="topic-val">{formatMinutes(untracked)}</span>
                     </li>
                   ) : null}
                 </ul>
               </div>
             ) : null}
+            <div className="popover-divider" />
+            <div className="tp-goal-row">
+              <span className="tp-settings-label muted small">Konu</span>
+              <button
+                type="button"
+                className="tp-goal-select"
+                onClick={() => setShowTopicPopup(true)}
+              >
+                <span className={selectedTopic ? "" : "muted"}>
+                  {selectedTopic ? selectedTopic.name : "Konusuz"}
+                </span>
+                <span className="tp-goal-caret">▾</span>
+              </button>
+            </div>
+            <div className="cell-delta">
+              <DeltaPicker
+                current={selectedTopic ? selectedTopicMin : workMin}
+                onApply={applyDelta}
+              />
+            </div>
             <div className="popover-divider" />
           </>
         )}

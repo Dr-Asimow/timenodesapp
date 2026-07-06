@@ -193,7 +193,8 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
   );
 }
 
-// Sağ paneldeki müzik kartı: üstte YouTube, altta kompakt ortam sesleri.
+// Sağ paneldeki müzik kartı: tek satırlık başlıktan açılır/kapanır.
+// Player App kökünde sabit olduğundan kart kapalıyken müzik çalmaya devam eder.
 export function MusicCard({
   yt,
   current,
@@ -209,20 +210,49 @@ export function MusicCard({
   onToggle: (id: AmbientId) => void;
   onVolume: (v: number) => void;
 }) {
+  const [open, setOpen] = useState<boolean>(
+    () => localStorage.getItem("tn.music-card-open") === "1"
+  );
+  const anyPlaying = yt.playing || playing;
+
+  function toggleOpen() {
+    setOpen((v) => {
+      localStorage.setItem("tn.music-card-open", v ? "0" : "1");
+      return !v;
+    });
+  }
+
   return (
     <div className="side-card side-music">
-      <div className="side-music-title">Müzik</div>
-      <YouTubeControls yt={yt} />
-      <div className="ambient-mini">
-        <div className="ambient-mini-head muted small">Ortam sesleri</div>
-        <AmbientButtons
-          current={current}
-          playing={playing}
-          compact
-          onToggle={onToggle}
-        />
-        <VolumeSlider value={volume} onChange={onVolume} icon="🔉" />
-      </div>
+      <button
+        type="button"
+        className="side-music-head"
+        onClick={toggleOpen}
+        title={open ? "Müzik kartını kapat" : "Müzik kartını aç"}
+      >
+        <span className="side-music-head-title">🎵 Müzik</span>
+        {!open && anyPlaying ? (
+          <span className="side-music-now">
+            ♪ {yt.playing ? yt.title || "çalıyor" : "ortam sesi"}
+          </span>
+        ) : null}
+        <span className="side-music-caret">{open ? "▾" : "▸"}</span>
+      </button>
+      {open ? (
+        <>
+          <YouTubeControls yt={yt} />
+          <div className="ambient-mini">
+            <div className="ambient-mini-head muted small">Ortam sesleri</div>
+            <AmbientButtons
+              current={current}
+              playing={playing}
+              compact
+              onToggle={onToggle}
+            />
+            <VolumeSlider value={volume} onChange={onVolume} icon="🔉" />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

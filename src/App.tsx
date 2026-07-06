@@ -951,23 +951,6 @@ export function App() {
                 userId={userId ?? ""}
                 activeTimers={viewingOther ? [] : timers}
                 onChange={applyWeek}
-                onStartTimer={requestStart}
-                timerActions={{
-                  pause: pauseTimer,
-                  resume: (t) =>
-                    requestStart(t.habitId, t.day, {
-                      workTargetMs: t.workTargetMs,
-                      plannedBreakMs: t.plannedBreakMs,
-                      cycles: t.cyclesTotal,
-                      topicId: t.topicId,
-                      topicName: t.topicName,
-                    }),
-                  startBreak: startBreak,
-                  resumeWork: resumeWork,
-                  ack: ackAlarm,
-                  finish: finishTimer,
-                  cancel: cancelTimer,
-                }}
                 sel={cellSel}
                 onSelChange={setCellSel}
                 onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
