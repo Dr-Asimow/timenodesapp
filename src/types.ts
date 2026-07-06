@@ -111,6 +111,13 @@ export type Reminder = {
   target_at: string; // ISO timestamp
 };
 
+// Favori müzik (music_favorites tablosu — tek YouTube videosu)
+export type MusicFavorite = {
+  id: string;
+  videoId: string;
+  title: string;
+};
+
 // Cihaz-yerel sayaç tercihleri (localStorage)
 export type TimerSettings = {
   alarmEnabled: boolean;

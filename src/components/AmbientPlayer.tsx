@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { SOUNDS, type AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
+import type { MusicFavoritesApi } from "../useMusicFavorites";
 import { MusicSearch } from "./MusicSearch";
+import { MusicFavoritesPopup } from "./MusicFavorites";
 import { Collapse } from "./Collapse";
 
 // Ortak ambient ses butonları. compact=true daha küçük yerleşim.
@@ -107,9 +109,11 @@ function PlaylistView({ yt }: { yt: YouTubeApi }) {
 }
 
 // YouTube kontrolleri (link kutusu + oynatıcı). Hem kart hem floating kullanır.
-function YouTubeControls({ yt }: { yt: YouTubeApi }) {
+// favs verilirse çalan şarkının yanında yıldız + Favoriler bölümü görünür.
+function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicFavoritesApi }) {
   const [input, setInput] = useState("");
   const [err, setErr] = useState(false);
+  const [showFavs, setShowFavs] = useState(false);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,6 +129,16 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
 
   return (
     <div className="yt-block">
+      {/* Favori müzik kütüphanesi */}
+      {favs ? (
+        <button className="fav-open-btn" onClick={() => setShowFavs(true)}>
+          <span className="fav-open-star">★</span> Favoriler
+          {favs.favorites.length > 0 ? (
+            <span className="fav-open-count">{favs.favorites.length}</span>
+          ) : null}
+        </button>
+      ) : null}
+
       {/* Arama (API key varsa) */}
       {yt.hasApiKey && (
         <MusicSearch apiKey={yt.apiKey} onPlay={yt.playVideo} />
@@ -143,6 +157,19 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
           <div className="yt-now-title" title={yt.title}>
             {yt.title || "Yükleniyor…"}
           </div>
+          {favs && yt.videoId ? (
+            <button
+              className={`yt-fav-star${favs.isFav(yt.videoId) ? " on" : ""}`}
+              onClick={() => favs.toggleFav(yt.videoId, yt.title)}
+              title={
+                favs.isFav(yt.videoId)
+                  ? "Favorilerden çıkar"
+                  : "Favorilere ekle (sadece bu şarkı)"
+              }
+            >
+              {favs.isFav(yt.videoId) ? "★" : "☆"}
+            </button>
+          ) : null}
           <div className="yt-controls">
             {hasPlaylist && (
               <button
@@ -190,6 +217,14 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
         />
         <button className="yt-add" type="submit" title="Yükle">+</button>
       </form>
+
+      {favs && showFavs ? (
+        <MusicFavoritesPopup
+          yt={yt}
+          favs={favs}
+          onClose={() => setShowFavs(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -198,6 +233,7 @@ function YouTubeControls({ yt }: { yt: YouTubeApi }) {
 // Player App kökünde sabit olduğundan kart kapalıyken müzik çalmaya devam eder.
 export function MusicCard({
   yt,
+  favs,
   current,
   playing,
   volume,
@@ -205,6 +241,7 @@ export function MusicCard({
   onVolume,
 }: {
   yt: YouTubeApi;
+  favs: MusicFavoritesApi;
   current: AmbientId | null;
   playing: boolean;
   volume: number;
@@ -241,7 +278,7 @@ export function MusicCard({
       </button>
       <Collapse open={open}>
         <div className="side-music-body">
-          <YouTubeControls yt={yt} />
+          <YouTubeControls yt={yt} favs={favs} />
           <div className="ambient-mini">
             <div className="ambient-mini-head muted small">Ortam sesleri</div>
             <AmbientButtons
@@ -261,6 +298,7 @@ export function MusicCard({
 // Diğer sayfalarda sağ-altta küçük kare; tıklayınca müzik + sesler açılır.
 export function MusicFloating({
   yt,
+  favs,
   current,
   playing,
   collapsed,
@@ -268,6 +306,7 @@ export function MusicFloating({
   onToggleCollapse,
 }: {
   yt: YouTubeApi;
+  favs: MusicFavoritesApi;
   current: AmbientId | null;
   playing: boolean;
   collapsed: boolean;
@@ -300,7 +339,7 @@ export function MusicFloating({
           —
         </button>
       </div>
-      <YouTubeControls yt={yt} />
+      <YouTubeControls yt={yt} favs={favs} />
       <AmbientButtons
         current={current}
         playing={playing}

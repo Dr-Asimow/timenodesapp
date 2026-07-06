@@ -69,6 +69,7 @@ import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
 import { HabitDetailPage } from "./components/HabitDetailPage";
 import { MusicFloating } from "./components/AmbientPlayer";
+import { useMusicFavorites } from "./useMusicFavorites";
 import Dock from "./components/Dock";
 import { IconCoin, IconWarning, IconBell } from "./components/Icons";
 import type { DockItemData } from "./components/Dock";
@@ -255,6 +256,8 @@ export function App() {
   const congratsSentRef = useRef(false);
 
   const userId = session?.user?.id ?? null;
+  // Favori müzik kütüphanesi (Supabase'e kaydedilir)
+  const musicFavs = useMusicFavorites(userId);
   const username =
     (session?.user?.user_metadata?.username as string) ??
     session?.user?.email?.split("@")[0] ??
@@ -1054,6 +1057,7 @@ export function App() {
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
                   yt={yt}
+                  favs={musicFavs}
                   ambientId={ambient.id}
                   ambientPlaying={ambient.playing}
                   ambientVol={ambientVol}
@@ -1116,6 +1120,7 @@ export function App() {
       {view !== "week" ? (
         <MusicFloating
           yt={yt}
+          favs={musicFavs}
           current={ambient.id}
           playing={ambient.playing}
           collapsed={ambientCollapsed}

@@ -231,6 +231,23 @@ export function useYouTube() {
     return true;
   }
 
+  // Özel bir listeyi (örn. favoriler) kuyruk olarak çal, startIndex'ten başla.
+  // Şarkı bitince liste içinden devam eder.
+  function playList(items: YTPlaylistItem[], startIndex = 0) {
+    const p = playerRef.current;
+    if (!p || items.length === 0) return;
+    const i = Math.max(0, Math.min(items.length - 1, startIndex));
+    setPlaylistItems(items);
+    setPlayOrder(items.map((_, k) => k));
+    setShuffled(false);
+    setPlaylistIndex(i);
+    const vid = items[i].videoId;
+    setTarget({ videoId: vid });
+    setVideoId(vid);
+    localStorage.setItem(LS_KEY, JSON.stringify({ videoId: vid }));
+    p.loadVideoById(vid);
+  }
+
   // Tek video çal (arama sonucundan)
   function playVideo(vid: string) {
     const p = playerRef.current;
@@ -331,6 +348,7 @@ export function useYouTube() {
     volume,
     loadInput,
     playVideo,
+    playList,
     toggle,
     next,
     prev,

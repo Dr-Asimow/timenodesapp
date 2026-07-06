@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { Goal, Reminder, TodoItem } from "../types";
 import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
+import type { MusicFavoritesApi } from "../useMusicFavorites";
 import { GoalPopup } from "./GoalPopup";
 import { MusicCard } from "./AmbientPlayer";
 import { Collapse } from "./Collapse";
@@ -35,6 +36,7 @@ export function RightPanel({
   onToggleTodo,
   onDeleteItem,
   yt,
+  favs,
   ambientId,
   ambientPlaying,
   ambientVol,
@@ -53,6 +55,7 @@ export function RightPanel({
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
   yt: YouTubeApi;
+  favs: MusicFavoritesApi;
   ambientId: AmbientId | null;
   ambientPlaying: boolean;
   ambientVol: number;
@@ -113,6 +116,7 @@ export function RightPanel({
       {/* Müzik player kartı */}
       <MusicCard
         yt={yt}
+        favs={favs}
         current={ambientId}
         playing={ambientPlaying}
         volume={ambientVol}

@@ -49,6 +49,19 @@ function cacheSet<T>(key: string, data: T) {
   }
 }
 
+// Video başlığını oEmbed ile çek (API key gerektirmez). Bulunamazsa null.
+export async function fetchVideoTitle(videoId: string): Promise<string | null> {
+  try {
+    const url = encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`);
+    const res = await fetch(`https://www.youtube.com/oembed?url=${url}&format=json`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return typeof json.title === "string" ? json.title : null;
+  } catch {
+    return null;
+  }
+}
+
 // --- API Fonksiyonları ---
 
 export async function searchVideos(

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Goal, Habit, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
+import type { Goal, Habit, MusicFavorite, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -716,6 +716,44 @@ export async function addReminder(
 
 export async function deleteReminder(id: string): Promise<void> {
   const { error } = await supabase.from("reminders").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Favori müzikler (music_favorites) ──────────────────────────────
+
+export async function loadMusicFavorites(userId: string): Promise<MusicFavorite[]> {
+  const { data, error } = await supabase
+    .from("music_favorites")
+    .select("id,video_id,title")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as { id: string; video_id: string; title: string }[]).map(
+    (r) => ({ id: r.id, videoId: r.video_id, title: r.title })
+  );
+}
+
+export async function addMusicFavorite(
+  userId: string,
+  videoId: string,
+  title: string
+): Promise<MusicFavorite> {
+  // Aynı video ikinci kez eklenirse üzerine yazılır (unique user_id+video_id)
+  const { data, error } = await supabase
+    .from("music_favorites")
+    .upsert(
+      { user_id: userId, video_id: videoId, title },
+      { onConflict: "user_id,video_id" }
+    )
+    .select("id,video_id,title")
+    .single();
+  if (error) throw error;
+  const r = data as { id: string; video_id: string; title: string };
+  return { id: r.id, videoId: r.video_id, title: r.title };
+}
+
+export async function deleteMusicFavorite(id: string): Promise<void> {
+  const { error } = await supabase.from("music_favorites").delete().eq("id", id);
   if (error) throw error;
 }
 

@@ -2073,6 +2073,141 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Çalan şarkının yanındaki favori yıldızı */
+.yt-fav-star {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.yt-fav-star:hover { color: var(--accent); }
+.yt-fav-star.on { color: var(--accent); }
+
+/* Favoriler bölümünü açan buton */
+.fav-open-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.fav-open-btn:hover { border-color: var(--accent); }
+.fav-open-star { color: var(--accent); }
+.fav-open-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* Favori müzikler popup'ı (geniş; .modal'ın 380px genişliğini ezer) */
+.modal.fav-popup {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 64px));
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.fav-add-row { display: flex; gap: 8px; margin-bottom: 4px; }
+.fav-add-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+}
+.fav-add-input:focus { outline: none; border-color: var(--accent); }
+.fav-add-input.err { border-color: #e5484d; }
+.fav-add-btn {
+  flex: none;
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: 9px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fav-add-btn:disabled { opacity: 0.5; cursor: default; }
+.fav-err { color: #e5484d; margin: 0; font-size: 12.5px; }
+.fav-empty { margin: 12px 0 4px; font-size: 13px; }
+.fav-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.fav-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 10px;
+}
+.fav-item:hover { background: var(--panel-2); }
+.fav-item.active { background: var(--accent-tint); }
+.fav-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.fav-thumb {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--panel-2);
+}
+.fav-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fav-eq { flex: none; color: var(--accent); }
+.fav-del {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+.fav-del:hover { color: #e5484d; }
+
 .yt-controls { display: flex; gap: 4px; }
 .yt-controls button {
   background: none;
