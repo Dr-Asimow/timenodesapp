@@ -1824,7 +1824,34 @@ body {
   color: var(--muted);
   font-size: 11px;
 }
-.side-music-head + .yt-block { margin-top: 12px; }
+.side-music-body { padding-top: 12px; }
+
+/* Aç/kapa içerikler için yumuşak yükseklik geçişi (Collapse bileşeni) */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.28s ease, opacity 0.28s ease;
+}
+.collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+  visibility: hidden;
+  transition: visibility 0.28s;
+}
+.collapse.open .collapse-inner {
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .collapse,
+  .collapse-inner {
+    transition: none;
+  }
+}
 .side-music-thumb {
   display: flex;
   align-items: center;

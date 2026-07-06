@@ -5,6 +5,7 @@ import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
 import { GoalPopup } from "./GoalPopup";
 import { MusicCard } from "./AmbientPlayer";
+import { Collapse } from "./Collapse";
 import { IconTarget, IconBell, IconCheck } from "./Icons";
 
 type RightTab = "hedef" | "hatirlatici" | "todo";
@@ -505,19 +506,19 @@ function ReminderPopup({
           </div>
         </div>
 
-        {showCal ? (
+        <Collapse open={showCal}>
           <MiniCal
             value={date}
             onPick={(d) => { setDate(d); setShowCal(false); }}
           />
-        ) : null}
+        </Collapse>
 
-        {showTime ? (
+        <Collapse open={showTime}>
           <TimePicker
             value={time}
             onPick={(t) => { setTime(t); setShowTime(false); }}
           />
-        ) : null}
+        </Collapse>
 
         <button
           className="primary-btn rp-submit"

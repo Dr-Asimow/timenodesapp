@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SOUNDS, type AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
 import { MusicSearch } from "./MusicSearch";
+import { Collapse } from "./Collapse";
 
 // Ortak ambient ses butonları. compact=true daha küçük yerleşim.
 export function AmbientButtons({
@@ -82,7 +83,7 @@ function PlaylistView({ yt }: { yt: YouTubeApi }) {
           Playlist ({yt.playlistItems.length} şarkı)
         </span>
       </button>
-      {expanded && (
+      <Collapse open={expanded}>
         <div className="pl-list">
           {yt.playlistItems.map((item, i) => {
             const active = i === yt.playlistIndex;
@@ -100,7 +101,7 @@ function PlaylistView({ yt }: { yt: YouTubeApi }) {
             );
           })}
         </div>
-      )}
+      </Collapse>
     </div>
   );
 }
@@ -238,8 +239,8 @@ export function MusicCard({
         ) : null}
         <span className="side-music-caret">{open ? "▾" : "▸"}</span>
       </button>
-      {open ? (
-        <>
+      <Collapse open={open}>
+        <div className="side-music-body">
           <YouTubeControls yt={yt} />
           <div className="ambient-mini">
             <div className="ambient-mini-head muted small">Ortam sesleri</div>
@@ -251,8 +252,8 @@ export function MusicCard({
             />
             <VolumeSlider value={volume} onChange={onVolume} icon="🔉" />
           </div>
-        </>
-      ) : null}
+        </div>
+      </Collapse>
     </div>
   );
 }
