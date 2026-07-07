@@ -25,6 +25,7 @@ function fmtCountdown(targetAt: string): { label: string; expired: boolean } {
 
 export function RightPanel({
   todos,
+  overdueTodos,
   todayISO,
   goals,
   reminders,
@@ -35,6 +36,9 @@ export function RightPanel({
   onAddTodo,
   onToggleTodo,
   onDeleteItem,
+  onMoveOverdueToToday,
+  onCompleteOverdue,
+  onDeleteOverdue,
   yt,
   favs,
   ambientId,
@@ -44,6 +48,8 @@ export function RightPanel({
   onAmbientVol,
 }: {
   todos: TodoItem[];
+  // Günü geçmiş, yapılmamış to-do'lar ("Geciken" bölümü)
+  overdueTodos: TodoItem[];
   todayISO: string;
   goals: Goal[];
   reminders: Reminder[];
@@ -54,6 +60,9 @@ export function RightPanel({
   onAddTodo: (title: string) => void;
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
+  onMoveOverdueToToday: (id: string) => void;
+  onCompleteOverdue: (id: string) => void;
+  onDeleteOverdue: (id: string) => void;
   yt: YouTubeApi;
   favs: MusicFavoritesApi;
   ambientId: AmbientId | null;
@@ -104,10 +113,14 @@ export function RightPanel({
           ) : (
             <TodoTab
               todos={todos}
+              overdueTodos={overdueTodos}
               todayISO={todayISO}
               onAddTodo={onAddTodo}
               onToggle={onToggleTodo}
               onDelete={onDeleteItem}
+              onMoveOverdueToToday={onMoveOverdueToToday}
+              onCompleteOverdue={onCompleteOverdue}
+              onDeleteOverdue={onDeleteOverdue}
             />
           )}
         </div>
@@ -240,9 +253,12 @@ const DOW = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pa"];
 function MiniCal({
   value,
   onPick,
+  minISO,
 }: {
   value: string;
   onPick: (iso: string) => void;
+  // Bu tarihten öncesi seçilemez (geçmişe hatırlatıcı engeli)
+  minISO?: string;
 }) {
   const today = new Date();
   const init = value ? new Date(value + "T00:00:00") : today;
@@ -285,11 +301,13 @@ function MiniCal({
           const dayISO = iso(d);
           const sel = dayISO === value;
           const isToday = dayISO === todayISO;
+          const disabled = !!minISO && dayISO < minISO;
           return (
             <button
               key={d}
               type="button"
               className={`mc-cell${sel ? " mc-sel" : ""}${isToday ? " mc-today" : ""}`}
+              disabled={disabled}
               onClick={() => onPick(dayISO)}
             >
               {d}
@@ -316,49 +334,71 @@ function ScrollWheel({
   onIndex: (i: number) => void;
 }) {
   const n = items.length;
-  const [idx, setIdx] = useState(initial);
-  const idxRef = useRef(initial);
+  // Sürekli konum: tam sayı = bir değer ortalanmış. Sürüklerken kesirli olur,
+  // bırakınca en yakın tam sayıya animasyonla oturur (dönen makara hissi).
+  const [pos, setPos] = useState(initial);
+  const [smooth, setSmooth] = useState(false);
+  const posRef = useRef(initial);
+  posRef.current = pos;
   const cbRef = useRef(onIndex);
   cbRef.current = onIndex;
+  const lastIdx = useRef(initial);
 
-  function go(next: number) {
-    const wrapped = ((next % n) + n) % n;
-    if (wrapped !== idxRef.current) {
-      idxRef.current = wrapped;
-      setIdx(wrapped);
-      cbRef.current(wrapped);
+  function goTo(p: number, animate: boolean) {
+    setSmooth(animate);
+    setPos(p);
+    const idx = ((Math.round(p) % n) + n) % n;
+    if (idx !== lastIdx.current) {
+      lastIdx.current = idx;
+      cbRef.current(idx);
     }
   }
 
-  const drag = useRef<{ startY: number; startIdx: number; moved: boolean } | null>(null);
+  const drag = useRef<{ startY: number; startPos: number } | null>(null);
 
   function onPointerDown(e: React.PointerEvent) {
-    drag.current = { startY: e.clientY, startIdx: idxRef.current, moved: false };
+    drag.current = { startY: e.clientY, startPos: posRef.current };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
     if (!drag.current) return;
-    const dy = drag.current.startY - e.clientY;
-    const steps = Math.round(dy / (WHEEL_H * 0.6));
-    if (steps !== 0) drag.current.moved = true;
-    go(drag.current.startIdx + steps);
+    // Parmağı birebir takip et (1 satır yüksekliği = 1 değer)
+    goTo(drag.current.startPos - (e.clientY - drag.current.startY) / WHEEL_H, false);
   }
   function endDrag(e: React.PointerEvent) {
     if (!drag.current) return;
+    // Son konumu state yerine doğrudan olaydan hesapla (bayat ref riskine karşı)
+    const p = drag.current.startPos - (e.clientY - drag.current.startY) / WHEEL_H;
     drag.current = null;
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    goTo(Math.round(p), true);
   }
 
   function onWheel(e: React.WheelEvent) {
     e.preventDefault();
     const dir = e.deltaY > 0 ? 1 : -1;
-    go(idxRef.current + dir);
+    goTo(Math.round(posRef.current) + dir, true);
   }
 
-  const visible: number[] = [];
-  const half = Math.floor(WHEEL_VISIBLE / 2);
-  for (let d = -half; d <= half; d++) {
-    visible.push(((idx + d) % n + n) % n);
+  // Merkez etrafında ±4 satır çiz; uzaklaştıkça küçülüp solar, hafif 3D döner
+  const base = Math.round(pos);
+  const rows = [];
+  for (let k = base - 4; k <= base + 4; k++) {
+    const val = items[((k % n) + n) % n];
+    const off = k - pos;
+    const dist = Math.min(3, Math.abs(off));
+    rows.push(
+      <div
+        key={k}
+        className={`sw-row${smooth ? " anim" : ""}`}
+        style={{
+          transform: `translateY(${off * WHEEL_H}px) rotateX(${off * -16}deg) scale(${Math.max(0.5, 1 - 0.16 * dist)})`,
+          opacity: Math.max(0, 1 - 0.32 * dist),
+        }}
+      >
+        {String(val).padStart(2, "0")}
+      </div>
+    );
   }
 
   return (
@@ -371,19 +411,8 @@ function ScrollWheel({
       onPointerCancel={endDrag}
       onWheel={onWheel}
     >
-      <div className="sw-list" style={{ height: WHEEL_VISIBLE * WHEEL_H }}>
-        {visible.map((v, i) => {
-          const dist = Math.abs(i - half);
-          return (
-            <div
-              key={`${i}-${v}`}
-              className={`sw-item${dist === 0 ? " sw-sel" : ""}${dist === 1 ? " sw-near" : ""}`}
-              style={{ height: WHEEL_H }}
-            >
-              {String(items[v]).padStart(2, "0")}
-            </div>
-          );
-        })}
+      <div className="sw-stage" style={{ height: WHEEL_H, marginTop: -WHEEL_H / 2 }}>
+        {rows}
       </div>
       <div className="sw-band" />
     </div>
@@ -431,23 +460,31 @@ function TimePicker({
   );
 }
 
-function ReminderPopup({
+export function ReminderPopup({
   onAdd,
   onClose,
+  initialDate,
 }: {
   onAdd: (title: string, targetAt: string, description?: string) => void;
   onClose: () => void;
+  // Takvimden açılınca tarih önceden seçili gelir
+  initialDate?: string;
 }) {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(initialDate ?? "");
   const [time, setTime] = useState("");
   const [showCal, setShowCal] = useState(false);
   const [showTime, setShowTime] = useState(false);
 
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  // Geçmişe hatırlatıcı kurulamaz
+  const isPast = !!date && !!time && new Date(`${date}T${time}`).getTime() <= Date.now();
+
   function submit() {
     const t = title.trim();
-    if (!t || !date || !time) return;
+    if (!t || !date || !time || isPast) return;
     const iso = new Date(`${date}T${time}`).toISOString();
     onAdd(t, iso, desc.trim() || undefined);
   }
@@ -513,6 +550,7 @@ function ReminderPopup({
         <Collapse open={showCal}>
           <MiniCal
             value={date}
+            minISO={todayISO}
             onPick={(d) => { setDate(d); setShowCal(false); }}
           />
         </Collapse>
@@ -524,9 +562,13 @@ function ReminderPopup({
           />
         </Collapse>
 
+        {isPast ? (
+          <p className="rp-past-warn small">Geçmişe hatırlatıcı kurulamaz.</p>
+        ) : null}
+
         <button
           className="primary-btn rp-submit"
-          disabled={!title.trim() || !date || !time}
+          disabled={!title.trim() || !date || !time || isPast}
           onClick={submit}
         >
           Kaydet
@@ -539,18 +581,33 @@ function ReminderPopup({
 
 // --- To-do sekmesi ---
 
+function overdueLabel(dayISO: string, todayISO: string): string {
+  const diff = Math.round(
+    (new Date(todayISO + "T00:00:00").getTime() - new Date(dayISO + "T00:00:00").getTime()) / 86400000
+  );
+  return diff === 1 ? "dün" : `${diff} gün önce`;
+}
+
 function TodoTab({
   todos,
+  overdueTodos,
   todayISO,
   onAddTodo,
   onToggle,
   onDelete,
+  onMoveOverdueToToday,
+  onCompleteOverdue,
+  onDeleteOverdue,
 }: {
   todos: TodoItem[];
+  overdueTodos: TodoItem[];
   todayISO: string;
   onAddTodo: (title: string) => void;
   onToggle: (id: string, done: boolean) => void;
   onDelete: (id: string) => void;
+  onMoveOverdueToToday: (id: string) => void;
+  onCompleteOverdue: (id: string) => void;
+  onDeleteOverdue: (id: string) => void;
 }) {
   const [newTodo, setNewTodo] = useState("");
 
@@ -577,6 +634,37 @@ function TodoTab({
         />
         <button type="submit" className="rtab-add-btn">+</button>
       </form>
+
+      {overdueTodos.length > 0 ? (
+        <div className="overdue-sec">
+          <span className="overdue-title small">Geciken</span>
+          <ul className="rtab-list">
+            {overdueTodos.map((it) => (
+              <li key={it.id} className="rtab-item todo-item overdue-item">
+                <input
+                  type="checkbox"
+                  className="rtab-check"
+                  checked={false}
+                  onChange={() => onCompleteOverdue(it.id)}
+                  title="Tamamla"
+                />
+                <span className="rtab-item-text">
+                  {it.title}
+                  <span className="overdue-when small">{overdueLabel(it.day, todayISO)}</span>
+                </span>
+                <button
+                  className="overdue-move-btn"
+                  onClick={() => onMoveOverdueToToday(it.id)}
+                  title="Bugüne taşı"
+                >
+                  ↷
+                </button>
+                <button className="rtab-del-btn" onClick={() => onDeleteOverdue(it.id)}>×</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {todoItems.length === 0 ? (
         <p className="rtab-empty muted small">Bugün için henüz bir öğe yok.</p>

@@ -3150,32 +3150,34 @@ body {
   touch-action: none;
 }
 .sw-wrap:active { cursor: grabbing; }
-.sw-list {
-  display: flex;
-  flex-direction: column;
+/* Dönen makara: satırlar merkez sahneye göre translateY/rotateX ile konumlanır */
+.sw-stage {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  perspective: 480px;
+  transform-style: preserve-3d;
 }
-.sw-item {
+.sw-row {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
   font-variant-numeric: tabular-nums;
-  font-size: 18px;
-  color: var(--muted);
-  opacity: 0.3;
-  transition: color 0.15s, font-size 0.15s, opacity 0.15s;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text);
   user-select: none;
+  pointer-events: none;
+  will-change: transform, opacity;
 }
-.sw-item.sw-near {
-  font-size: 26px;
-  color: var(--text);
-  opacity: 0.55;
+.sw-row.anim {
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
 }
-.sw-item.sw-sel {
-  font-size: 38px;
-  font-weight: 800;
-  color: var(--text);
-  opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .sw-row.anim { transition: none; }
 }
 .sw-band {
   position: absolute;
@@ -7069,3 +7071,213 @@ body {
     font-size: 13px;
   }
 }
+
+/* ── Normal takvim (Takvim sayfası, haftaların üstünde) ─────────────── */
+.cal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cal-nav { display: flex; align-items: center; gap: 6px; }
+.cal-nav-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.cal-nav-btn:hover { border-color: var(--muted); }
+.cal-today-btn { font-size: 12px; }
+.cal-title { font-weight: 700; font-size: 14px; margin-left: 8px; }
+.cal-views { display: flex; gap: 4px; }
+.cal-view-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cal-view-btn.active {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Ay görünümü */
+.cal-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.cal-dow { text-align: center; color: var(--muted); }
+.cal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day {
+  background: var(--panel-2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  min-height: 52px;
+  padding: 5px 6px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  font: inherit;
+  font-size: 12px;
+}
+.cal-day:hover { border-color: var(--accent); }
+.cal-day.cal-empty { background: none; border: none; cursor: default; min-height: 0; }
+.cal-day.cal-now { border-color: var(--accent); background: var(--accent-tint); }
+.cal-day-num { font-weight: 600; }
+.cal-marks { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.cal-mark-todo {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+.cal-mark-todo.all-done { background: var(--muted); }
+
+/* Hafta görünümü */
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-week-col {
+  background: var(--panel-2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  min-height: 120px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font: inherit;
+  text-align: left;
+}
+.cal-week-col:hover { border-color: var(--accent); }
+.cal-week-col.cal-now { border-color: var(--accent); background: var(--accent-tint); }
+.cal-week-dow { color: var(--muted); }
+.cal-week-num { font-weight: 700; font-size: 16px; }
+.cal-week-items { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.cal-week-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cal-week-item.done { color: var(--muted); text-decoration: line-through; }
+.cal-week-rem { color: var(--accent); }
+
+/* Yıl görünümü */
+.cal-year {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.cal-year-month { display: flex; flex-direction: column; gap: 4px; }
+.cal-year-title {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+.cal-year-title:hover { color: var(--accent); }
+.cal-mini .cal-month-grid { gap: 2px; }
+.cal-mini .cal-day {
+  min-height: 0;
+  padding: 2px 0;
+  align-items: center;
+  font-size: 10px;
+  border-radius: 5px;
+}
+.cal-mini .cal-day-num { font-weight: 500; }
+.cal-mini .cal-day.cal-has { box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* Takvim gün popup'ı ekleri */
+.cal-popup-week { margin-top: 2px; }
+.cal-popup-check {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  display: inline-flex;
+}
+.cal-popup-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cal-popup-btns { display: flex; gap: 8px; }
+.cal-popup-btns .ghost-btn { flex: 1; font-size: 12px; cursor: pointer; }
+.cal-popup-btns .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cal-popup-note {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+  min-height: 60px;
+}
+.cal-popup-note:focus { outline: none; border-color: var(--accent); }
+
+/* Geciken to-do bölümü (sağ panel) */
+.overdue-sec { display: flex; flex-direction: column; gap: 6px; }
+.overdue-title {
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.overdue-when { color: var(--muted); margin-left: 6px; }
+.overdue-move-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  flex: none;
+}
+.overdue-move-btn:hover { color: var(--text); }
+
+/* Geçmişe hatırlatıcı engeli */
+.rp-past-warn { color: var(--danger); margin: 0; }
+.mc-cell:disabled { opacity: 0.35; cursor: not-allowed; }

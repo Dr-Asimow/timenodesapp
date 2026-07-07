@@ -13,7 +13,9 @@ import {
   upsertEntry,
   setDayNote,
   loadDayTodos,
+  loadOverdueTodos,
   addTodo,
+  updateTodoDay,
   setTodoDone,
   deleteTodo,
   loadDayPage,
@@ -216,6 +218,8 @@ export function App() {
   );
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  // Günü geçmiş, yapılmamış to-do'lar (sağ panel "Geciken" bölümü)
+  const [overdueTodos, setOverdueTodos] = useState<TodoItem[]>([]);
   // Kullanıcının benzersiz UID'i (arkadaş kodu) — profiles'tan
   const [friendCode, setFriendCode] = useState<string | null>(null);
   // Günlük (Not Defteri, tam ekran) — açık gün + etiket
@@ -350,16 +354,22 @@ export function App() {
     };
   }, [userId, viewedWeek?.startDate, week?.startDate]);
 
-  // Bugünün gündemini (to-do'lar) yükle
+  // Bugünün gündemini (to-do'lar) + geciken to-do'ları yükle
   useEffect(() => {
     if (!userId) {
       setTodos([]);
+      setOverdueTodos([]);
       return;
     }
     let cancel = false;
     loadDayTodos(toISODate(new Date()))
       .then((t) => {
         if (!cancel) setTodos(t);
+      })
+      .catch(() => {});
+    loadOverdueTodos(toISODate(new Date()))
+      .then((t) => {
+        if (!cancel) setOverdueTodos(t);
       })
       .catch(() => {});
     return () => {
@@ -911,6 +921,57 @@ export function App() {
     setTodos((cur) => cur.filter((t) => t.id !== id));
     deleteTodo(id).catch(() => {});
   };
+  // Geciken to-do işlemleri
+  const moveOverdueToToday = (id: string) => {
+    const item = overdueTodos.find((t) => t.id === id);
+    if (!item) return;
+    setOverdueTodos((cur) => cur.filter((t) => t.id !== id));
+    setTodos((cur) => [...cur, { ...item, day: todayISO }]);
+    updateTodoDay(id, todayISO).catch(() => {});
+  };
+  const completeOverdue = (id: string) => {
+    setOverdueTodos((cur) => cur.filter((t) => t.id !== id));
+    setTodoDone(id, true).catch(() => {});
+  };
+  const deleteOverdue = (id: string) => {
+    setOverdueTodos((cur) => cur.filter((t) => t.id !== id));
+    deleteTodo(id).catch(() => {});
+  };
+  // Hatırlatıcı ekle (sağ panel + takvim ortak)
+  const addReminderItem = async (title: string, targetAt: string, description?: string) => {
+    if (!userId) return;
+    try {
+      const r = await addReminder(userId, title, targetAt, description);
+      setReminders((cur) => [...cur, r]);
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "message" in e ? String((e as {message:string}).message) : String(e);
+      console.error("Hatırlatıcı eklenemedi:", msg, e);
+      setErr("Hatırlatıcı eklenemedi: " + msg);
+    }
+  };
+  // Takvim popup'ından gün notu kaydet; gün açık haftadaysa state'i de tazele
+  const saveCalDayNote = (dayISO: string, note: string) => {
+    if (!userId) return;
+    setDayNote(userId, dayISO, note).catch(() => {});
+    const patch = (w: WeekData | null): WeekData | null => {
+      if (!w) return w;
+      const idx = Math.round((Date.parse(dayISO) - Date.parse(w.startDate)) / 86400000);
+      if (idx < 0 || idx > 6) return w;
+      const dayNotes = [...w.dayNotes];
+      dayNotes[idx] = note || null;
+      return { ...w, dayNotes };
+    };
+    setWeek((w) => patch(w));
+    setViewedWeek((w) => patch(w));
+  };
+  // Takvimden to-do eklendi/değişti → bugünü ve gecikenleri tazele
+  const calTodosChanged = (dayISO: string) => {
+    if (dayISO === todayISO) {
+      loadDayTodos(todayISO).then(setTodos).catch(() => {});
+    } else if (dayISO < todayISO) {
+      loadOverdueTodos(todayISO).then(setOverdueTodos).catch(() => {});
+    }
+  };
   // "başla": sayacı başlat VE kare popup'ını aç (haftalıktaki gibi açık kalsın)
   const startHabit = (habitId: string) => {
     if (!todayInWeek) return;
@@ -1024,6 +1085,7 @@ export function App() {
                 <div className="week-main">{grid}</div>
                 <RightPanel
                   todos={todos}
+                  overdueTodos={overdueTodos}
                   todayISO={todayISO}
                   goals={goals}
                   reminders={reminders}
@@ -1038,17 +1100,7 @@ export function App() {
                     setGoals((cur) => cur.filter((g) => g.id !== id));
                     deleteGoal(id).catch(() => {});
                   }}
-                  onAddReminder={async (title, targetAt, description) => {
-                    if (!userId) return;
-                    try {
-                      const r = await addReminder(userId, title, targetAt, description);
-                      setReminders((cur) => [...cur, r]);
-                    } catch (e: unknown) {
-                      const msg = e && typeof e === "object" && "message" in e ? String((e as {message:string}).message) : String(e);
-                      console.error("Hatırlatıcı eklenemedi:", msg, e);
-                      setErr("Hatırlatıcı eklenemedi: " + msg);
-                    }
-                  }}
+                  onAddReminder={addReminderItem}
                   onDeleteReminder={async (id) => {
                     setReminders((cur) => cur.filter((r) => r.id !== id));
                     deleteReminder(id).catch(() => {});
@@ -1056,6 +1108,9 @@ export function App() {
                   onAddTodo={addTodoItem}
                   onToggleTodo={toggleTodo}
                   onDeleteItem={deleteItem}
+                  onMoveOverdueToToday={moveOverdueToToday}
+                  onCompleteOverdue={completeOverdue}
+                  onDeleteOverdue={deleteOverdue}
                   yt={yt}
                   favs={musicFavs}
                   ambientId={ambient.id}
@@ -1075,8 +1130,12 @@ export function App() {
             habitSeries={yearStats?.habitSeries ?? null}
             reminders={reminders}
             currentStartISO={week.startDate}
+            userId={userId ?? ""}
             onOpenWeek={openWeek}
             onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
+            onAddReminder={addReminderItem}
+            onSaveDayNote={saveCalDayNote}
+            onTodosChanged={calTodosChanged}
           />
         ) : view === "stats" ? (
           <Stats

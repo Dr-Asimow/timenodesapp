@@ -5,6 +5,7 @@ import { loadDayTodos } from "../db";
 import type { HabitSeries } from "../db";
 import type { Reminder, TodoItem } from "../types";
 import { IconCheck, IconCircle, IconBell } from "./Icons";
+import { CalendarView } from "./CalendarView";
 
 const MONTHS = [
   "Oca", "Şub", "Mar", "Nis", "May", "Haz",
@@ -49,8 +50,12 @@ export function WeeksPage({
   habitSeries,
   reminders,
   currentStartISO,
+  userId,
   onOpenWeek,
   onOpenDayNote,
+  onAddReminder,
+  onSaveDayNote,
+  onTodosChanged,
 }: {
   year: number;
   weeks: { weekNumber: number; startISO: string }[];
@@ -58,8 +63,12 @@ export function WeeksPage({
   habitSeries: HabitSeries[] | null;
   reminders: Reminder[];
   currentStartISO: string;
+  userId: string;
   onOpenWeek: (startISO: string) => void;
   onOpenDayNote: (dayISO: string, label: string) => void;
+  onAddReminder: (title: string, targetAt: string, description?: string) => void;
+  onSaveDayNote: (dayISO: string, note: string) => void;
+  onTodosChanged: (dayISO: string) => void;
 }) {
   const [popupDay, setPopupDay] = useState<string | null>(null);
   const [hover, setHover] = useState<{ iso: string; x: number; y: number } | null>(null);
@@ -102,6 +111,15 @@ export function WeeksPage({
 
   return (
     <div className="weeks-page">
+      {/* Normal takvim (hafta/ay/yıl) — to-do, hatırlatıcı ve gün notu için */}
+      <CalendarView
+        userId={userId}
+        reminders={reminders}
+        onAddReminder={onAddReminder}
+        onSaveDayNote={onSaveDayNote}
+        onTodosChanged={onTodosChanged}
+      />
+
       <div className="weeks-head">
         <h2>Haftalar · {year}</h2>
         <span className="muted small">

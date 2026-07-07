@@ -530,6 +530,39 @@ export async function deleteTodo(id: string) {
   if (error) throw error;
 }
 
+// Tarih aralığındaki serbest to-do'lar (takvim görünümü için; habit bağlı olanlar hariç)
+export async function loadTodosInRange(fromISO: string, toISO: string): Promise<TodoItem[]> {
+  const { data, error } = await supabase
+    .from("todos")
+    .select("id,day,habit_id,title,done,position")
+    .gte("day", fromISO)
+    .lte("day", toISO)
+    .is("habit_id", null)
+    .order("day", { ascending: true })
+    .order("position", { ascending: true });
+  if (error) throw error;
+  return ((data as TodoRow[]) ?? []).map(toTodo);
+}
+
+// Günü geçmiş, yapılmamış serbest to-do'lar ("Geciken" bölümü için)
+export async function loadOverdueTodos(beforeISO: string): Promise<TodoItem[]> {
+  const { data, error } = await supabase
+    .from("todos")
+    .select("id,day,habit_id,title,done,position")
+    .lt("day", beforeISO)
+    .eq("done", false)
+    .is("habit_id", null)
+    .order("day", { ascending: true });
+  if (error) throw error;
+  return ((data as TodoRow[]) ?? []).map(toTodo);
+}
+
+// To-do'yu başka bir güne taşı (geciken → bugüne)
+export async function updateTodoDay(id: string, dayISO: string) {
+  const { error } = await supabase.from("todos").update({ day: dayISO }).eq("id", id);
+  if (error) throw error;
+}
+
 // --- Not sayfaları (Notion benzeri, blok-tabanlı / Tiptap JSON) -------
 
 export type PageDoc = Record<string, unknown>;
@@ -626,6 +659,17 @@ export async function saveHabitPage(
       .insert({ user_id: userId, habit_id: habitId, title, content });
     if (error) throw error;
   }
+}
+
+// Tek bir günün notunu oku (takvim popup'ı için)
+export async function loadDayNote(dayISO: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("day_notes")
+    .select("note")
+    .eq("day", dayISO)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { note: string | null } | null)?.note ?? "";
 }
 
 // Gün notu (tarih bazında) yaz
