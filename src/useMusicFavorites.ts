@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MusicFavorite } from "./types";
 import {
   loadMusicFavorites,
@@ -11,15 +11,32 @@ import {
 export function useMusicFavorites(userId: string | null) {
   const [favorites, setFavorites] = useState<MusicFavorite[]>([]);
 
+  // Listeyi tazele (popup açılınca da çağrılır — başarısız ilk yüklemeyi telafi eder)
+  const reload = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setFavorites(await loadMusicFavorites(userId));
+    } catch { /* yoksay */ }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) {
       setFavorites([]);
       return;
     }
     let cancel = false;
-    loadMusicFavorites(userId)
-      .then((f) => { if (!cancel) setFavorites(f); })
-      .catch(() => {});
+    // İlk yükleme geçici bir hataya denk gelirse (ağ/token) artan arayla tekrar dene
+    (async () => {
+      for (let i = 0; i < 3 && !cancel; i++) {
+        try {
+          const f = await loadMusicFavorites(userId);
+          if (!cancel) setFavorites(f);
+          return;
+        } catch {
+          await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+        }
+      }
+    })();
     return () => { cancel = true; };
   }, [userId]);
 
@@ -48,7 +65,7 @@ export function useMusicFavorites(userId: string | null) {
     else void add(videoId, title);
   }
 
-  return { favorites, add, remove, isFav, toggleFav };
+  return { favorites, reload, add, remove, isFav, toggleFav };
 }
 
 export type MusicFavoritesApi = ReturnType<typeof useMusicFavorites>;

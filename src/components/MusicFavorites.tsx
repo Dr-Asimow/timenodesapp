@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { YouTubeApi } from "../useYouTube";
 import type { MusicFavoritesApi } from "../useMusicFavorites";
@@ -20,6 +20,13 @@ export function MusicFavoritesPopup({
   const [input, setInput] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  // Popup açılınca listeyi tazele (ilk yükleme başarısız olduysa veya
+  // başka cihazda eklenen favoriler varsa burada görünür hale gelir)
+  useEffect(() => {
+    void favs.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function addFromLink() {
     const parsed = parseYouTube(input);
