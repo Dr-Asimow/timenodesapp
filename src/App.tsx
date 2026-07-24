@@ -778,6 +778,10 @@ export function App() {
     brkMins: number
   ) => {
     if (!week || (mins <= 0 && brkMins <= 0)) return;
+    // İleri tarihli hücreye süre yazma: sayaçlar haftaya değil gün indeksine
+    // (0..6) bağlı olduğu için eski bir sayaç bu haftanın gelecekteki bir
+    // gününe denk gelebilir. İleri tarihte zaman takibi yok, yazmayı atla.
+    if (toISODate(addDays(week.startDate, day)) > toISODate(new Date())) return;
     const w: WeekData = { ...week };
     if (mins > 0) {
       const row = (w.minutes[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
@@ -801,6 +805,8 @@ export function App() {
   ) => {
     if (!userId || !topicId || mins <= 0 || !week) return;
     const dayISO = toISODate(addDays(week.startDate, day));
+    // İleri tarihe konu süresi de yazma (commitToWeek ile aynı gerekçe).
+    if (dayISO > toISODate(new Date())) return;
     addTopicMinutes(userId, habitId, dayISO, topicId, mins).catch(() => {});
   };
 

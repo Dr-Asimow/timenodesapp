@@ -109,10 +109,32 @@ export function CellPopover({
         </div>
 
         {isFuture ? (
-          <p className="future-note muted small">
-            İleri tarih — burada zaman takibi yok, ama plan/aktivite notu
-            bırakabilirsin.
-          </p>
+          workMin > 0 ? (
+            <div className="future-stale">
+              <div className="cell-bigstat">
+                <BigStat workMin={workMin} />
+              </div>
+              <p className="future-note muted small">
+                Bu ileri tarihte hatalı kayıtlı süre var (eski bir sayaçtan
+                kalmış). İleri tarihte zaman takibi olmadığı için sıfırlayabilirsin.
+              </p>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => {
+                  onAddWork(-workMin);
+                  onClose();
+                }}
+              >
+                Süreyi sıfırla
+              </button>
+            </div>
+          ) : (
+            <p className="future-note muted small">
+              İleri tarih — burada zaman takibi yok, ama plan/aktivite notu
+              bırakabilirsin.
+            </p>
+          )
         ) : (
           <>
             <div className="cell-bigstat">
