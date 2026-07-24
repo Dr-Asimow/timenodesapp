@@ -22,6 +22,7 @@ export function HabitDetailPage({
   accentColor,
   onAccentColorChange,
   onRename,
+  onSnooze,
   onClose,
 }: {
   habitId: string;
@@ -30,6 +31,8 @@ export function HabitDetailPage({
   accentColor: string | null;
   onAccentColorChange: (color: string | null) => void;
   onRename: (name: string) => void;
+  // Sağlık uyarısı erteleme/kapatma (null+false = uyarı açık)
+  onSnooze: (snoozeUntil: string | null, muted: boolean) => void;
   onClose: () => void;
 }) {
   const [detail, setDetail] = useState<HabitDetail | null>(null);
@@ -39,6 +42,7 @@ export function HabitDetailPage({
   const [busy, setBusy] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(name);
+  const [customDays, setCustomDays] = useState("");
 
   useEffect(() => {
     let cancel = false;
@@ -78,6 +82,19 @@ export function HabitDetailPage({
     await refresh();
   }
 
+  // Uyarı ertelemesini uygula: App'e bildir + yerel state'i iyimser güncelle
+  function applySnooze(snoozeUntil: string | null, muted: boolean) {
+    onSnooze(snoozeUntil, muted);
+    setDetail((d) =>
+      d ? { ...d, health: { ...d.health, snoozeUntil, muted } } : d
+    );
+  }
+  function snoozeDays(n: number) {
+    const until = new Date();
+    until.setDate(until.getDate() + n);
+    applySnooze(until.toISOString(), false);
+  }
+
   function startEditName() {
     setNameInput(name);
     setEditingName(true);
@@ -111,6 +128,13 @@ export function HabitDetailPage({
       : health.score >= 25
       ? { label: "Orta", color: "var(--lvl-3)" }
       : { label: "Düşük", color: "var(--danger)" };
+
+  // Uyarı erteleme durumu
+  const muted = health?.muted ?? false;
+  const snoozedUntil =
+    health?.snoozeUntil && new Date(health.snoozeUntil).getTime() > Date.now()
+      ? health.snoozeUntil
+      : null;
 
   return (
     <div
@@ -223,6 +247,90 @@ export function HabitDetailPage({
                   ) : (
                     <p className="muted small">Henüz veri yok.</p>
                   )}
+
+                  <div className="hp-snooze">
+                    {muted ? (
+                      <div className="hp-snooze-state">
+                        <span className="muted small">
+                          Tablodaki sağlık uyarısı kapalı.
+                        </span>
+                        <button
+                          className="ghost-btn small"
+                          onClick={() => applySnooze(null, false)}
+                        >
+                          Uyarıyı aç
+                        </button>
+                      </div>
+                    ) : snoozedUntil ? (
+                      <div className="hp-snooze-state">
+                        <span className="muted small">
+                          Uyarı {dateDMY(snoozedUntil.slice(0, 10))} tarihine kadar
+                          ertelendi.
+                        </span>
+                        <button
+                          className="ghost-btn small"
+                          onClick={() => applySnooze(null, false)}
+                        >
+                          Şimdi aç
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="muted small hp-snooze-label">
+                          Tablo uyarısını ertele:
+                        </span>
+                        <div className="hp-snooze-btns">
+                          <button
+                            className="ghost-btn small"
+                            onClick={() => snoozeDays(3)}
+                          >
+                            3 gün
+                          </button>
+                          <button
+                            className="ghost-btn small"
+                            onClick={() => snoozeDays(7)}
+                          >
+                            1 hafta
+                          </button>
+                          <button
+                            className="ghost-btn small"
+                            onClick={() => snoozeDays(30)}
+                          >
+                            1 ay
+                          </button>
+                          <button
+                            className="ghost-btn small"
+                            onClick={() => applySnooze(null, true)}
+                          >
+                            Tamamen kapat
+                          </button>
+                        </div>
+                        <form
+                          className="hp-snooze-custom"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const n = parseInt(customDays, 10);
+                            if (n > 0) {
+                              snoozeDays(n);
+                              setCustomDays("");
+                            }
+                          }}
+                        >
+                          <input
+                            className="rtab-input"
+                            type="number"
+                            min="1"
+                            value={customDays}
+                            onChange={(e) => setCustomDays(e.target.value)}
+                            placeholder="Kaç gün?"
+                          />
+                          <button type="submit" className="rtab-add-btn">
+                            Ertele
+                          </button>
+                        </form>
+                      </>
+                    )}
+                  </div>
                 </section>
 
                 <section className="hp-section">

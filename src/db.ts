@@ -941,6 +941,9 @@ export type HabitHealth = {
   activeDays: number;
   windowDays: number;
   lastActiveDay: string | null;
+  // Uyarı erteleme durumu (habits tablosundan)
+  snoozeUntil: string | null; // ISO timestamp; bu ana kadar uyarı gizli
+  muted: boolean; // uyarı tamamen kapalı
 };
 
 export type HabitDetail = {
@@ -977,7 +980,11 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
   const weekStart = toISODate(mondayOf(today));
 
   const [habitRes, entriesRes, topicsRes, topicMinRes] = await Promise.all([
-    supabase.from("habits").select("created_at").eq("id", habitId).single(),
+    supabase
+      .from("habits")
+      .select("created_at,health_snooze_until,health_muted")
+      .eq("id", habitId)
+      .single(),
     supabase.from("entries").select("day,work_min").eq("habit_id", habitId),
     supabase
       .from("topics")
@@ -994,9 +1001,12 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
   const entryRows = (entriesRes.data as { day: string; work_min: number }[]) ?? [];
   const stats = sumTimeStats(entryRows, yearStart, monthStart, weekStart);
 
-  const createdAt = (
-    (habitRes.data as { created_at: string } | null)?.created_at ?? today.toISOString()
-  ).slice(0, 10);
+  const habitRow = habitRes.data as {
+    created_at: string;
+    health_snooze_until: string | null;
+    health_muted: boolean;
+  } | null;
+  const createdAt = (habitRow?.created_at ?? today.toISOString()).slice(0, 10);
   const daysSinceCreated = Math.max(
     0,
     Math.round(
@@ -1045,7 +1055,100 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
   return {
     createdAt,
     stats,
-    health: { score, activeDays: activeDaySet.size, windowDays, lastActiveDay },
+    health: {
+      score,
+      activeDays: activeDaySet.size,
+      windowDays,
+      lastActiveDay,
+      snoozeUntil: habitRow?.health_snooze_until ?? null,
+      muted: habitRow?.health_muted ?? false,
+    },
     topics,
   };
+}
+
+// Bir etkinliğin sağlık uyarısı erteleme durumunu günceller.
+export async function updateHabitHealthSnooze(
+  id: string,
+  snoozeUntil: string | null,
+  muted: boolean
+) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ health_snooze_until: snoozeUntil, health_muted: muted })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Haftalık tablodaki sağlık noktaları için: tüm etkinliklerin sağlık skorunu
+// (son 7 gün pencere mantığı loadHabitDetail ile aynı) + erteleme durumunu
+// tek seferde yükler.
+export type HabitHealthLite = {
+  score: number; // 0..100
+  windowDays: number;
+  snoozeUntil: string | null;
+  muted: boolean;
+};
+
+export async function loadHabitsHealth(): Promise<Record<string, HabitHealthLite>> {
+  const todayISO = toISODate(new Date());
+  const weekAgo = toISODate(addDays(todayISO, -6));
+  const [habitsRes, entriesRes] = await Promise.all([
+    supabase.from("habits").select("id,created_at,health_snooze_until,health_muted"),
+    supabase
+      .from("entries")
+      .select("habit_id,day,work_min")
+      .gte("day", weekAgo)
+      .lte("day", todayISO),
+  ]);
+  if (habitsRes.error) throw habitsRes.error;
+  if (entriesRes.error) throw entriesRes.error;
+
+  // Etkinlik başına çalışılan (work_min>0) farklı günler
+  const activeByHabit = new Map<string, Set<string>>();
+  for (const e of (entriesRes.data as
+    | { habit_id: string; day: string; work_min: number }[]
+    | null) ?? []) {
+    if (e.work_min > 0) {
+      let s = activeByHabit.get(e.habit_id);
+      if (!s) {
+        s = new Set();
+        activeByHabit.set(e.habit_id, s);
+      }
+      s.add(e.day);
+    }
+  }
+
+  const out: Record<string, HabitHealthLite> = {};
+  for (const h of (habitsRes.data as
+    | {
+        id: string;
+        created_at: string;
+        health_snooze_until: string | null;
+        health_muted: boolean;
+      }[]
+    | null) ?? []) {
+    const createdISO = (h.created_at ?? todayISO).slice(0, 10);
+    const daysSinceCreated = Math.max(
+      0,
+      Math.round(
+        (new Date(todayISO + "T00:00:00").getTime() -
+          new Date(createdISO + "T00:00:00").getTime()) /
+          86400000
+      )
+    );
+    const windowDays = Math.min(7, daysSinceCreated + 1);
+    const windowStart = toISODate(addDays(todayISO, -(windowDays - 1)));
+    let active = 0;
+    const set = activeByHabit.get(h.id);
+    if (set) for (const d of set) if (d >= windowStart && d <= todayISO) active++;
+    const score = windowDays > 0 ? Math.round((active / windowDays) * 100) : 0;
+    out[h.id] = {
+      score,
+      windowDays,
+      snoozeUntil: h.health_snooze_until,
+      muted: h.health_muted,
+    };
+  }
+  return out;
 }

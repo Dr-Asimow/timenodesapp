@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import type { ActiveTimer, Habit, TodoItem, WeekData } from "../types";
 import { addDays, newId, toISODate } from "../storage";
 import { isRunning } from "../timer";
-import { heatLevel, formatMinutes } from "../heat";
-import { loadDayTodos } from "../db";
+import { heatLevel, formatMinutes, healthDot } from "../heat";
+import { loadDayTodos, type HabitHealthLite } from "../db";
 import { CellPopover } from "./CellPopover";
 import { IconNote, IconCheck, IconCircle } from "./Icons";
 
@@ -29,6 +29,7 @@ export function WeekGrid({
   onOpenDayNote,
   onOpenHabitPage,
   prevTotals,
+  health,
   viewingOther,
   onPrevWeek,
   onNextWeek,
@@ -38,6 +39,8 @@ export function WeekGrid({
   userId: string;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
+  // Etkinlik bazında sağlık durumu (uyarı noktaları için). null = gösterme.
+  health: Record<string, HabitHealthLite> | null;
   // Seçili hücre (popover) App'te tutulur ki DayPanel de açabilsin
   sel: CellSel;
   onSelChange: (sel: CellSel) => void;
@@ -329,6 +332,22 @@ export function WeekGrid({
                   >
                     {h.name}
                   </button>
+                  {(() => {
+                    const hh = health?.[h.id];
+                    const dot = hh ? healthDot(hh) : null;
+                    if (!dot) return null;
+                    return (
+                      <span
+                        className={`health-dot ${dot}`}
+                        title={
+                          dot === "low"
+                            ? "Sağlık düşük — bu etkinliğe uzun süredir çalışılmadı. Ayarlamak için tıkla."
+                            : "Sağlık orta — aksatmamaya dikkat. Ayarlamak için tıkla."
+                        }
+                        onClick={() => onOpenHabitPage(h.id, h.name)}
+                      />
+                    );
+                  })()}
                   <button
                     className="row-del"
                     title="Sil"

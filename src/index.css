@@ -4258,6 +4258,25 @@ button {
 .row-del:hover {
   color: var(--danger);
 }
+/* Sağlık uyarısı noktası (etkinlik adının yanında) */
+.health-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px transparent;
+  transition: box-shadow 0.15s;
+}
+.health-dot:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.health-dot.low {
+  background: var(--danger);
+}
+.health-dot.mid {
+  background: var(--lvl-3);
+}
 
 /* Sürükle-bırak tutamacı + yeniden sıralama */
 .drag-handle {
@@ -5846,6 +5865,37 @@ tr.drag-over th {
 }
 .hp-health-note {
   margin: 8px 0 0;
+}
+/* Sağlık uyarısı erteleme kontrolleri */
+.hp-snooze {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hp-snooze-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hp-snooze-label {
+  display: block;
+}
+.hp-snooze-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hp-snooze-custom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.hp-snooze-custom .rtab-input {
+  max-width: 110px;
 }
 .hp-topic-list {
   list-style: none;

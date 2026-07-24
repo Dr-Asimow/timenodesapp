@@ -45,7 +45,10 @@ import {
   loadYearTopicStats,
   loadHabitTotalsForWeek,
   loadMyFriendCode,
+  loadHabitsHealth,
+  updateHabitHealthSnooze,
   type YearStats,
+  type HabitHealthLite,
 } from "./db";
 import {
   isRunning,
@@ -216,6 +219,11 @@ export function App() {
   const [prevTotals, setPrevTotals] = useState<Record<string, number> | null>(
     null
   );
+  // Etkinlik sağlık durumu (tablodaki uyarı noktaları için)
+  const [healthMap, setHealthMap] = useState<Record<
+    string,
+    HabitHealthLite
+  > | null>(null);
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
   // Günü geçmiş, yapılmamış to-do'lar (sağ panel "Geciken" bölümü)
@@ -353,6 +361,23 @@ export function App() {
       cancel = true;
     };
   }, [userId, viewedWeek?.startDate, week?.startDate]);
+
+  // Etkinlik sağlık skorlarını yükle (tablodaki uyarı noktaları)
+  useEffect(() => {
+    if (!userId) {
+      setHealthMap(null);
+      return;
+    }
+    let cancel = false;
+    loadHabitsHealth()
+      .then((m) => {
+        if (!cancel) setHealthMap(m);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [userId, week?.startDate]);
 
   // Bugünün gündemini (to-do'lar) + geciken to-do'ları yükle
   useEffect(() => {
@@ -611,6 +636,24 @@ export function App() {
     chain.current = chain.current
       .then(() => updateHabitName(habitId, n))
       .catch((e) => setErr(e instanceof Error ? e.message : "Ad kaydedilemedi"));
+  }
+
+  // Bir etkinliğin sağlık uyarısı ertelemesini uygula: yerel harita + DB
+  function setHabitHealthSnooze(
+    habitId: string,
+    snoozeUntil: string | null,
+    muted: boolean
+  ) {
+    setHealthMap((m) =>
+      m && m[habitId]
+        ? { ...m, [habitId]: { ...m[habitId], snoozeUntil, muted } }
+        : m
+    );
+    chain.current = chain.current
+      .then(() => updateHabitHealthSnooze(habitId, snoozeUntil, muted))
+      .catch((e) =>
+        setErr(e instanceof Error ? e.message : "Uyarı ayarı kaydedilemedi")
+      );
   }
 
   // Hafta değişimini uygula: doğru haftayı (güncel ya da görüntülenen) güncelle + DB'ye yaz
@@ -1028,6 +1071,7 @@ export function App() {
                   setHabitPageTarget({ habitId, name })
                 }
                 prevTotals={prevTotals}
+                health={viewingOther ? null : healthMap}
                 viewingOther={viewingOther}
                 onPrevWeek={() =>
                   openWeek(toISODate(addDays(shownWeek.startDate, -7)))
@@ -1251,6 +1295,9 @@ export function App() {
             setHabitColor(habitPageTarget.habitId, color)
           }
           onRename={(name) => setHabitName(habitPageTarget.habitId, name)}
+          onSnooze={(snoozeUntil, muted) =>
+            setHabitHealthSnooze(habitPageTarget.habitId, snoozeUntil, muted)
+          }
           onClose={() => setHabitPageTarget(null)}
         />
       ) : null}

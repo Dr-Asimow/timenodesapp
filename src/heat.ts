@@ -18,6 +18,24 @@ export function formatMinutes(minutes: number): string {
   return `${h}s ${m}dk`;
 }
 
+// Haftalık tablodaki sağlık uyarısı noktası:
+//  "low" = kırmızı (skor <25, Düşük), "mid" = sarı (25..59, Orta), null = gösterme.
+// Yeni etkinliklerde (pencere <3 gün) ve ertelenmiş/kapatılmış olanlarda gösterilmez.
+export type HealthDot = "low" | "mid" | null;
+export function healthDot(h: {
+  score: number;
+  windowDays: number;
+  snoozeUntil: string | null;
+  muted: boolean;
+}): HealthDot {
+  if (h.muted) return null;
+  if (h.windowDays < 3) return null; // yeni etkinlik: henüz uyarma
+  if (h.snoozeUntil && new Date(h.snoozeUntil).getTime() > Date.now()) return null;
+  if (h.score < 25) return "low";
+  if (h.score < 60) return "mid";
+  return null;
+}
+
 export function formatHours(minutes: number): string {
   const hours = minutes / 60;
   // 2.5 saat gibi, gereksiz sıfır olmadan
