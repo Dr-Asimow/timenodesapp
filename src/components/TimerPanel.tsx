@@ -52,6 +52,8 @@ export function TimerPanel({
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [topics, setTopics] = useState<Topic[]>([]);
   const [showTopicPopup, setShowTopicPopup] = useState(false);
+  // Bir sayaç çalışırken "başka sayaca geç" formu açık mı
+  const [showSwitch, setShowSwitch] = useState(false);
   const todayTimers = timers.filter((t) => t.day === todayIndex);
   const runningTimer = todayTimers.find(isRunning) ?? null;
   const pausedTimers = todayTimers.filter((t) => !isRunning(t));
@@ -115,6 +117,68 @@ export function TimerPanel({
     : todayTimers.length > 0
     ? "pausedt"
     : "";
+
+  // Etkinlik + konu seçme ve başlatma formu (boştayken ve "başka sayaca geç"te
+  // ortak kullanılır). Başlatınca requestStart çalışan sayacı otomatik duraklatır.
+  const startForm = (
+    <>
+      {/* Etkinlik seçici (sadece bugün + etkinlik varsa) */}
+      {!noHabitsToday && todayIndex >= 0 && todayIndex <= 6 ? (
+        <div className="tp-habit-selector">
+          <select
+            className="tp-habit-select"
+            value={selectedHabitId}
+            onChange={(e) => setSelectedHabitId(e.target.value)}
+          >
+            <option value="">— Etkinlik seç —</option>
+            {week.habits.map((h) => (
+              <option key={h.id} value={h.id}>{h.name}</option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {/* Konu (etkinliğe bağlı) — sadece etkinlik seçiliyse */}
+      {selectedHabitId ? (
+        <div className="tp-goal-row">
+          <span className="tp-settings-label muted small">Konu</span>
+          <button
+            type="button"
+            className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
+            onClick={() => setShowTopicPopup(true)}
+          >
+            <span className={selectedTopic ? "" : "muted"}>
+              {selectedTopic
+                ? selectedTopic.name
+                : topics.length > 0
+                ? "Konu seç"
+                : "Konusuz"}
+            </span>
+            <span className="tp-goal-caret">▾</span>
+          </button>
+          {topicRequired ? (
+            <span className="topic-required-hint">
+              Başlatmak için bir konu seç (ya da yeni konu ekle).
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      <TimerSetup
+        timerState=""
+        blockStart={topicRequired}
+        onStartTimer={(config) => {
+          if (!selectedHabitId || topicRequired) return;
+          onStartNew(selectedHabitId, todayIndex, {
+            ...config,
+            topicId: selectedTopicId || null,
+            topicName: selectedTopic ? selectedTopic.name : null,
+          });
+          setShowSwitch(false);
+        }}
+      />
+    </>
+  );
 
   return (
     <aside className="timer-panel">
@@ -181,64 +245,30 @@ export function TimerPanel({
               {runningTimer.topicName ? <> · <IconTarget size={12} /> {runningTimer.topicName}</> : ""}
             </div>
             <LiveTimer timer={runningTimer} actions={buildActions(runningTimer)} />
-          </>
-        ) : (
-          <>
-            {/* Etkinlik seçici (sadece bugün + etkinlik varsa) */}
-            {!noHabitsToday && todayIndex >= 0 && todayIndex <= 6 ? (
-              <div className="tp-habit-selector">
-                <select
-                  className="tp-habit-select"
-                  value={selectedHabitId}
-                  onChange={(e) => setSelectedHabitId(e.target.value)}
-                >
-                  <option value="">— Etkinlik seç —</option>
-                  {week.habits.map((h) => (
-                    <option key={h.id} value={h.id}>{h.name}</option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
 
-            {/* Konu (etkinliğe bağlı) — sadece etkinlik seçiliyse */}
-            {selectedHabitId ? (
-              <div className="tp-goal-row">
-                <span className="tp-settings-label muted small">Konu</span>
+            {/* Çalışırken başka bir sayaca geçiş: mevcut otomatik duraklatılır */}
+            {!noHabitsToday && todayIndex >= 0 && todayIndex <= 6 ? (
+              <div className="tp-switch">
                 <button
                   type="button"
-                  className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
-                  onClick={() => setShowTopicPopup(true)}
+                  className="tp-switch-toggle"
+                  onClick={() => setShowSwitch((v) => !v)}
                 >
-                  <span className={selectedTopic ? "" : "muted"}>
-                    {selectedTopic
-                      ? selectedTopic.name
-                      : topics.length > 0
-                      ? "Konu seç"
-                      : "Konusuz"}
-                  </span>
-                  <span className="tp-goal-caret">▾</span>
+                  {showSwitch ? "× Vazgeç" : "⇄ Başka sayaca geç"}
                 </button>
-                {topicRequired ? (
-                  <span className="topic-required-hint">
-                    Başlatmak için bir konu seç (ya da yeni konu ekle).
-                  </span>
+                {showSwitch ? (
+                  <div className="tp-switch-body">
+                    <p className="muted small tp-switch-note">
+                      Başlatınca çalışan sayaç duraklatılıp aşağı alınır.
+                    </p>
+                    {startForm}
+                  </div>
                 ) : null}
               </div>
             ) : null}
-
-            <TimerSetup
-              timerState={runningTimer ? "running" : ""}
-              blockStart={topicRequired}
-              onStartTimer={(config) => {
-                if (!selectedHabitId || topicRequired) return;
-                onStartNew(selectedHabitId, todayIndex, {
-                  ...config,
-                  topicId: selectedTopicId || null,
-                  topicName: selectedTopic ? selectedTopic.name : null,
-                });
-              }}
-            />
           </>
+        ) : (
+          startForm
         )}
       </div>
 

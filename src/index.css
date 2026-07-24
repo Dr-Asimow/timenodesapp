@@ -2705,6 +2705,34 @@ body {
 }
 .goal-popup-del:hover { color: var(--danger, #e5484d); }
 .goal-popup-add { display: flex; gap: 6px; }
+/* Çalışırken "başka sayaca geç" formu */
+.tp-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.tp-switch-toggle {
+  align-self: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.tp-switch-toggle:hover { border-color: var(--accent); color: var(--text); }
+.tp-switch-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tp-switch-note { margin: 0; line-height: 1.3; }
 .tp-paused-section { display: flex; flex-direction: column; gap: 8px; }
 .tp-paused-title {
   font-size: 10px;
