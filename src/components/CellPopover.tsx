@@ -59,6 +59,8 @@ export function CellPopover({
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
   const selectedTopicMin =
     topicMins.find((t) => t.topicId === selectedTopicId)?.min ?? 0;
+  // Etkinliğin konusu varsa konu seçimi zorunlu (Konusuz ile süre verilemez)
+  const topicRequired = !isFuture && topics.length > 0 && !selectedTopicId;
   useEffect(() => {
     if (isFuture) return;
     let cancel = false;
@@ -70,6 +72,7 @@ export function CellPopover({
 
   // Konu seçiliyse süre o konudan (ve genel toplamdan) eklenir/çıkar
   async function applyDelta(delta: number) {
+    if (topicRequired) return; // konu zorunlu ama seçilmemiş
     let d = delta;
     if (selectedTopic) {
       // Konu 0'ın altına düşmesin: çıkarılacak miktarı konunun süresiyle sınırla
@@ -176,19 +179,29 @@ export function CellPopover({
               <span className="tp-settings-label muted small">Konu</span>
               <button
                 type="button"
-                className="tp-goal-select"
+                className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
                 onClick={() => setShowTopicPopup(true)}
               >
                 <span className={selectedTopic ? "" : "muted"}>
-                  {selectedTopic ? selectedTopic.name : "Konusuz"}
+                  {selectedTopic
+                    ? selectedTopic.name
+                    : topics.length > 0
+                    ? "Konu seç"
+                    : "Konusuz"}
                 </span>
                 <span className="tp-goal-caret">▾</span>
               </button>
+              {topicRequired ? (
+                <span className="topic-required-hint">
+                  Süre eklemek için bir konu seç (ya da yeni konu ekle).
+                </span>
+              ) : null}
             </div>
             <div className="cell-delta">
               <DeltaPicker
                 current={selectedTopic ? selectedTopicMin : workMin}
                 onApply={applyDelta}
+                disabled={topicRequired}
               />
             </div>
             <div className="popover-divider" />

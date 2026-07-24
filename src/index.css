@@ -2614,6 +2614,17 @@ body {
 .tp-goal-select:hover { border-color: var(--accent); }
 .tp-goal-select .muted { color: var(--muted); }
 .tp-goal-caret { color: var(--muted); font-size: 11px; flex: none; }
+/* Zorunlu konu seçimi: konu kutusu vurgulanır + uyarı metni */
+.tp-goal-select.topic-required {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18);
+}
+.tp-goal-select.topic-required:hover { border-color: var(--danger); }
+.topic-required-hint {
+  color: var(--danger);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
 
 /* Hedef seç/ekle popup */
 .goal-popup {
@@ -4785,6 +4796,14 @@ tr.drag-over th {
 }
 .start-btn:hover {
   filter: brightness(1.08);
+}
+.start-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+.start-btn:disabled:hover {
+  filter: none;
 }
 .past-note {
   line-height: 1.4;

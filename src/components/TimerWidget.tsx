@@ -197,9 +197,12 @@ export function LiveTimer({
 export function TimerSetup({
   timerState,
   onStartTimer,
+  blockStart = false,
 }: {
   timerState: "" | "running" | "pausedt";
   onStartTimer: (config: TimerConfig) => void;
+  // true ise başlatma engellenir (ör. zorunlu konu seçilmemiş)
+  blockStart?: boolean;
 }) {
   const [mode, setMode] = useState<"pomodoro" | "stopwatch">("pomodoro");
   const [focus, setFocus] = useState(30);
@@ -278,6 +281,7 @@ export function TimerSetup({
           </div>
           <button
             className="start-btn"
+            disabled={blockStart}
             onClick={() =>
               onStartTimer({
                 workTargetMs: focus * 60000,
@@ -298,6 +302,7 @@ export function TimerSetup({
           </p>
           <button
             className="start-btn"
+            disabled={blockStart}
             onClick={() =>
               onStartTimer({ workTargetMs: null, plannedBreakMs: null, cycles: 1, topicId: null, topicName: null })
             }
@@ -380,9 +385,12 @@ function formatMinutes(min: number): string {
 export function DeltaPicker({
   current,
   onApply,
+  disabled = false,
 }: {
   current: number;
   onApply: (deltaMin: number) => void;
+  // true ise ekle/çıkar engellenir (ör. zorunlu konu seçilmemiş)
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startY: number; startScroll: number } | null>(null);
@@ -433,7 +441,7 @@ export function DeltaPicker({
   }
 
   function apply() {
-    if (delta === 0) return;
+    if (delta === 0 || disabled) return;
     onApply(delta);
     setIdx(ZERO_INDEX);
     if (ref.current) ref.current.scrollTop = ZERO_INDEX * ITEM_H;
@@ -477,7 +485,7 @@ export function DeltaPicker({
       <div className="delta-apply">
         <button
           className={`delta-btn ${delta < 0 ? "minus" : "plus"}`}
-          disabled={delta === 0}
+          disabled={delta === 0 || disabled}
           onClick={apply}
         >
           {delta === 0 ? "Kaydır" : delta > 0 ? `+ Ekle` : `− Çıkar`}

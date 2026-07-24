@@ -56,6 +56,8 @@ export function TimerPanel({
   const runningTimer = todayTimers.find(isRunning) ?? null;
   const pausedTimers = todayTimers.filter((t) => !isRunning(t));
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
+  // Etkinliğin konusu varsa konu seçimi zorunlu (Konusuz ile başlatılamaz)
+  const topicRequired = topics.length > 0 && !selectedTopicId;
 
   // Seçili etkinlik geçersizleştiyse sıfırla
   useEffect(() => {
@@ -204,21 +206,31 @@ export function TimerPanel({
                 <span className="tp-settings-label muted small">Konu</span>
                 <button
                   type="button"
-                  className="tp-goal-select"
+                  className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
                   onClick={() => setShowTopicPopup(true)}
                 >
                   <span className={selectedTopic ? "" : "muted"}>
-                    {selectedTopic ? selectedTopic.name : "Konusuz"}
+                    {selectedTopic
+                      ? selectedTopic.name
+                      : topics.length > 0
+                      ? "Konu seç"
+                      : "Konusuz"}
                   </span>
                   <span className="tp-goal-caret">▾</span>
                 </button>
+                {topicRequired ? (
+                  <span className="topic-required-hint">
+                    Başlatmak için bir konu seç (ya da yeni konu ekle).
+                  </span>
+                ) : null}
               </div>
             ) : null}
 
             <TimerSetup
               timerState={runningTimer ? "running" : ""}
+              blockStart={topicRequired}
               onStartTimer={(config) => {
-                if (!selectedHabitId) return;
+                if (!selectedHabitId || topicRequired) return;
                 onStartNew(selectedHabitId, todayIndex, {
                   ...config,
                   topicId: selectedTopicId || null,
