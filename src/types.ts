@@ -24,6 +24,8 @@ export type WeekData = {
 
 // Günlük gündem öğesi: haftalık tablodan seçilen alışkanlık (habitId dolu)
 // ya da serbest yazılan yapılacak (todo). done sadece todo'larda kullanılır.
+export type TodoDifficulty = "kolay" | "orta" | "zor";
+
 export type TodoItem = {
   id: string;
   day: string; // ISO tarih (YYYY-MM-DD)
@@ -31,6 +33,10 @@ export type TodoItem = {
   title: string;
   done: boolean;
   position: number;
+  // Serbest to-do'lar için ek alanlar (alışkanlık bağlılarında kullanılmaz)
+  description: string | null;
+  difficulty: TodoDifficulty | null;
+  deadline: string | null; // ISO tarih-saat (deadline)
 };
 
 export type TimerPhase = "work" | "break";

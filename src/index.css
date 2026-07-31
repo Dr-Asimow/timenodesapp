@@ -2963,6 +2963,133 @@ body {
   margin-top: 2px;
 }
 .rtab-agenda-btn:hover { border-color: var(--muted); color: var(--text); }
+
+/* --- To-do: boş durum "oluştur" butonu ------------------------------- */
+.todo-create-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 26px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.todo-create-plus {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  font-weight: 300;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(45, 184, 102, 0.32);
+  transition: transform 0.12s;
+}
+.todo-create-big:hover .todo-create-plus { transform: translateY(-2px); }
+.todo-create-label { color: var(--muted); font-size: 14px; }
+
+/* --- To-do kartları ------------------------------------------------- */
+.todo-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.todo-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.todo-card.done { opacity: 0.55; }
+.todo-card-check {
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.todo-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 14px;
+}
+.todo-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+.todo-card.done .todo-card-title { text-decoration: line-through; }
+.todo-card-desc { line-height: 1.3; }
+.todo-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.todo-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.todo-badge.deadline {
+  background: rgba(127, 127, 127, 0.16);
+  color: var(--muted);
+}
+.todo-badge.deadline.expired { color: var(--danger); }
+.todo-badge.diff { color: #fff; }
+.todo-card-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* --- To-do popup: zorluk seçici + deadline ------------------------- */
+.todo-diff-seg { display: flex; gap: 8px; }
+.todo-diff-opt {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  text-transform: capitalize;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.todo-diff-opt:hover { border-color: var(--muted); }
+.todo-diff-opt.active { color: #fff; border-color: transparent; }
+.todo-diff-opt.kolay.active { background: #2db866; }
+.todo-diff-opt.orta.active { background: #e0a12f; }
+.todo-diff-opt.zor.active { background: #e5484d; }
+.todo-deadline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 2px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.todo-deadline-toggle input { accent-color: var(--accent); cursor: pointer; }
+
 .reminder-info {
   flex: 1;
   display: flex;
@@ -5590,6 +5717,140 @@ tr.drag-over th {
   height: 14px;
   border-radius: 4px;
   display: inline-block;
+}
+
+/* --- Notlar sayfası (etkinlik kapsülleri + sağlık barı) ---------------- */
+.notes-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 8px 4px 40px;
+}
+.notes-h {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 24px 0 14px;
+}
+.notes-h:first-child {
+  margin-top: 8px;
+}
+.hcaps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+.hcap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.hcap:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.hcap-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.hcap-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.hcap-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+.hcap-add {
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+  border-style: dashed;
+}
+.hcap-plus {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--accent);
+}
+.hcap-add-label {
+  font-size: 13px;
+}
+.hcap-arch {
+  gap: 12px;
+  opacity: 0.85;
+}
+.hcap-arch .hcap-name {
+  color: var(--text);
+}
+.hcap-arch-label {
+  align-self: flex-start;
+}
+
+/* --- Etkinlik detay: not sayfaları listesi ---------------------------- */
+.hp-pages-hint {
+  margin: 0 0 10px;
+}
+.hp-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hp-page-card {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.hp-page-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+}
+.hp-page-open:hover {
+  color: var(--accent);
+}
+.hp-page-title {
+  font-size: 14px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-page-add {
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+}
+.hp-page-add:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.hp-page-add:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* --- Gün detayı (heatmap altı, seçili güne ait özet) ------------------ */

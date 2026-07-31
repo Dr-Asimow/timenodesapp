@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   loadHabitDetail,
-  loadHabitPage,
-  saveHabitPage,
+  listHabitPages,
+  createHabitPage,
+  loadPageById,
+  savePageById,
+  deletePageById,
   addTopic,
   deleteTopic,
   type HabitDetail,
+  type HabitPageMeta,
 } from "../db";
 import { formatMinutes } from "../heat";
 import { dateDMY } from "./BadgeCard";
@@ -37,12 +41,15 @@ export function HabitDetailPage({
 }) {
   const [detail, setDetail] = useState<HabitDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showNotes, setShowNotes] = useState(false);
   const [newTopic, setNewTopic] = useState("");
   const [busy, setBusy] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(name);
   const [customDays, setCustomDays] = useState("");
+  // Etkinliğe bağlı not sayfaları (10'a kadar) + açık olan sayfanın id'si
+  const [pages, setPages] = useState<HabitPageMeta[]>([]);
+  const [openPageId, setOpenPageId] = useState<string | null>(null);
+  const MAX_PAGES = 10;
 
   useEffect(() => {
     let cancel = false;
@@ -54,6 +61,11 @@ export function HabitDetailPage({
       .finally(() => {
         if (!cancel) setLoading(false);
       });
+    listHabitPages(habitId)
+      .then((p) => {
+        if (!cancel) setPages(p);
+      })
+      .catch(() => {});
     return () => {
       cancel = true;
     };
@@ -62,6 +74,37 @@ export function HabitDetailPage({
   async function refresh() {
     const d = await loadHabitDetail(habitId);
     setDetail(d);
+  }
+
+  async function refreshPages() {
+    const p = await listHabitPages(habitId);
+    setPages(p);
+  }
+
+  // Yeni boş bir not sayfası ekle (10 sınırı) ve hemen aç
+  async function addPage() {
+    if (busy || pages.length >= MAX_PAGES) return;
+    setBusy(true);
+    try {
+      const id = await createHabitPage(
+        userId,
+        habitId,
+        pages.length,
+        "Yeni Sayfa"
+      );
+      await refreshPages();
+      setOpenPageId(id);
+    } catch {
+      // sessizce geç (hata App tarafındaki genel akışta değil, burada yerel)
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePage(id: string) {
+    if (!confirm("Bu not sayfası silinsin mi?")) return;
+    await deletePageById(id).catch(() => {});
+    await refreshPages();
   }
 
   async function submitTopic() {
@@ -106,15 +149,19 @@ export function HabitDetailPage({
     if (n && n !== name) onRename(n);
   }
 
-  if (showNotes) {
+  if (openPageId) {
+    const pid = openPageId;
     return (
       <NotePage
-        pageKey={`habit:${habitId}`}
+        pageKey={`habitpage:${pid}`}
         headerLabel={`${name} · Notlar`}
         userId={userId}
-        load={() => loadHabitPage(habitId)}
-        save={(title, content) => saveHabitPage(userId, habitId, title, content)}
-        onClose={() => setShowNotes(false)}
+        load={() => loadPageById(pid)}
+        save={(title, content) => savePageById(pid, title, content)}
+        onClose={() => {
+          setOpenPageId(null);
+          refreshPages().catch(() => {});
+        }}
       />
     );
   }
@@ -150,12 +197,6 @@ export function HabitDetailPage({
           </button>
           <span className="note-day muted small">{name} · Etkinlik</span>
           <HabitColorPicker color={accentColor} onChange={onAccentColorChange} />
-          <button
-            className="ghost-btn accent small hp-notes-btn"
-            onClick={() => setShowNotes(true)}
-          >
-            <IconNote size={14} /> Notlar
-          </button>
         </div>
 
         <div className="note-scroll">
@@ -381,6 +422,45 @@ export function HabitDetailPage({
                       +
                     </button>
                   </form>
+                </section>
+
+                <section className="hp-section">
+                  <h3 className="hp-section-title">Sayfalar</h3>
+                  <p className="muted small hp-pages-hint">
+                    Bu etkinliğe özel not sayfaları oluştur. ({pages.length}/
+                    {MAX_PAGES})
+                  </p>
+                  <div className="hp-pages">
+                    {pages.map((p) => (
+                      <div className="hp-page-card" key={p.id}>
+                        <button
+                          className="hp-page-open"
+                          onClick={() => setOpenPageId(p.id)}
+                        >
+                          <IconNote size={15} />
+                          <span className="hp-page-title">
+                            {p.title.trim() || "Yeni Sayfa"}
+                          </span>
+                        </button>
+                        <button
+                          className="goal-popup-del"
+                          aria-label="Sayfayı sil"
+                          onClick={() => removePage(p.id)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {pages.length < MAX_PAGES ? (
+                      <button
+                        className="hp-page-add"
+                        onClick={addPage}
+                        disabled={busy}
+                      >
+                        + Sayfa Ekle
+                      </button>
+                    ) : null}
+                  </div>
                 </section>
               </>
             )}

@@ -417,6 +417,40 @@ export async function deleteHabit(id: string) {
   if (error) throw error;
 }
 
+// Bir etkinliği arşivle: geçmiş kayıtları (entries, konular) silmeden listeden gizle
+export async function archiveHabit(id: string) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ archived: true })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Arşivlenmiş bir etkinliği geri getir (geçmişiyle birlikte)
+export async function unarchiveHabit(id: string) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ archived: false })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Arşivlenmiş etkinlikleri listele
+export async function loadArchivedHabits(): Promise<Habit[]> {
+  const { data, error } = await supabase
+    .from("habits")
+    .select("id,name,color")
+    .eq("archived", true)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data as HabitRow[]) ?? []).map((h) => ({
+    id: h.id,
+    name: h.name,
+    color: h.color ?? null,
+  }));
+}
+
 // Bir alışkanlığın sıralama pozisyonunu güncelle (sürükle-bırak yeniden sıralama)
 export async function updateHabitPosition(id: string, position: number) {
   const { error } = await supabase
@@ -474,6 +508,9 @@ type TodoRow = {
   title: string;
   done: boolean;
   position: number;
+  description?: string | null;
+  difficulty?: string | null;
+  deadline?: string | null;
 };
 
 const toTodo = (r: TodoRow): TodoItem => ({
@@ -483,13 +520,16 @@ const toTodo = (r: TodoRow): TodoItem => ({
   title: r.title,
   done: r.done,
   position: r.position,
+  description: r.description ?? null,
+  difficulty: (r.difficulty as TodoItem["difficulty"]) ?? null,
+  deadline: r.deadline ?? null,
 });
 
 // Bir günün gündem öğelerini yükle (sıralı)
 export async function loadDayTodos(dayISO: string): Promise<TodoItem[]> {
   const { data, error } = await supabase
     .from("todos")
-    .select("id,day,habit_id,title,done,position")
+    .select("id,day,habit_id,title,done,position,description,difficulty,deadline")
     .eq("day", dayISO)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -497,13 +537,21 @@ export async function loadDayTodos(dayISO: string): Promise<TodoItem[]> {
   return ((data as TodoRow[]) ?? []).map(toTodo);
 }
 
+// Serbest to-do için ek alanlar (açıklama / zorluk / deadline) — hepsi opsiyonel
+export type TodoExtra = {
+  description?: string | null;
+  difficulty?: TodoItem["difficulty"];
+  deadline?: string | null;
+};
+
 // Gündem öğesi ekle (alışkanlık bağlı: habitId dolu / serbest todo: title)
 export async function addTodo(
   userId: string,
   dayISO: string,
   habitId: string | null,
   title: string,
-  position: number
+  position: number,
+  extra?: TodoExtra
 ): Promise<TodoItem> {
   const { data, error } = await supabase
     .from("todos")
@@ -513,8 +561,11 @@ export async function addTodo(
       habit_id: habitId,
       title,
       position,
+      description: extra?.description ?? null,
+      difficulty: extra?.difficulty ?? null,
+      deadline: extra?.deadline ?? null,
     })
-    .select("id,day,habit_id,title,done,position")
+    .select("id,day,habit_id,title,done,position,description,difficulty,deadline")
     .single();
   if (error) throw error;
   return toTodo(data as TodoRow);
@@ -534,7 +585,7 @@ export async function deleteTodo(id: string) {
 export async function loadTodosInRange(fromISO: string, toISO: string): Promise<TodoItem[]> {
   const { data, error } = await supabase
     .from("todos")
-    .select("id,day,habit_id,title,done,position")
+    .select("id,day,habit_id,title,done,position,description,difficulty,deadline")
     .gte("day", fromISO)
     .lte("day", toISO)
     .is("habit_id", null)
@@ -548,7 +599,7 @@ export async function loadTodosInRange(fromISO: string, toISO: string): Promise<
 export async function loadOverdueTodos(beforeISO: string): Promise<TodoItem[]> {
   const { data, error } = await supabase
     .from("todos")
-    .select("id,day,habit_id,title,done,position")
+    .select("id,day,habit_id,title,done,position,description,difficulty,deadline")
     .lt("day", beforeISO)
     .eq("done", false)
     .is("habit_id", null)
@@ -659,6 +710,70 @@ export async function saveHabitPage(
       .insert({ user_id: userId, habit_id: habitId, title, content });
     if (error) throw error;
   }
+}
+
+// --- Etkinliğe bağlı çoklu not sayfaları (Notlar sayfası) ------------------
+export type HabitPageMeta = { id: string; title: string };
+
+// Bir etkinliğin not sayfalarını (id + başlık) sıraya göre listele
+export async function listHabitPages(habitId: string): Promise<HabitPageMeta[]> {
+  const { data, error } = await supabase
+    .from("pages")
+    .select("id,title,position,created_at")
+    .eq("habit_id", habitId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return ((data as { id: string; title: string }[]) ?? []).map((p) => ({
+    id: p.id,
+    title: p.title,
+  }));
+}
+
+// Etkinliğe yeni boş bir not sayfası ekle, oluşan sayfanın id'sini döndür
+export async function createHabitPage(
+  userId: string,
+  habitId: string,
+  position: number,
+  title: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("pages")
+    .insert({ user_id: userId, habit_id: habitId, title, content: {}, position })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
+// Belirli bir not sayfasını id ile yükle
+export async function loadPageById(id: string): Promise<Page | null> {
+  const { data, error } = await supabase
+    .from("pages")
+    .select("id,title,content,day")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as PageRow) ?? null;
+}
+
+// Belirli bir not sayfasını id ile kaydet
+export async function savePageById(
+  id: string,
+  title: string,
+  content: PageDoc
+): Promise<void> {
+  const { error } = await supabase
+    .from("pages")
+    .update({ title, content })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Bir not sayfasını sil
+export async function deletePageById(id: string): Promise<void> {
+  const { error } = await supabase.from("pages").delete().eq("id", id);
+  if (error) throw error;
 }
 
 // Tek bir günün notunu oku (takvim popup'ı için)

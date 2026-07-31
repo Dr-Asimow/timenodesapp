@@ -24,6 +24,7 @@ export function WeekGrid({
   userId,
   activeTimers,
   onChange,
+  onArchiveHabit,
   sel,
   onSelChange,
   onOpenDayNote,
@@ -39,6 +40,8 @@ export function WeekGrid({
   userId: string;
   activeTimers: ActiveTimer[];
   onChange: (w: WeekData) => void;
+  // Etkinliği arşivle (geçmişi silmeden gizle)
+  onArchiveHabit: (habitId: string) => void;
   // Etkinlik bazında sağlık durumu (uyarı noktaları için). null = gösterme.
   health: Record<string, HabitHealthLite> | null;
   // Seçili hücre (popover) App'te tutulur ki DayPanel de açabilsin
@@ -59,6 +62,11 @@ export function WeekGrid({
   const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
   const [adding, setAdding] = useState(false);
+  // Etkinlik kaldırma onayı: hangi etkinlik için (arşivle / kayıtlarla sil) seçimi açık
+  const [pendingRemove, setPendingRemove] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   // Gün detayı panelinde seçili gün (0..6) — varsayılan: bugün
   const [selectedDay, setSelectedDay] = useState<number>(() => {
     const iso = toISODate(new Date());
@@ -162,9 +170,9 @@ export function WeekGrid({
     return iso < todayISO ? "past" : "future";
   }
 
-  function removeHabit(habitId: string) {
-    const h = week.habits.find((x) => x.id === habitId);
-    if (!confirm(`"${h?.name}" etkinliği silinsin mi?`)) return;
+  // "Kayıtlarla birlikte sil": etkinliği ve tüm geçmişini kalıcı olarak kaldır
+  // (onChange → App.persist diff'i deleteHabit çağırır, cascade ile entries de silinir)
+  function deleteHabitWithData(habitId: string) {
     const minutes = { ...week.minutes };
     const breaks = { ...week.breaks };
     const notes = { ...week.notes };
@@ -350,8 +358,10 @@ export function WeekGrid({
                   })()}
                   <button
                     className="row-del"
-                    title="Sil"
-                    onClick={() => removeHabit(h.id)}
+                    title="Kaldır"
+                    onClick={() =>
+                      setPendingRemove({ id: h.id, name: h.name })
+                    }
                   >
                     ×
                   </button>
@@ -598,6 +608,67 @@ export function WeekGrid({
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {pendingRemove ? (
+        <div
+          className="modal-overlay"
+          onClick={() => setPendingRemove(null)}
+        >
+          <div
+            className="modal habit-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="modal-title">
+              "{pendingRemove.name}" kaldırılsın mı?
+            </h2>
+            <p className="muted small" style={{ marginTop: -4 }}>
+              Arşivlersen geçmiş kayıtlar korunur, istediğinde geri
+              getirebilirsin. Kayıtlarla silersen tüm geçmişi kalıcı olarak
+              gider.
+            </p>
+            <div
+              className="modal-actions"
+              style={{ flexDirection: "column", gap: 8 }}
+            >
+              <button
+                className="primary-btn"
+                type="button"
+                onClick={() => {
+                  onArchiveHabit(pendingRemove.id);
+                  if (sel?.habitId === pendingRemove.id) setSel(null);
+                  setPendingRemove(null);
+                }}
+              >
+                Arşivle (geçmişi tut)
+              </button>
+              <button
+                className="danger-btn"
+                type="button"
+                onClick={() => {
+                  if (
+                    confirm(
+                      `"${pendingRemove.name}" tüm geçmişiyle kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`
+                    )
+                  ) {
+                    deleteHabitWithData(pendingRemove.id);
+                    if (sel?.habitId === pendingRemove.id) setSel(null);
+                    setPendingRemove(null);
+                  }
+                }}
+              >
+                Kayıtlarla birlikte sil
+              </button>
+              <button
+                className="ghost-btn"
+                type="button"
+                onClick={() => setPendingRemove(null)}
+              >
+                Vazgeç
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { ActiveTimer, Goal, Reminder, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
+import type { ActiveTimer, Goal, Habit, Reminder, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
 import { supabase } from "./supabase";
 import {
   loadWeek,
   insertHabit,
   sendCongratsEmail,
   deleteHabit,
+  archiveHabit,
+  unarchiveHabit,
+  loadArchivedHabits,
   updateHabitPosition,
   updateHabitColor,
   updateHabitName,
@@ -15,6 +18,7 @@ import {
   loadDayTodos,
   loadOverdueTodos,
   addTodo,
+  type TodoExtra,
   updateTodoDay,
   setTodoDone,
   deleteTodo,
@@ -38,6 +42,7 @@ import {
   loadTimers,
   saveTimers,
   weeksOfYear,
+  newId,
 } from "./storage";
 import {
   loadYearTotals,
@@ -73,6 +78,7 @@ import { RightPanel } from "./components/RightPanel";
 import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
 import { HabitDetailPage } from "./components/HabitDetailPage";
+import { HabitsPage } from "./components/HabitsPage";
 import { MusicFloating } from "./components/AmbientPlayer";
 import { useMusicFavorites } from "./useMusicFavorites";
 import Dock from "./components/Dock";
@@ -146,6 +152,15 @@ function ShopIcon() {
       <path d="M2 2h2l2.5 8h7l1.5-5H5.5"/>
       <circle cx="7.5" cy="14.5" r="1"/>
       <circle cx="13.5" cy="14.5" r="1"/>
+    </svg>
+  );
+}
+function NotesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="1.5" width="12" height="15" rx="1.5"/>
+      <path d="M6 5h6M6 8h6M6 11h4"/>
     </svg>
   );
 }
@@ -224,6 +239,8 @@ export function App() {
     string,
     HabitHealthLite
   > | null>(null);
+  // Arşivlenmiş etkinlikler (geri getirme listesi için)
+  const [archivedHabits, setArchivedHabits] = useState<Habit[]>([]);
   // Bugünün gündemi (to-do + seçilen alışkanlıklar)
   const [todos, setTodos] = useState<TodoItem[]>([]);
   // Günü geçmiş, yapılmamış to-do'lar (sağ panel "Geciken" bölümü)
@@ -378,6 +395,23 @@ export function App() {
       cancel = true;
     };
   }, [userId, week?.startDate]);
+
+  // Arşivlenmiş etkinlikleri yükle (geri getirme listesi)
+  useEffect(() => {
+    if (!userId) {
+      setArchivedHabits([]);
+      return;
+    }
+    let cancel = false;
+    loadArchivedHabits()
+      .then((list) => {
+        if (!cancel) setArchivedHabits(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, [userId]);
 
   // Bugünün gündemini (to-do'lar) + geciken to-do'ları yükle
   useEffect(() => {
@@ -636,6 +670,69 @@ export function App() {
     chain.current = chain.current
       .then(() => updateHabitName(habitId, n))
       .catch((e) => setErr(e instanceof Error ? e.message : "Ad kaydedilemedi"));
+  }
+
+  // Bir etkinliği arşivle: geçmişi silmeden görünümden kaldır (persist diff'ine girmeden)
+  function handleArchiveHabit(habitId: string) {
+    const archived = (week ?? viewedWeek)?.habits.find((h) => h.id === habitId);
+    const update = (w: WeekData): WeekData => {
+      const minutes = { ...w.minutes };
+      const breaks = { ...w.breaks };
+      const notes = { ...w.notes };
+      delete minutes[habitId];
+      delete breaks[habitId];
+      delete notes[habitId];
+      return {
+        ...w,
+        habits: w.habits.filter((h) => h.id !== habitId),
+        minutes,
+        breaks,
+        notes,
+      };
+    };
+    setWeek((w) => (w ? update(w) : w));
+    setViewedWeek((w) => (w ? update(w) : w));
+    if (archived) setArchivedHabits((list) => [...list, archived]);
+    chain.current = chain.current
+      .then(() => archiveHabit(habitId))
+      .then(() => loadArchivedHabits())
+      .then((list) => setArchivedHabits(list))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Arşivlenemedi"));
+  }
+
+  // Notlar sayfasından yeni etkinlik ekle (güncel haftaya) — WeekGrid.addHabit ile aynı
+  function addHabitByName(name: string) {
+    const n = name.trim();
+    if (!n || !week) return;
+    const h: Habit = { id: newId(), name: n, color: null };
+    applyWeek({
+      ...week,
+      habits: [...week.habits, h],
+      minutes: { ...week.minutes, [h.id]: [0, 0, 0, 0, 0, 0, 0] },
+      breaks: { ...week.breaks, [h.id]: [0, 0, 0, 0, 0, 0, 0] },
+      notes: {
+        ...week.notes,
+        [h.id]: [null, null, null, null, null, null, null],
+      },
+    });
+  }
+
+  // Arşivlenmiş bir etkinliği geri getir: geçmişiyle birlikte tekrar görünür yap
+  function handleRestoreHabit(habitId: string) {
+    setArchivedHabits((list) => list.filter((h) => h.id !== habitId));
+    chain.current = chain.current
+      .then(() => unarchiveHabit(habitId))
+      .then(async () => {
+        // Geçmişiyle birlikte gösterilen haftaya geri koymak için haftayı yeniden yükle
+        const startISO = (viewedWeek ?? week)?.startDate;
+        if (!startISO) return;
+        const w = await loadWeek(startISO);
+        if (viewedWeek) setViewedWeek(w);
+        else setWeek(w);
+      })
+      .then(() => loadArchivedHabits())
+      .then((list) => setArchivedHabits(list))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Geri getirilemedi"));
   }
 
   // Bir etkinliğin sağlık uyarısı ertelemesini uygula: yerel harita + DB
@@ -953,10 +1050,17 @@ export function App() {
       setErr(e instanceof Error ? e.message : "Gündem eklenemedi");
     }
   };
-  const addTodoItem = async (title: string) => {
+  const addTodoItem = async (title: string, extra?: TodoExtra) => {
     if (!userId) return;
     try {
-      const item = await addTodo(userId, todayISO, null, title, todos.length);
+      const item = await addTodo(
+        userId,
+        todayISO,
+        null,
+        title,
+        todos.length,
+        extra
+      );
       setTodos((cur) => [...cur, item]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Yapılacak eklenemedi");
@@ -1064,6 +1168,7 @@ export function App() {
                 userId={userId ?? ""}
                 activeTimers={viewingOther ? [] : timers}
                 onChange={applyWeek}
+                onArchiveHabit={handleArchiveHabit}
                 sel={cellSel}
                 onSelChange={setCellSel}
                 onOpenDayNote={(day, label) => setNoteTarget({ day, label })}
@@ -1195,6 +1300,17 @@ export function App() {
             stats={yearStats}
             topicsByHabit={yearTopics}
           />
+        ) : view === "notes" ? (
+          <HabitsPage
+            habits={week.habits}
+            health={healthMap}
+            archivedHabits={archivedHabits}
+            onOpenHabit={(habitId, name) =>
+              setHabitPageTarget({ habitId, name })
+            }
+            onAddHabit={addHabitByName}
+            onRestoreHabit={handleRestoreHabit}
+          />
         ) : view === "friends" ? (
           <FriendsPage friendCode={friendCode} />
         ) : view === "shop" ? (
@@ -1257,6 +1373,7 @@ export function App() {
               className: "dock-profile",
             },
             { icon: <WeekIcon />, label: "Dashboard", onClick: () => navigate("week"), active: view === "week" },
+            { icon: <NotesIcon />, label: "Notlar", onClick: () => navigate("notes"), active: view === "notes" },
             { icon: <WeeksIcon />, label: "Takvim", onClick: () => navigate("weeks"), active: view === "weeks" },
             { icon: <StatsIcon />, label: "İstatistikler", onClick: () => navigate("stats"), active: view === "stats" },
             { icon: <FriendsIcon />, label: "Arkadaşlar", onClick: () => navigate("friends"), active: view === "friends" },

@@ -1,15 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Goal, Reminder, TodoItem } from "../types";
+import type { Goal, Reminder, TodoItem, TodoDifficulty } from "../types";
+import type { TodoExtra } from "../db";
 import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
 import type { MusicFavoritesApi } from "../useMusicFavorites";
-import { GoalPopup } from "./GoalPopup";
 import { MusicCard } from "./AmbientPlayer";
 import { Collapse } from "./Collapse";
-import { IconTarget, IconBell, IconCheck } from "./Icons";
+import { IconBell, IconCheck } from "./Icons";
 
-type RightTab = "hedef" | "hatirlatici" | "todo";
+type RightTab = "hatirlatici" | "todo";
 
 function fmtCountdown(targetAt: string): { label: string; expired: boolean } {
   const diff = new Date(targetAt).getTime() - Date.now();
@@ -57,7 +57,7 @@ export function RightPanel({
   onDeleteGoal: (id: string) => void;
   onAddReminder: (title: string, targetAt: string, description?: string) => void;
   onDeleteReminder: (id: string) => void;
-  onAddTodo: (title: string) => void;
+  onAddTodo: (title: string, extra?: TodoExtra) => void;
   onToggleTodo: (id: string, done: boolean) => void;
   onDeleteItem: (id: string) => void;
   onMoveOverdueToToday: (id: string) => void;
@@ -71,20 +71,13 @@ export function RightPanel({
   onToggleAmbient: (id: AmbientId) => void;
   onAmbientVol: (v: number) => void;
 }) {
-  const [tab, setTab] = useState<RightTab>("hedef");
+  const [tab, setTab] = useState<RightTab>("hatirlatici");
 
   return (
     <aside className="right-panel">
       {/* Üst sekmeli kart */}
       <div className="side-card right-tabs-card">
         <div className="rtab-btns">
-          <button
-            className={`rtab-btn${tab === "hedef" ? " active" : ""}`}
-            onClick={() => setTab("hedef")}
-            title="Hedefler"
-          >
-            <IconTarget size={14} /> Hedef
-          </button>
           <button
             className={`rtab-btn${tab === "hatirlatici" ? " active" : ""}`}
             onClick={() => setTab("hatirlatici")}
@@ -102,9 +95,7 @@ export function RightPanel({
         </div>
 
         <div className="rtab-content">
-          {tab === "hedef" ? (
-            <GoalTab goals={goals} onAdd={onAddGoal} onDelete={onDeleteGoal} />
-          ) : tab === "hatirlatici" ? (
+          {tab === "hatirlatici" ? (
             <ReminderTab
               reminders={reminders}
               onAdd={onAddReminder}
@@ -137,48 +128,6 @@ export function RightPanel({
         onVolume={onAmbientVol}
       />
     </aside>
-  );
-}
-
-// --- Hedef sekmesi ---
-
-function GoalTab({
-  goals,
-  onAdd,
-  onDelete,
-}: {
-  goals: Goal[];
-  onAdd: (text: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [showPopup, setShowPopup] = useState(false);
-
-  return (
-    <div className="rtab-inner">
-      {goals.length === 0 ? (
-        <p className="rtab-empty muted small">Henüz hedef eklenmemiş.</p>
-      ) : (
-        <ul className="rtab-list">
-          {goals.map((g) => (
-            <li key={g.id} className="rtab-item">
-              <span className="rtab-item-text">{g.text}</span>
-              <button className="rtab-del-btn" onClick={() => onDelete(g.id)}>×</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button className="rtab-agenda-btn" onClick={() => setShowPopup(true)}>
-        + Hedef ekle
-      </button>
-      {showPopup ? (
-        <GoalPopup
-          goals={goals}
-          onAdd={onAdd}
-          onDelete={onDelete}
-          onClose={() => setShowPopup(false)}
-        />
-      ) : null}
-    </div>
   );
 }
 
@@ -588,6 +537,28 @@ function overdueLabel(dayISO: string, todayISO: string): string {
   return diff === 1 ? "dün" : `${diff} gün önce`;
 }
 
+// Zorluk rozetinin etiketi + rengi
+function difficultyMeta(
+  d: TodoDifficulty | null
+): { label: string; color: string } | null {
+  if (d === "kolay") return { label: "kolay", color: "#2db866" };
+  if (d === "orta") return { label: "orta", color: "#e0a12f" };
+  if (d === "zor") return { label: "zor", color: "#e5484d" };
+  return null;
+}
+
+// Deadline'a kalan süreyi kısa etikete çevir ("2 gün", "5 sa", "gecikti")
+function deadlineLabel(deadline: string): { label: string; expired: boolean } {
+  const diff = new Date(deadline).getTime() - Date.now();
+  if (diff <= 0) return { label: "gecikti", expired: true };
+  const totalMin = Math.floor(diff / 60000);
+  if (totalMin >= 1440)
+    return { label: `${Math.ceil(totalMin / 1440)} gün`, expired: false };
+  const h = Math.floor(totalMin / 60);
+  if (h >= 1) return { label: `${h} sa`, expired: false };
+  return { label: `${totalMin} dk`, expired: false };
+}
+
 function TodoTab({
   todos,
   overdueTodos,
@@ -602,39 +573,26 @@ function TodoTab({
   todos: TodoItem[];
   overdueTodos: TodoItem[];
   todayISO: string;
-  onAddTodo: (title: string) => void;
+  onAddTodo: (title: string, extra?: TodoExtra) => void;
   onToggle: (id: string, done: boolean) => void;
   onDelete: (id: string) => void;
   onMoveOverdueToToday: (id: string) => void;
   onCompleteOverdue: (id: string) => void;
   onDeleteOverdue: (id: string) => void;
 }) {
-  const [newTodo, setNewTodo] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [, tick] = useState(0);
+
+  // Deadline rozetlerini canlı tutmak için dakikada bir yenile
+  useEffect(() => {
+    const id = setInterval(() => tick((v) => v + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const todoItems = todos.filter((t) => t.day === todayISO && !t.habitId);
 
-  function submitTodo() {
-    const t = newTodo.trim();
-    if (!t) return;
-    onAddTodo(t);
-    setNewTodo("");
-  }
-
   return (
     <div className="rtab-inner">
-      <form
-        className="rtab-add-row"
-        onSubmit={(e) => { e.preventDefault(); submitTodo(); }}
-      >
-        <input
-          className="rtab-input"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-          placeholder="Yapılacak ekle…"
-        />
-        <button type="submit" className="rtab-add-btn">+</button>
-      </form>
-
       {overdueTodos.length > 0 ? (
         <div className="overdue-sec">
           <span className="overdue-title small">Geciken</span>
@@ -667,23 +625,233 @@ function TodoTab({
       ) : null}
 
       {todoItems.length === 0 ? (
-        <p className="rtab-empty muted small">Bugün için henüz bir öğe yok.</p>
+        <button className="todo-create-big" onClick={() => setShowPopup(true)}>
+          <span className="todo-create-plus">+</span>
+          <span className="todo-create-label">to-do oluştur</span>
+        </button>
       ) : (
-        <ul className="rtab-list">
-          {todoItems.map((it) => (
-            <li key={it.id} className="rtab-item todo-item">
-              <input
-                type="checkbox"
-                className="rtab-check"
-                checked={it.done}
-                onChange={(e) => onToggle(it.id, e.target.checked)}
-              />
-              <span className={`rtab-item-text${it.done ? " done" : ""}`}>{it.title}</span>
-              <button className="rtab-del-btn" onClick={() => onDelete(it.id)}>×</button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="todo-cards">
+            {todoItems.map((it) => {
+              const diff = difficultyMeta(it.difficulty);
+              const dl = it.deadline ? deadlineLabel(it.deadline) : null;
+              return (
+                <li key={it.id} className={`todo-card${it.done ? " done" : ""}`}>
+                  <input
+                    type="checkbox"
+                    className="todo-card-check"
+                    checked={it.done}
+                    onChange={(e) => onToggle(it.id, e.target.checked)}
+                  />
+                  <div className="todo-card-body">
+                    <div className="todo-card-title">{it.title}</div>
+                    {it.description ? (
+                      <div className="todo-card-desc muted small">
+                        {it.description}
+                      </div>
+                    ) : null}
+                    {dl || diff ? (
+                      <div className="todo-card-badges">
+                        {dl ? (
+                          <span
+                            className={`todo-badge deadline${dl.expired ? " expired" : ""}`}
+                          >
+                            {dl.label}
+                          </span>
+                        ) : null}
+                        {diff ? (
+                          <span
+                            className="todo-badge diff"
+                            style={{ background: diff.color }}
+                          >
+                            {diff.label}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    className="rtab-del-btn todo-card-del"
+                    onClick={() => onDelete(it.id)}
+                  >
+                    ×
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <button
+            className="rtab-agenda-btn"
+            onClick={() => setShowPopup(true)}
+          >
+            + to-do ekle
+          </button>
+        </>
       )}
+
+      {showPopup ? (
+        <TodoPopup
+          onAdd={(title, extra) => {
+            onAddTodo(title, extra);
+            setShowPopup(false);
+          }}
+          onClose={() => setShowPopup(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+// --- To-do ekleme popup'ı (zorluk + opsiyonel deadline) ---
+
+function TodoPopup({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (title: string, extra: TodoExtra) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [difficulty, setDifficulty] = useState<TodoDifficulty>("orta");
+  const [wantsDeadline, setWantsDeadline] = useState(false);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [showCal, setShowCal] = useState(false);
+  const [showTime, setShowTime] = useState(false);
+
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  function fmtDate(iso: string) {
+    const d = new Date(iso + "T00:00:00");
+    return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function submit() {
+    const t = title.trim();
+    if (!t) return;
+    const deadline =
+      wantsDeadline && date && time
+        ? new Date(`${date}T${time}`).toISOString()
+        : null;
+    onAdd(t, { description: desc.trim() || null, difficulty, deadline });
+  }
+
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal reminder-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="popover-head">
+          <span className="popover-title">To-do ekle</span>
+          <button className="modal-x" onClick={onClose} aria-label="Kapat">×</button>
+        </div>
+
+        <div className="rp-field">
+          <label className="rp-label">Başlık</label>
+          <input
+            className="rp-input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ne yapılacak?"
+            autoFocus
+          />
+        </div>
+
+        <div className="rp-field">
+          <label className="rp-label">
+            Açıklama <span className="muted small">(opsiyonel)</span>
+          </label>
+          <textarea
+            className="rp-textarea"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Detay ekle…"
+            rows={2}
+          />
+        </div>
+
+        <div className="rp-field">
+          <label className="rp-label">Zorluk</label>
+          <div className="todo-diff-seg">
+            {(["kolay", "orta", "zor"] as TodoDifficulty[]).map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`todo-diff-opt ${d}${difficulty === d ? " active" : ""}`}
+                onClick={() => setDifficulty(d)}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="todo-deadline-toggle">
+          <input
+            type="checkbox"
+            checked={wantsDeadline}
+            onChange={(e) => {
+              setWantsDeadline(e.target.checked);
+              if (!e.target.checked) {
+                setShowCal(false);
+                setShowTime(false);
+              }
+            }}
+          />
+          <span>Süre belirle</span>
+        </label>
+
+        {wantsDeadline ? (
+          <>
+            <div className="rp-row">
+              <div className="rp-field rp-half">
+                <label className="rp-label">Tarih</label>
+                <button
+                  type="button"
+                  className={`rp-input rp-picker-btn${date ? "" : " muted"}`}
+                  onClick={() => { setShowCal(!showCal); setShowTime(false); }}
+                >
+                  {date ? fmtDate(date) : "Gün seç"}
+                </button>
+              </div>
+              <div className="rp-field rp-half">
+                <label className="rp-label">Saat</label>
+                <button
+                  type="button"
+                  className={`rp-input rp-picker-btn${time ? "" : " muted"}`}
+                  onClick={() => { setShowTime(!showTime); setShowCal(false); }}
+                >
+                  {time || "Saat seç"}
+                </button>
+              </div>
+            </div>
+
+            <Collapse open={showCal}>
+              <MiniCal
+                value={date}
+                minISO={todayISO}
+                onPick={(d) => { setDate(d); setShowCal(false); }}
+              />
+            </Collapse>
+
+            <Collapse open={showTime}>
+              <TimePicker
+                value={time}
+                onPick={(t) => { setTime(t); setShowTime(false); }}
+              />
+            </Collapse>
+          </>
+        ) : null}
+
+        <button
+          className="primary-btn rp-submit"
+          disabled={!title.trim()}
+          onClick={submit}
+        >
+          Kaydet
+        </button>
+      </div>
+    </div>,
+    document.body
   );
 }
