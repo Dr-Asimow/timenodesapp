@@ -274,6 +274,9 @@ export function App() {
   const dayRef = useRef<string>(toISODate(new Date()));
   // Interval içinden güncel değerlere erişim için ref'ler
   const timersRef = useRef<ActiveTimer[]>([]);
+  // Güncel haftanın taze kopyası: ardışık (aynı render'daki) commit'lerin bayat
+  // closure yerine birbirinin sonucunu taban almasını sağlar (dakika kaybını önler).
+  const weekRef = useRef<WeekData | null>(null);
   const finishTimerRef = useRef<(t: ActiveTimer) => void>(() => {});
   const autoAdvanceRef = useRef<(t: ActiveTimer) => void>(() => {});
   const timerSettingsRef = useRef<TimerSettings>(timerSettings);
@@ -756,7 +759,8 @@ export function App() {
   // Hafta değişimini uygula: doğru haftayı (güncel ya da görüntülenen) güncelle + DB'ye yaz
   function applyWeek(newWeek: WeekData) {
     if (week && newWeek.startDate === week.startDate) {
-      const old = week;
+      const old = weekRef.current ?? week;
+      weekRef.current = newWeek;
       setWeek(newWeek);
       persist(old, newWeek);
     } else {
@@ -917,12 +921,16 @@ export function App() {
     mins: number,
     brkMins: number
   ) => {
-    if (!week || (mins <= 0 && brkMins <= 0)) return;
+    // Bayat closure yerine ref'ten oku: aynı render'da ard arda gelen commit'ler
+    // (ör. döngü bitişi + finishTimer) birbirinin sonucunu taban alsın, yoksa
+    // ikincisi öncekinin dakikalarını içermeyen mutlak değerle üstüne yazardı.
+    const cur = weekRef.current;
+    if (!cur || (mins <= 0 && brkMins <= 0)) return;
     // İleri tarihli hücreye süre yazma: sayaçlar haftaya değil gün indeksine
     // (0..6) bağlı olduğu için eski bir sayaç bu haftanın gelecekteki bir
     // gününe denk gelebilir. İleri tarihte zaman takibi yok, yazmayı atla.
-    if (toISODate(addDays(week.startDate, day)) > toISODate(new Date())) return;
-    const w: WeekData = { ...week };
+    if (toISODate(addDays(cur.startDate, day)) > toISODate(new Date())) return;
+    const w: WeekData = { ...cur };
     if (mins > 0) {
       const row = (w.minutes[habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
       row[day] += mins;
@@ -933,7 +941,10 @@ export function App() {
       br[day] += brkMins;
       w.breaks = { ...w.breaks, [habitId]: br };
     }
-    applyWeek(w);
+    // Ref'i hemen güncelle ki sonraki eşzamanlı commit taze tabanı görsün.
+    weekRef.current = w;
+    setWeek(w);
+    persist(cur, w);
   };
 
   // Konu varsa o günün konu kırılımına çalışma dakikasını ekler (Supabase)
@@ -996,6 +1007,7 @@ export function App() {
 
   // Interval ref'lerini her render'da güncel tut
   timersRef.current = timers;
+  weekRef.current = week;
   finishTimerRef.current = finishTimer;
   autoAdvanceRef.current = autoAdvance;
   timerSettingsRef.current = timerSettings;
