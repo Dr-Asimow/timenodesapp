@@ -13,7 +13,7 @@
   --lvl-2: #8edaaa;
   --lvl-3: #4cc07a;
   --lvl-4: #2db866;
-  --lvl-5: #1a9950;
+  --lvl-5: #12c25c;
   --row-hl: rgba(45, 184, 102, 0.08);
   --lw-bg: #eef0f3;
   --timers-h: 0px;
@@ -49,7 +49,7 @@
   --lvl-2: #175a34;
   --lvl-3: #1f8a4a;
   --lvl-4: #2db866;
-  --lvl-5: #1a9950;
+  --lvl-5: #12c25c;
   --glass-from: rgba(30, 31, 36, 0.65);
   --glass-to: rgba(22, 23, 28, 0.75);
   --glass-border: rgba(255, 255, 255, 0.06);
@@ -78,7 +78,7 @@
   --lvl-2: #2d27a8;
   --lvl-3: #5046e5;
   --lvl-4: #7c6af8;
-  --lvl-5: #a5b4fc;
+  --lvl-5: #8a70ff;
   --row-hl: rgba(124, 106, 248, 0.10);
   --glass-from: rgba(22, 23, 48, 0.65);
   --glass-to: rgba(14, 15, 31, 0.75);
@@ -170,7 +170,7 @@
   --lvl-2: #f9b984;
   --lvl-3: #f08a3c;
   --lvl-4: #d9580d;
-  --lvl-5: #b34008;
+  --lvl-5: #f2610a;
   --input-border: #d5cdc0;
   --accent-tint: rgba(217, 88, 13, 0.08);
   --accent-tint-2: rgba(217, 88, 13, 0.10);
@@ -193,7 +193,7 @@
   --lvl-2: #cee080;
   --lvl-3: #a8cc40;
   --lvl-4: #7cb800;
-  --lvl-5: #5a8800;
+  --lvl-5: #8bcc00;
   --input-border: #d0d0c8;
   --accent-tint: rgba(124, 184, 0, 0.08);
   --accent-tint-2: rgba(124, 184, 0, 0.12);
@@ -6781,25 +6781,22 @@ body {
 .cell.lvl-5 .cell-val {
   color: #fff;
 }
+/* Hücreler düz renk: seviyeler arasında gradyan/parlaklık efekti yok, en çok
+   zaman harcanan (lvl-5) hücre kendi canlı rengiyle görünsün. */
 .cell.lvl-1 {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lvl-1) 70%, white) 0%, var(--lvl-1) 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--lvl-1);
 }
 .cell.lvl-2 {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lvl-2) 80%, white) 0%, var(--lvl-2) 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--lvl-2);
 }
 .cell.lvl-3 {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lvl-3) 85%, white) 0%, var(--lvl-3) 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 3px rgba(0, 0, 0, 0.10);
+  background: var(--lvl-3);
 }
 .cell.lvl-4 {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--lvl-4) 90%, white) 0%, var(--lvl-4) 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.18), inset 0 -2px 3px rgba(0, 0, 0, 0.12);
+  background: var(--lvl-4);
 }
 .cell.lvl-5 {
-  background: linear-gradient(135deg, var(--lvl-5) 0%, color-mix(in srgb, var(--lvl-5) 85%, black) 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15), inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+  background: var(--lvl-5);
 }
 .cell-td.today-col::before {
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
