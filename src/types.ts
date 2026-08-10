@@ -44,6 +44,10 @@ export type TimerPhase = "work" | "break";
 export type ActiveTimer = {
   habitId: string;
   day: number; // 0..6
+  // Sayacın ait olduğu haftanın Pazartesi ISO tarihi (YYYY-MM-DD). Böylece bir
+  // sonraki haftaya taşınan (aynı gün indeksli) duraklatılmış sayaç, hedef
+  // hücresine doğru yazılabilir. Eski kayıtlarda yok → "bayat" sayılıp atılır.
+  weekStart?: string;
   // İçinde bulunulan evre: çalışma mı, mola mı
   phase: TimerPhase;
   // Geçerli evrenin son devam ettiği an (epoch ms); duraklatınca null

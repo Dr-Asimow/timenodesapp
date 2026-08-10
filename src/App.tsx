@@ -177,10 +177,16 @@ const TR_DAYS = [
 const sameCell = (t: ActiveTimer, habitId: string, day: number) =>
   t.habitId === habitId && t.day === day;
 
-function newTimer(habitId: string, day: number, config: TimerConfig): ActiveTimer {
+function newTimer(
+  habitId: string,
+  day: number,
+  config: TimerConfig,
+  weekStart: string
+): ActiveTimer {
   return {
     habitId,
     day,
+    weekStart,
     phase: "work",
     startedAt: Date.now(),
     workMs: 0,
@@ -314,13 +320,19 @@ export function App() {
       setTimers([]);
       return;
     }
-    setTimers(loadTimers(userId));
+    const loaded = loadTimers(userId);
+    setTimers(loaded);
     let cancel = false;
     setErr(null);
     (async () => {
       try {
         const w = await loadWeek(toISODate(mondayOf(new Date())));
-        if (!cancel) setWeek(w);
+        if (!cancel) {
+          setWeek(w);
+          // Bir sonraki güne/haftaya taşınmış duraklatılmış sayaçları
+          // "tamamla" gibi sonuca yaz, hayaletleri temizle.
+          flushStaleTimers(loaded, w);
+        }
       } catch (e) {
         if (!cancel) {
           const msg =
@@ -814,7 +826,8 @@ export function App() {
         next[idx] = { ...next[idx], startedAt: Date.now() };
       }
     } else {
-      next = [...next, newTimer(habitId, day, config)];
+      const weekStart = week?.startDate ?? toISODate(mondayOf(new Date()));
+      next = [...next, newTimer(habitId, day, config, weekStart)];
     }
     setTimers(next);
   };
@@ -959,6 +972,84 @@ export function App() {
     // İleri tarihe konu süresi de yazma (commitToWeek ile aynı gerekçe).
     if (dayISO > toISODate(new Date())) return;
     addTopicMinutes(userId, habitId, dayISO, topicId, mins).catch(() => {});
+  };
+
+  // Günü/haftası geçmiş DURAKLATILMIŞ sayaçları "tamamla" denmiş gibi hedef
+  // hücresine yazıp temizler. weekStart'ı olmayan eski kayıtlar (bug'tan kalma
+  // hayaletler) hangi haftaya ait olduğu bilinmediği için yazılmadan atılır.
+  const flushStaleTimers = (loaded: ActiveTimer[], curWeek: WeekData) => {
+    const todayISO = toISODate(new Date());
+    const isStale = (t: ActiveTimer) =>
+      !isRunning(t) &&
+      (!t.weekStart || toISODate(addDays(t.weekStart, t.day)) < todayISO);
+    if (!loaded.some(isStale)) return;
+
+    setTimers(loaded.filter((t) => !isStale(t)));
+
+    // Güncel hafta commit'leri ref üzerinden ilerlesin: setWeek(curWeek) henüz
+    // render'a yansımadı, commitToWeek weekRef.current'i taban alır.
+    weekRef.current = curWeek;
+
+    // weekStart'ı başka bir haftaya işaret edenleri hafta bazında topla.
+    const otherWeeks = new Map<string, ActiveTimer[]>();
+    for (const t of loaded.filter(isStale)) {
+      if (!t.weekStart) continue; // bayat hayalet → yazma, at
+      const mins = workMinutes(t);
+      const brkMins = Math.round(breakTotalMs(t) / 60000);
+      if (mins <= 0 && brkMins <= 0) continue;
+      if (t.weekStart === curWeek.startDate) {
+        commitToWeek(t.habitId, t.day, mins, brkMins);
+        if (userId && t.topicId && mins > 0) {
+          addTopicMinutes(
+            userId,
+            t.habitId,
+            toISODate(addDays(t.weekStart, t.day)),
+            t.topicId,
+            mins
+          ).catch(() => {});
+        }
+      } else {
+        const arr = otherWeeks.get(t.weekStart) ?? [];
+        arr.push(t);
+        otherWeeks.set(t.weekStart, arr);
+      }
+    }
+
+    // Başka haftalara ait olanlar: o haftayı yükle, dakikaları EKLE, kaydet.
+    for (const [ws, arr] of otherWeeks) {
+      void (async () => {
+        try {
+          const ow = await loadWeek(ws);
+          let nw: WeekData = { ...ow };
+          for (const t of arr) {
+            const mins = workMinutes(t);
+            const brkMins = Math.round(breakTotalMs(t) / 60000);
+            if (mins > 0) {
+              const row = (nw.minutes[t.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
+              row[t.day] += mins;
+              nw = { ...nw, minutes: { ...nw.minutes, [t.habitId]: row } };
+            }
+            if (brkMins > 0) {
+              const br = (nw.breaks[t.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
+              br[t.day] += brkMins;
+              nw = { ...nw, breaks: { ...nw.breaks, [t.habitId]: br } };
+            }
+            if (userId && t.topicId && mins > 0) {
+              addTopicMinutes(
+                userId,
+                t.habitId,
+                toISODate(addDays(ws, t.day)),
+                t.topicId,
+                mins
+              ).catch(() => {});
+            }
+          }
+          persist(ow, nw);
+        } catch {
+          /* hafta yüklenemezse sessiz geç */
+        }
+      })();
+    }
   };
 
   // Pomodoro otomatik faz geçişi (autoBreak açıkken hedef dolunca interval çağırır):
@@ -1178,7 +1269,11 @@ export function App() {
               <WeekGrid
                 week={shownWeek}
                 userId={userId ?? ""}
-                activeTimers={viewingOther ? [] : timers}
+                activeTimers={
+                  viewingOther
+                    ? []
+                    : timers.filter((t) => t.weekStart === week?.startDate)
+                }
                 onChange={applyWeek}
                 onArchiveHabit={handleArchiveHabit}
                 sel={cellSel}
