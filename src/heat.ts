@@ -18,22 +18,22 @@ export function formatMinutes(minutes: number): string {
   return `${h}s ${m}dk`;
 }
 
-// Haftalık tablodaki sağlık uyarısı noktası:
-//  "low" = kırmızı (skor <25, Düşük), "mid" = sarı (25..59, Orta), null = gösterme.
+// Haftalık tablodaki sağlık rozetinin tier'ı (yaprak ikonu + yüzde rengi için):
+//  "low" = kırmızı (<25), "mid" = sarı (25..59), "good" = yeşil (>=60).
 // Yeni etkinliklerde (pencere <3 gün) ve ertelenmiş/kapatılmış olanlarda gösterilmez.
-export type HealthDot = "low" | "mid" | null;
-export function healthDot(h: {
+export type HealthTier = "low" | "mid" | "good" | null;
+export function healthTier(h: {
   score: number;
   windowDays: number;
   snoozeUntil: string | null;
   muted: boolean;
-}): HealthDot {
+}): HealthTier {
   if (h.muted) return null;
-  if (h.windowDays < 3) return null; // yeni etkinlik: henüz uyarma
+  if (h.windowDays < 3) return null; // yeni etkinlik: henüz gösterme
   if (h.snoozeUntil && new Date(h.snoozeUntil).getTime() > Date.now()) return null;
   if (h.score < 25) return "low";
   if (h.score < 60) return "mid";
-  return null;
+  return "good";
 }
 
 export function formatHours(minutes: number): string {

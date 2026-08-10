@@ -15,6 +15,7 @@ import { formatMinutes } from "../heat";
 import { dateDMY } from "./BadgeCard";
 import { IconNote, IconPencil } from "./Icons";
 import { NotePage, HabitColorPicker } from "./note/NotePage";
+import { HabitIconPicker } from "./HabitIcon";
 
 // Etkinlik detay sayfası: ad, kategoriler (konular), zaman istatistikleri
 // (hafta/ay/yıl/tüm zamanlar) ve etkinlik sağlığı. "Notlar" butonu üzerinden
@@ -25,6 +26,8 @@ export function HabitDetailPage({
   userId,
   accentColor,
   onAccentColorChange,
+  icon,
+  onIconChange,
   onRename,
   onSnooze,
   onClose,
@@ -34,6 +37,8 @@ export function HabitDetailPage({
   userId: string;
   accentColor: string | null;
   onAccentColorChange: (color: string | null) => void;
+  icon: string | null;
+  onIconChange: (icon: string | null) => void;
   onRename: (name: string) => void;
   // Sağlık uyarısı erteleme/kapatma (null+false = uyarı açık)
   onSnooze: (snoozeUntil: string | null, muted: boolean) => void;
@@ -196,7 +201,14 @@ export function HabitDetailPage({
             ← Kapat
           </button>
           <span className="note-day muted small">{name} · Etkinlik</span>
-          <HabitColorPicker color={accentColor} onChange={onAccentColorChange} />
+          <span className="hp-pickers">
+            <HabitIconPicker
+              icon={icon}
+              color={accentColor}
+              onChange={onIconChange}
+            />
+            <HabitColorPicker color={accentColor} onChange={onAccentColorChange} />
+          </span>
         </div>
 
         <div className="note-scroll">

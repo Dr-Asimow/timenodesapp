@@ -12,6 +12,7 @@ import {
   loadArchivedHabits,
   updateHabitPosition,
   updateHabitColor,
+  updateHabitIcon,
   updateHabitName,
   upsertEntry,
   setDayNote,
@@ -604,7 +605,7 @@ export function App() {
       for (let i = 0; i < newW.habits.length; i++) {
         const h = newW.habits[i];
         if (!oldIds.has(h.id)) {
-          await insertHabit(h.id, h.name, i);
+          await insertHabit(h.id, h.name, i, h.icon ?? null);
           // Kullanıcının manuel eklediği ilk alışkanlık → tebrik maili (fire-and-forget)
           if (!congratsSentRef.current) {
             congratsSentRef.current = true;
@@ -670,6 +671,19 @@ export function App() {
     chain.current = chain.current
       .then(() => updateHabitColor(habitId, color))
       .catch((e) => setErr(e instanceof Error ? e.message : "Renk kaydedilemedi"));
+  }
+
+  // Bir etkinliğin ikonunu güncelle: yerel state (güncel + görüntülenen hafta) + DB
+  function setHabitIcon(habitId: string, icon: string | null) {
+    const update = (w: WeekData): WeekData => ({
+      ...w,
+      habits: w.habits.map((h) => (h.id === habitId ? { ...h, icon } : h)),
+    });
+    setWeek((w) => (w ? update(w) : w));
+    setViewedWeek((w) => (w ? update(w) : w));
+    chain.current = chain.current
+      .then(() => updateHabitIcon(habitId, icon))
+      .catch((e) => setErr(e instanceof Error ? e.message : "İkon kaydedilemedi"));
   }
 
   // Bir etkinliğin adını güncelle: yerel state (güncel + görüntülenen hafta) + DB
@@ -1517,6 +1531,13 @@ export function App() {
           }
           onAccentColorChange={(color) =>
             setHabitColor(habitPageTarget.habitId, color)
+          }
+          icon={
+            shownWeek.habits.find((h) => h.id === habitPageTarget.habitId)
+              ?.icon ?? null
+          }
+          onIconChange={(icon) =>
+            setHabitIcon(habitPageTarget.habitId, icon)
           }
           onRename={(name) => setHabitName(habitPageTarget.habitId, name)}
           onSnooze={(snoozeUntil, muted) =>

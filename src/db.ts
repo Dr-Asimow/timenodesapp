@@ -310,7 +310,13 @@ export async function currentUsername(): Promise<string | null> {
 
 // --- Veri ------------------------------------------------------------
 
-type HabitRow = { id: string; name: string; position: number; color: string | null };
+type HabitRow = {
+  id: string;
+  name: string;
+  position: number;
+  color: string | null;
+  icon?: string | null;
+};
 type EntryRow = {
   habit_id: string;
   day: string;
@@ -325,7 +331,7 @@ type DayNoteRow = { day: string; note: string | null };
 export async function loadWeek(startDateISO: string): Promise<WeekData> {
   let { data: habitRows, error: hErr } = await supabase
     .from("habits")
-    .select("id,name,position,color")
+    .select("id,name,position,color,icon")
     .eq("archived", false)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -335,7 +341,7 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
     await seedDefaultHabits();
     const r = await supabase
       .from("habits")
-      .select("id,name,position,color")
+      .select("id,name,position,color,icon")
       .eq("archived", false)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
@@ -346,6 +352,7 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
     id: h.id,
     name: h.name,
     color: h.color ?? null,
+    icon: h.icon ?? null,
   }));
 
   const endISO = toISODate(addDays(startDateISO, 6));
@@ -405,10 +412,15 @@ export async function seedDefaultHabits() {
   if (error) throw error;
 }
 
-export async function insertHabit(id: string, name: string, position: number) {
+export async function insertHabit(
+  id: string,
+  name: string,
+  position: number,
+  icon: string | null = null
+) {
   const { error } = await supabase
     .from("habits")
-    .insert({ id, name, position });
+    .insert({ id, name, position, icon });
   if (error) throw error;
 }
 
@@ -439,7 +451,7 @@ export async function unarchiveHabit(id: string) {
 export async function loadArchivedHabits(): Promise<Habit[]> {
   const { data, error } = await supabase
     .from("habits")
-    .select("id,name,color")
+    .select("id,name,color,icon")
     .eq("archived", true)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -448,6 +460,7 @@ export async function loadArchivedHabits(): Promise<Habit[]> {
     id: h.id,
     name: h.name,
     color: h.color ?? null,
+    icon: h.icon ?? null,
   }));
 }
 
@@ -465,6 +478,15 @@ export async function updateHabitColor(id: string, color: string | null) {
   const { error } = await supabase
     .from("habits")
     .update({ color })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Bir alışkanlığın ikonunu güncelle (null = ikon yok, renk noktası göster)
+export async function updateHabitIcon(id: string, icon: string | null) {
+  const { error } = await supabase
+    .from("habits")
+    .update({ icon })
     .eq("id", id);
   if (error) throw error;
 }

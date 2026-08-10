@@ -3,6 +3,8 @@ export type Habit = {
   name: string;
   // Etkinlik rengi (hex). null/boş ise varsayılan accent rengi kullanılır.
   color: string | null;
+  // Etkinlik ikonu anahtarı (ör. "sword"). null ise renk noktası gösterilir.
+  icon?: string | null;
 };
 
 // minutes[habitId][dayIndex 0..6] = dakika

@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import type { ActiveTimer, Habit, TodoItem, WeekData } from "../types";
 import { addDays, newId, toISODate } from "../storage";
 import { isRunning } from "../timer";
-import { heatLevel, formatMinutes, healthDot } from "../heat";
+import { heatLevel, formatMinutes, healthTier } from "../heat";
 import { loadDayTodos, type HabitHealthLite } from "../db";
 import { CellPopover } from "./CellPopover";
 import { IconNote, IconCheck, IconCircle } from "./Icons";
+import { HabitIcon, HabitIconPicker } from "./HabitIcon";
 
 const DAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const FULL_DAY_LABELS = [
@@ -61,6 +62,7 @@ export function WeekGrid({
 }) {
   const setSel = onSelChange;
   const [newHabit, setNewHabit] = useState("");
+  const [newIcon, setNewIcon] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   // Etkinlik kaldırma onayı: hangi etkinlik için (arşivle / kayıtlarla sil) seçimi açık
   const [pendingRemove, setPendingRemove] = useState<{
@@ -140,7 +142,7 @@ export function WeekGrid({
   function addHabit() {
     const name = newHabit.trim();
     if (!name) return;
-    const h: Habit = { id: newId(), name, color: null };
+    const h: Habit = { id: newId(), name, color: null, icon: newIcon };
     onChange({
       ...week,
       habits: [...week.habits, h],
@@ -152,6 +154,7 @@ export function WeekGrid({
       },
     });
     setNewHabit("");
+    setNewIcon(null);
     setAdding(false);
   }
 
@@ -329,10 +332,19 @@ export function WeekGrid({
                   >
                     ⠿
                   </span>
-                  <span
-                    className="habit-dot"
-                    style={{ background: h.color || "var(--accent)" }}
-                  />
+                  {h.icon ? (
+                    <span
+                      className="habit-icon-wrap"
+                      style={{ color: h.color || "var(--accent)" }}
+                    >
+                      <HabitIcon name={h.icon} className="habit-icon" />
+                    </span>
+                  ) : (
+                    <span
+                      className="habit-dot"
+                      style={{ background: h.color || "var(--accent)" }}
+                    />
+                  )}
                   <button
                     className="habit-link"
                     title="Etkinlik sayfasını aç"
@@ -342,18 +354,34 @@ export function WeekGrid({
                   </button>
                   {(() => {
                     const hh = health?.[h.id];
-                    const dot = hh ? healthDot(hh) : null;
-                    if (!dot) return null;
+                    const tier = hh ? healthTier(hh) : null;
+                    if (!tier || !hh) return null;
+                    const label =
+                      tier === "low"
+                        ? "Sağlık düşük — bu etkinliğe uzun süredir çalışılmadı. Ayarlamak için tıkla."
+                        : tier === "mid"
+                        ? "Sağlık orta — aksatmamaya dikkat. Ayarlamak için tıkla."
+                        : "Sağlıklı — düzenli çalışıyorsun. Ayarlamak için tıkla.";
                     return (
                       <span
-                        className={`health-dot ${dot}`}
-                        title={
-                          dot === "low"
-                            ? "Sağlık düşük — bu etkinliğe uzun süredir çalışılmadı. Ayarlamak için tıkla."
-                            : "Sağlık orta — aksatmamaya dikkat. Ayarlamak için tıkla."
-                        }
+                        className={`health-badge ${tier}`}
+                        title={label}
                         onClick={() => onOpenHabitPage(h.id, h.name)}
-                      />
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                          <path d="M2 21c0-3 1.85-5.36 5.08-6" />
+                        </svg>
+                        {hh.score}%
+                      </span>
                     );
                   })()}
                   <button
@@ -573,6 +601,7 @@ export function WeekGrid({
           className="modal-overlay"
           onClick={() => {
             setNewHabit("");
+            setNewIcon(null);
             setAdding(false);
           }}
         >
@@ -585,13 +614,20 @@ export function WeekGrid({
             }}
           >
             <h2 className="modal-title">Yeni etkinlik</h2>
-            <input
-              autoFocus
-              className="habit-modal-input"
-              value={newHabit}
-              onChange={(e) => setNewHabit(e.target.value)}
-              placeholder="Etkinlik ismi…"
-            />
+            <div className="habit-modal-row">
+              <HabitIconPicker
+                icon={newIcon}
+                color={null}
+                onChange={setNewIcon}
+              />
+              <input
+                autoFocus
+                className="habit-modal-input"
+                value={newHabit}
+                onChange={(e) => setNewHabit(e.target.value)}
+                placeholder="Etkinlik ismi…"
+              />
+            </div>
             <div className="modal-actions">
               <button className="primary-btn" type="submit">
                 Ekle
@@ -601,6 +637,7 @@ export function WeekGrid({
                 type="button"
                 onClick={() => {
                   setNewHabit("");
+                  setNewIcon(null);
                   setAdding(false);
                 }}
               >

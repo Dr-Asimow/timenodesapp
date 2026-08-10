@@ -4424,24 +4424,37 @@ button {
 .row-del:hover {
   color: var(--danger);
 }
-/* Sağlık uyarısı noktası (etkinlik adının yanında) */
-.health-dot {
+/* Sağlık rozeti (etkinlik adının yanında): yaprak ikonu + yüzde, tier rengi */
+.health-badge {
   flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px 2px 4px;
+  border-radius: 999px;
   cursor: pointer;
-  box-shadow: 0 0 0 3px transparent;
-  transition: box-shadow 0.15s;
+  color: var(--muted);
+  background: color-mix(in srgb, currentColor 15%, transparent);
+  transition: background 0.15s;
 }
-.health-dot:hover {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+.health-badge svg {
+  width: 11px;
+  height: 11px;
 }
-.health-dot.low {
-  background: var(--danger);
+.health-badge:hover {
+  background: color-mix(in srgb, currentColor 26%, transparent);
 }
-.health-dot.mid {
-  background: var(--lvl-3);
+.health-badge.low {
+  color: #e5484d;
+}
+.health-badge.mid {
+  color: #e0a51e;
+}
+.health-badge.good {
+  color: #16a34a;
 }
 
 /* Sürükle-bırak tutamacı + yeniden sıralama */
@@ -6346,6 +6359,108 @@ tr.drag-over th {
 }
 .nt-swatch:hover {
   border-color: var(--accent);
+}
+
+/* --- Etkinlik ikonu (satırda) + ikon seçici -------------------------- */
+.habit-icon-wrap {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.habit-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+/* İkon seçici tetik butonu (renk butonuyla aynı boyut) */
+.habit-icon-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.habit-icon-btn:hover {
+  background: var(--panel-2);
+  border-color: var(--accent);
+}
+.habit-icon-btn .habit-icon {
+  width: 17px;
+  height: 17px;
+}
+.habit-icon-btn .habit-dot {
+  width: 12px;
+  height: 12px;
+}
+/* Tüm ikonların açıldığı popup (ızgara) */
+.nt-icon-pop {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 8px;
+  width: max-content;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--popup-shadow);
+}
+/* Etkinlik popup'ı üst çubuğunda sağa yaslı aç (taşmasın) */
+.hp-pickers .nt-icon-pop {
+  left: auto;
+  right: 0;
+}
+.nt-icon-cell {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.nt-icon-cell:hover {
+  background: var(--panel);
+  border-color: var(--accent);
+}
+.nt-icon-cell.on {
+  border-color: var(--accent);
+  background: var(--accent-tint-2);
+}
+.nt-icon-cell.none {
+  color: var(--muted);
+  font-size: 15px;
+}
+.nt-icon-cell .habit-icon {
+  width: 18px;
+  height: 18px;
+}
+/* Yeni etkinlik modalı: ikon + isim aynı satırda */
+.habit-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.habit-modal-row .habit-modal-input {
+  flex: 1;
+}
+/* Etkinlik popup'ı üst çubuğundaki iki seçici (ikon + renk) */
+.hp-pickers {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* --- ProseMirror içerik (prose) --- */
