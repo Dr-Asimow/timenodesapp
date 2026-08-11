@@ -93,6 +93,9 @@ function normalizeTimer(
   return {
     habitId: t.habitId,
     day: t.day,
+    // Haftaya bağlılık korunmalı; yoksa yeniden yüklemede sayaç "bayat hayalet"
+    // sayılıp birikmiş dakikalar kaydedilmeden atılıyordu.
+    weekStart: t.weekStart,
     phase: t.phase ?? "work",
     startedAt: t.startedAt ?? null,
     workMs: t.workMs ?? t.accumulatedMs ?? 0,
