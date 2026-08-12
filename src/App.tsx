@@ -626,20 +626,19 @@ export function App() {
           if (oldIds.has(h.id)) await updateHabitPosition(h.id, i);
         }
       }
-      // değişen hücreler (çalışma / mola / aktivite notu)
+      // değişen hücreler (mola / aktivite notu).
+      // ÇALIŞMA dakikası burada YAZILMAZ; tek defter olarak topic_minutes'e yazılır
+      // (addTopicMinutes). Böylece bayat kopyayla üstüne yazma sorunu olmaz.
       for (const h of newW.habits) {
         for (let d = 0; d < 7; d++) {
-          const nw = newW.minutes[h.id]?.[d] ?? 0;
           const nb = newW.breaks[h.id]?.[d] ?? 0;
           const nn = newW.notes[h.id]?.[d] ?? null;
-          const ow = oldW.minutes[h.id]?.[d] ?? 0;
           const ob = oldW.breaks[h.id]?.[d] ?? 0;
           const on = oldW.notes[h.id]?.[d] ?? null;
-          if (nw !== ow || nb !== ob || (nn ?? "") !== (on ?? "")) {
+          if (nb !== ob || (nn ?? "") !== (on ?? "")) {
             await upsertEntry(
               h.id,
               toISODate(addDays(newW.startDate, d)),
-              nw,
               nb,
               nn
             );
@@ -974,18 +973,20 @@ export function App() {
     persist(cur, w);
   };
 
-  // Konu varsa o günün konu kırılımına çalışma dakikasını ekler (Supabase)
+  // Çalışma dakikasını TEK DEFTERE (topic_minutes) yazar. Kategori seçiliyse o
+  // kategoriye, değilse kategorisiz (topicId=NULL) satıra eklenir. Hücrenin çalışma
+  // toplamı bu satırların toplamıdır (loadWeek böyle okur).
   const commitTopic = (
     habitId: string,
     day: number,
     topicId: string | null,
     mins: number
   ) => {
-    if (!userId || !topicId || mins <= 0 || !week) return;
+    if (!userId || mins <= 0 || !week) return;
     const dayISO = toISODate(addDays(week.startDate, day));
-    // İleri tarihe konu süresi de yazma (commitToWeek ile aynı gerekçe).
+    // İleri tarihe süre yazma (commitToWeek ile aynı gerekçe).
     if (dayISO > toISODate(new Date())) return;
-    addTopicMinutes(userId, habitId, dayISO, topicId, mins).catch(() => {});
+    addTopicMinutes(userId, habitId, dayISO, topicId ?? null, mins).catch(() => {});
   };
 
   // Günü/haftası geçmiş DURAKLATILMIŞ sayaçları "tamamla" denmiş gibi hedef
@@ -1013,12 +1014,13 @@ export function App() {
       if (mins <= 0 && brkMins <= 0) continue;
       if (t.weekStart === curWeek.startDate) {
         commitToWeek(t.habitId, t.day, mins, brkMins);
-        if (userId && t.topicId && mins > 0) {
+        // Çalışma tek deftere: kategori varsa ona, yoksa kategorisiz (NULL) satıra.
+        if (userId && mins > 0) {
           addTopicMinutes(
             userId,
             t.habitId,
             toISODate(addDays(t.weekStart, t.day)),
-            t.topicId,
+            t.topicId ?? null,
             mins
           ).catch(() => {});
         }
@@ -1038,24 +1040,21 @@ export function App() {
           for (const t of arr) {
             const mins = workMinutes(t);
             const brkMins = Math.round(breakTotalMs(t) / 60000);
-            if (mins > 0) {
-              const row = (nw.minutes[t.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
-              row[t.day] += mins;
-              nw = { ...nw, minutes: { ...nw.minutes, [t.habitId]: row } };
-            }
-            if (brkMins > 0) {
-              const br = (nw.breaks[t.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
-              br[t.day] += brkMins;
-              nw = { ...nw, breaks: { ...nw.breaks, [t.habitId]: br } };
-            }
-            if (userId && t.topicId && mins > 0) {
+            // Çalışma: tek defter (topic_minutes); kategori varsa ona, yoksa NULL satıra.
+            if (userId && mins > 0) {
               addTopicMinutes(
                 userId,
                 t.habitId,
                 toISODate(addDays(ws, t.day)),
-                t.topicId,
+                t.topicId ?? null,
                 mins
               ).catch(() => {});
+            }
+            // Mola: entries (persist ile)
+            if (brkMins > 0) {
+              const br = (nw.breaks[t.habitId] ?? [0, 0, 0, 0, 0, 0, 0]).slice();
+              br[t.day] += brkMins;
+              nw = { ...nw, breaks: { ...nw.breaks, [t.habitId]: br } };
             }
           }
           persist(ow, nw);

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Topic, TopicMinute } from "../types";
 import type { DayType } from "./WeekGrid";
 import { DeltaPicker } from "./TimerWidget";
-import { loadTopicMinutes, loadTopics, addTopic, deleteTopic, addTopicMinutes } from "../db";
+import { loadTopicMinutes, loadTopics, addTopic, deleteTopic, addTopicMinutes, clearCellWork } from "../db";
 import { formatMinutes } from "../heat";
 import { TopicPopup } from "./TopicPopup";
 
@@ -70,21 +70,24 @@ export function CellPopover({
     return () => { cancel = true; };
   }, [habitId, isFuture]);
 
-  // Konu seçiliyse süre o konudan (ve genel toplamdan) eklenir/çıkar
+  // Çalışma dakikası TEK DEFTERE (topic_minutes) yazılır: kategori seçiliyse ona,
+  // değilse kategorisiz (NULL) satıra. onAddWork yalnız yereldeki hücre toplamını
+  // (anlık görüntü) günceller; kalıcı değer topic_minutes'tir.
   async function applyDelta(delta: number) {
     if (topicRequired) return; // konu zorunlu ama seçilmemiş
     let d = delta;
-    if (selectedTopic) {
-      // Konu 0'ın altına düşmesin: çıkarılacak miktarı konunun süresiyle sınırla
-      if (d < 0) d = -Math.min(-d, selectedTopicMin);
-      if (d === 0) return;
-      try {
-        await addTopicMinutes(userId, habitId, dayISO, selectedTopic.id, d);
-      } catch {
-        return; // konu yazılamadıysa genel toplamı da değiştirme
-      }
+    // Negatifte ilgili satırın altına düşme: seçili kategori süresi ya da kategorisiz kısım kadar sınırla
+    if (d < 0) {
+      const cap = selectedTopic ? selectedTopicMin : untracked;
+      d = -Math.min(-d, cap);
     }
-    if (d !== 0) onAddWork(d);
+    if (d === 0) return;
+    try {
+      await addTopicMinutes(userId, habitId, dayISO, selectedTopic ? selectedTopic.id : null, d);
+    } catch {
+      return; // yazılamadıysa yerel toplamı da değiştirme
+    }
+    onAddWork(d);
   }
 
   async function handleAddTopic(name: string) {
@@ -124,8 +127,10 @@ export function CellPopover({
               <button
                 type="button"
                 className="primary-btn"
-                onClick={() => {
-                  onAddWork(-workMin);
+                onClick={async () => {
+                  // Kalıcı kayıt tek defterde (topic_minutes) — önce onu temizle
+                  try { await clearCellWork(habitId, dayISO); } catch { /* yoksay */ }
+                  onAddWork(-workMin); // yereldeki hücre toplamını da sıfırla
                   onClose();
                 }}
               >

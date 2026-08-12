@@ -14,8 +14,9 @@ import {
 export async function loadYearTotals(
   year: number
 ): Promise<Record<number, number[]>> {
+  // Çalışma dakikaları tek defterden: topic_minutes (kategorili + kategorisiz NULL).
   const { data, error } = await supabase
-    .from("entries")
+    .from("topic_minutes")
     .select("day,work_min")
     .gte("day", `${year}-01-01`)
     .lte("day", `${year}-12-31`);
@@ -53,12 +54,22 @@ export type YearStats = {
 };
 
 export async function loadYearStats(year: number): Promise<YearStats> {
-  const { data: entries, error } = await supabase
-    .from("entries")
-    .select("habit_id,day,work_min,break_min")
-    .gte("day", `${year}-01-01`)
-    .lte("day", `${year}-12-31`);
-  if (error) throw error;
+  // Çalışma dakikaları tek defterden (topic_minutes), mola dakikaları entries'ten.
+  const [workRes, breakRes] = await Promise.all([
+    supabase
+      .from("topic_minutes")
+      .select("habit_id,day,work_min")
+      .gte("day", `${year}-01-01`)
+      .lte("day", `${year}-12-31`),
+    supabase
+      .from("entries")
+      .select("break_min")
+      .gte("day", `${year}-01-01`)
+      .lte("day", `${year}-12-31`),
+  ]);
+  if (workRes.error) throw workRes.error;
+  if (breakRes.error) throw breakRes.error;
+  const entries = workRes.data;
 
   const { data: habitRows } = await supabase
     .from("habits")
@@ -78,14 +89,16 @@ export async function loadYearStats(year: number): Promise<YearStats> {
   let totalWork = 0;
   let totalBreak = 0;
 
+  // Toplam mola: entries'ten (kategorize edilmez)
+  for (const b of (breakRes.data as { break_min: number }[]) ?? [])
+    totalBreak += b.break_min;
+
   for (const e of (entries as {
     habit_id: string;
     day: string;
     work_min: number;
-    break_min: number;
   }[]) ?? []) {
     totalWork += e.work_min;
-    totalBreak += e.break_min;
     const d = new Date(e.day + "T00:00:00");
     const wk = isoWeekNumber(d);
     perWeek[wk] = (perWeek[wk] ?? 0) + e.work_min;
@@ -131,7 +144,7 @@ export async function loadYearStats(year: number): Promise<YearStats> {
 
   // Tüm zamanlar dağılımı (yıl filtresi olmadan, alışkanlık bazında toplam)
   const { data: allEntries } = await supabase
-    .from("entries")
+    .from("topic_minutes")
     .select("habit_id,work_min");
   const allMap = new Map<string, number>();
   for (const e of (allEntries as { habit_id: string; work_min: number }[]) ?? [])
@@ -149,8 +162,9 @@ export async function loadHabitTotalsForWeek(
   startDateISO: string
 ): Promise<Record<string, number>> {
   const endISO = toISODate(addDays(startDateISO, 6));
+  // Çalışma dakikaları tek defterden: topic_minutes (kategorili + kategorisiz NULL).
   const { data, error } = await supabase
-    .from("entries")
+    .from("topic_minutes")
     .select("habit_id,work_min")
     .gte("day", startDateISO)
     .lte("day", endISO);
@@ -317,13 +331,6 @@ type HabitRow = {
   color: string | null;
   icon?: string | null;
 };
-type EntryRow = {
-  habit_id: string;
-  day: string;
-  work_min: number;
-  break_min: number;
-  note: string | null;
-};
 type DayNoteRow = { day: string; note: string | null };
 
 // Belirtilen haftanın (Pazartesi ISO) verisini WeekData olarak yükler.
@@ -356,22 +363,37 @@ export async function loadWeek(startDateISO: string): Promise<WeekData> {
   }));
 
   const endISO = toISODate(addDays(startDateISO, 6));
-  const { data: entryRows, error: eErr } = await supabase
-    .from("entries")
-    .select("habit_id,day,work_min,break_min,note")
-    .gte("day", startDateISO)
-    .lte("day", endISO);
-  if (eErr) throw eErr;
+  // Mola + not: entries. Çalışma: tek defterden (topic_minutes; kategorili + kategorisiz NULL).
+  const [entryRes, workRes] = await Promise.all([
+    supabase
+      .from("entries")
+      .select("habit_id,day,break_min,note")
+      .gte("day", startDateISO)
+      .lte("day", endISO),
+    supabase
+      .from("topic_minutes")
+      .select("habit_id,day,work_min")
+      .gte("day", startDateISO)
+      .lte("day", endISO),
+  ]);
+  if (entryRes.error) throw entryRes.error;
+  if (workRes.error) throw workRes.error;
 
   const minutes = emptyMinutes(habits);
   const breaks = emptyMinutes(habits);
   const notes = emptyNotes(habits);
-  for (const e of (entryRows as EntryRow[]) ?? []) {
+  // Mola + not
+  for (const e of (entryRes.data as { habit_id: string; day: string; break_min: number; note: string | null }[]) ?? []) {
     const idx = dayIndex(startDateISO, e.day);
     if (idx < 0 || idx > 6) continue;
-    if (minutes[e.habit_id]) minutes[e.habit_id][idx] = e.work_min;
     if (breaks[e.habit_id]) breaks[e.habit_id][idx] = e.break_min;
     if (notes[e.habit_id]) notes[e.habit_id][idx] = e.note ?? null;
+  }
+  // Çalışma: hücre = o (etkinlik, gün) topic_minutes satırlarının toplamı
+  for (const t of (workRes.data as { habit_id: string; day: string; work_min: number }[]) ?? []) {
+    const idx = dayIndex(startDateISO, t.day);
+    if (idx < 0 || idx > 6) continue;
+    if (minutes[t.habit_id]) minutes[t.habit_id][idx] += t.work_min;
   }
 
   // Gün notları
@@ -500,11 +522,12 @@ export async function updateHabitName(id: string, name: string) {
   if (error) throw error;
 }
 
-// Bir hücreyi (habit + tarih) yazar: çalışma, mola ve aktivite notu.
+// Bir hücrenin (habit + tarih) MOLA ve aktivite notunu yazar.
+// Çalışma dakikası ARTIK entries'e yazılmaz (tek defter: topic_minutes); work_min
+// sütununa dokunulmaz (eski değer yedek olarak kalır).
 export async function upsertEntry(
   habitId: string,
   dayISO: string,
-  workMin: number,
   breakMin: number,
   note: string | null
 ) {
@@ -512,7 +535,6 @@ export async function upsertEntry(
     {
       habit_id: habitId,
       day: dayISO,
-      work_min: workMin,
       break_min: breakMin,
       note,
     },
@@ -972,21 +994,35 @@ export async function deleteTopic(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// Bir konunun belirli gündeki süresine dakika ekler/çıkarır (yoksa oluşturur, 0'ın altına düşmez)
+// Bir hücrenin (habit + gün) tüm çalışma kayıtlarını siler (kategorili + kategorisiz).
+// Ör. ileri tarihe eski bir sayaçtan yanlış yazılmış süreyi sıfırlamak için.
+export async function clearCellWork(habitId: string, dayISO: string): Promise<void> {
+  const { error } = await supabase
+    .from("topic_minutes")
+    .delete()
+    .eq("habit_id", habitId)
+    .eq("day", dayISO);
+  if (error) throw error;
+}
+
+// Bir hücrenin belirli gündeki çalışma dakikasını ekler/çıkarır (yoksa oluşturur,
+// 0'ın altına düşmez). topicId NULL ise "kategorisiz/temel" satırıdır.
 export async function addTopicMinutes(
   userId: string,
   habitId: string,
   dayISO: string,
-  topicId: string,
+  topicId: string | null,
   deltaMin: number
 ): Promise<void> {
   if (deltaMin === 0) return;
-  const { data } = await supabase
+  // Mevcut satırı bul: kategorili → topic_id'ye göre; kategorisiz → (habit_id, day, topic_id IS NULL)
+  let sel = supabase
     .from("topic_minutes")
     .select("id,work_min")
-    .eq("topic_id", topicId)
-    .eq("day", dayISO)
-    .maybeSingle();
+    .eq("habit_id", habitId)
+    .eq("day", dayISO);
+  sel = topicId ? sel.eq("topic_id", topicId) : sel.is("topic_id", null);
+  const { data } = await sel.maybeSingle();
   if (data) {
     const row = data as { id: string; work_min: number };
     await supabase
@@ -1013,7 +1049,8 @@ export async function loadTopicMinutes(
     .from("topic_minutes")
     .select("topic_id,work_min,topics(name)")
     .eq("habit_id", habitId)
-    .eq("day", dayISO);
+    .eq("day", dayISO)
+    .not("topic_id", "is", null); // kategorisiz (NULL) satır "Konusuz" olarak ayrı hesaplanır
   if (error) throw error;
   // PostgREST embed'i obje veya tek-elemanlı dizi döndürebilir; ikisini de karşıla
   return (((data ?? []) as any[]))
@@ -1043,11 +1080,14 @@ export async function loadYearTopicStats(
       m = new Map();
       byHabit.set(r.habit_id, m);
     }
-    const tname =
-      (Array.isArray(r.topics) ? r.topics[0]?.name : r.topics?.name) ?? "—";
-    const cur = m.get(r.topic_id);
+    // Kategorisiz (topic_id NULL) satırlar "Konusuz" olarak tek grupta toplanır
+    const key = r.topic_id ?? "__none__";
+    const tname = r.topic_id
+      ? (Array.isArray(r.topics) ? r.topics[0]?.name : r.topics?.name) ?? "—"
+      : "Konusuz";
+    const cur = m.get(key);
     if (cur) cur.min += r.work_min;
-    else m.set(r.topic_id, { name: tname, min: r.work_min });
+    else m.set(key, { name: tname, min: r.work_min });
   }
   const out: Record<string, TopicMinute[]> = {};
   for (const [habitId, m] of byHabit) {
@@ -1116,13 +1156,12 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
   const monthStart = toISODate(new Date(today.getFullYear(), today.getMonth(), 1));
   const weekStart = toISODate(mondayOf(today));
 
-  const [habitRes, entriesRes, topicsRes, topicMinRes] = await Promise.all([
+  const [habitRes, topicsRes, topicMinRes] = await Promise.all([
     supabase
       .from("habits")
       .select("created_at,health_snooze_until,health_muted")
       .eq("id", habitId)
       .single(),
-    supabase.from("entries").select("day,work_min").eq("habit_id", habitId),
     supabase
       .from("topics")
       .select("id,habit_id,name,created_at")
@@ -1131,11 +1170,16 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
     supabase.from("topic_minutes").select("topic_id,day,work_min").eq("habit_id", habitId),
   ]);
   if (habitRes.error) throw habitRes.error;
-  if (entriesRes.error) throw entriesRes.error;
   if (topicsRes.error) throw topicsRes.error;
   if (topicMinRes.error) throw topicMinRes.error;
 
-  const entryRows = (entriesRes.data as { day: string; work_min: number }[]) ?? [];
+  const topicMinRows =
+    (topicMinRes.data as { topic_id: string | null; day: string; work_min: number }[]) ?? [];
+  // Çalışma tek defterden: gün bazında topla (kategorili + kategorisiz NULL).
+  const workByDay = new Map<string, number>();
+  for (const r of topicMinRows)
+    workByDay.set(r.day, (workByDay.get(r.day) ?? 0) + r.work_min);
+  const entryRows = [...workByDay.entries()].map(([day, work_min]) => ({ day, work_min }));
   const stats = sumTimeStats(entryRows, yearStart, monthStart, weekStart);
 
   const habitRow = habitRes.data as {
@@ -1167,10 +1211,10 @@ export async function loadHabitDetail(habitId: string): Promise<HabitDetail> {
       .pop() ?? null;
   const score = windowDays > 0 ? Math.round((activeDaySet.size / windowDays) * 100) : 0;
 
-  const topicMinRows =
-    (topicMinRes.data as { topic_id: string; day: string; work_min: number }[]) ?? [];
+  // Kategori bazında detay (kategorisiz NULL satırları hariç)
   const byTopic = new Map<string, { day: string; work_min: number }[]>();
   for (const r of topicMinRows) {
+    if (r.topic_id == null) continue;
     let arr = byTopic.get(r.topic_id);
     if (!arr) {
       arr = [];
@@ -1232,8 +1276,9 @@ export async function loadHabitsHealth(): Promise<Record<string, HabitHealthLite
   const weekAgo = toISODate(addDays(todayISO, -6));
   const [habitsRes, entriesRes] = await Promise.all([
     supabase.from("habits").select("id,created_at,health_snooze_until,health_muted"),
+    // Çalışma dakikaları tek defterden: topic_minutes (kategorili + kategorisiz NULL).
     supabase
-      .from("entries")
+      .from("topic_minutes")
       .select("habit_id,day,work_min")
       .gte("day", weekAgo)
       .lte("day", todayISO),
