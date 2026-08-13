@@ -3,7 +3,9 @@ import type { ActiveTimer, Topic, TimerConfig, TimerSettings, WeekData } from ".
 import { isRunning, workTotalMs, phaseProgress } from "../timer";
 import { LiveTimer, TimerSetup, type PopTimerActions } from "./TimerWidget";
 import { TopicPopup } from "./TopicPopup";
+import { HabitIcon } from "./HabitIcon";
 import { IconTarget } from "./Icons";
+import type { Habit } from "../types";
 import { loadTopics, addTopic, deleteTopic } from "../db";
 
 function GearIcon() {
@@ -49,6 +51,7 @@ export function TimerPanel({
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedHabitId, setSelectedHabitId] = useState<string>("");
+  const [showHabitList, setShowHabitList] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [topics, setTopics] = useState<Topic[]>([]);
   const [showTopicPopup, setShowTopicPopup] = useState(false);
@@ -58,6 +61,7 @@ export function TimerPanel({
   const runningTimer = todayTimers.find(isRunning) ?? null;
   const pausedTimers = todayTimers.filter((t) => !isRunning(t));
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null;
+  const selectedHabit = week.habits.find((h) => h.id === selectedHabitId) ?? null;
   // Etkinliğin konusu varsa konu seçimi zorunlu (Konusuz ile başlatılamaz)
   const topicRequired = topics.length > 0 && !selectedTopicId;
 
@@ -125,16 +129,58 @@ export function TimerPanel({
       {/* Etkinlik seçici (sadece bugün + etkinlik varsa) */}
       {!noHabitsToday && todayIndex >= 0 && todayIndex <= 6 ? (
         <div className="tp-habit-selector">
-          <select
-            className="tp-habit-select"
-            value={selectedHabitId}
-            onChange={(e) => setSelectedHabitId(e.target.value)}
+          <button
+            type="button"
+            className="tp-goal-select tp-habit-trigger"
+            onClick={() => setShowHabitList((v) => !v)}
           >
-            <option value="">— Etkinlik seç —</option>
-            {week.habits.map((h) => (
-              <option key={h.id} value={h.id}>{h.name}</option>
-            ))}
-          </select>
+            {selectedHabit ? (
+              <span className="tp-habit-current">
+                <HabitGlyph habit={selectedHabit} />
+                <span>{selectedHabit.name}</span>
+              </span>
+            ) : (
+              <span className="muted">— Etkinlik seç —</span>
+            )}
+            <span className="tp-goal-caret">▾</span>
+          </button>
+          {showHabitList ? (
+            <>
+              <div
+                className="tp-habit-backdrop"
+                onClick={() => setShowHabitList(false)}
+              />
+              <ul className="tp-habit-menu">
+                <li>
+                  <button
+                    type="button"
+                    className={`tp-habit-option${selectedHabitId ? "" : " sel"}`}
+                    onClick={() => {
+                      setSelectedHabitId("");
+                      setShowHabitList(false);
+                    }}
+                  >
+                    <span className="muted">— Etkinlik seç —</span>
+                  </button>
+                </li>
+                {week.habits.map((h) => (
+                  <li key={h.id}>
+                    <button
+                      type="button"
+                      className={`tp-habit-option${selectedHabitId === h.id ? " sel" : ""}`}
+                      onClick={() => {
+                        setSelectedHabitId(h.id);
+                        setShowHabitList(false);
+                      }}
+                    >
+                      <HabitGlyph habit={h} />
+                      <span>{h.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
       ) : null}
 
@@ -302,6 +348,23 @@ export function TimerPanel({
         />
       ) : null}
     </aside>
+  );
+}
+
+// Etkinlik ikonu (yoksa renk noktası) — WeekGrid ile aynı desen.
+function HabitGlyph({ habit }: { habit: Habit }) {
+  return habit.icon ? (
+    <span
+      className="habit-icon-wrap"
+      style={{ color: habit.color || "var(--accent)" }}
+    >
+      <HabitIcon name={habit.icon} className="habit-icon" />
+    </span>
+  ) : (
+    <span
+      className="habit-dot"
+      style={{ background: habit.color || "var(--accent)" }}
+    />
   );
 }
 

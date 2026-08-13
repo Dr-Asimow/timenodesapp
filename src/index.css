@@ -2581,7 +2581,34 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.tp-habit-selector { display: flex; flex-direction: column; gap: 6px; }
+.tp-habit-selector { display: flex; flex-direction: column; gap: 6px; position: relative; }
+/* Özel etkinlik açılır listesi (ikon + ad göstermek için native select yerine) */
+.tp-habit-trigger { width: 100%; }
+.tp-habit-current { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tp-habit-current > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-habit-current .habit-icon-wrap,
+.tp-habit-option .habit-icon-wrap { display: inline-flex; flex: none; }
+.tp-habit-current .habit-icon,
+.tp-habit-option .habit-icon { width: 15px; height: 15px; }
+.tp-habit-current .habit-dot,
+.tp-habit-option .habit-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.tp-habit-backdrop { position: fixed; inset: 0; z-index: 40; }
+.tp-habit-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 41;
+  margin: 0; padding: 4px; list-style: none;
+  background: var(--panel, var(--bg)); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  max-height: 260px; overflow-y: auto;
+}
+.tp-habit-option {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; border-radius: 7px;
+  color: var(--text); padding: 7px 8px; font: inherit; font-size: 13px;
+  cursor: pointer; text-align: left;
+}
+.tp-habit-option:hover { background: var(--accent-tint-2, rgba(127, 127, 127, 0.12)); }
+.tp-habit-option.sel { background: var(--accent-tint-2, rgba(127, 127, 127, 0.18)); }
+.tp-habit-option > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tp-habit-select {
   width: 100%;
   background: var(--bg);
