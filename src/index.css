@@ -2609,6 +2609,17 @@ body {
 .tp-habit-option:hover { background: var(--accent-tint-2, rgba(127, 127, 127, 0.12)); }
 .tp-habit-option.sel { background: var(--accent-tint-2, rgba(127, 127, 127, 0.18)); }
 .tp-habit-option > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Konu açılır listesi (etkinlik seçici ile aynı desen; sil + ekle satırı içerir) */
+.tp-topic-selector { position: relative; }
+.tp-topic-item { display: flex; align-items: center; gap: 2px; }
+.tp-topic-item .tp-habit-option { flex: 1; min-width: 0; }
+.tp-topic-del {
+  flex: none; background: none; border: none; color: var(--muted);
+  font-size: 16px; line-height: 1; padding: 4px 6px; border-radius: 6px; cursor: pointer;
+}
+.tp-topic-del:hover { color: var(--danger); background: var(--accent-tint-2, rgba(127, 127, 127, 0.12)); }
+.tp-topic-add { display: flex; gap: 6px; padding: 6px 4px 2px; }
+.tp-topic-add .rtab-input { flex: 1; min-width: 0; }
 .tp-habit-select {
   width: 100%;
   background: var(--bg);
@@ -5761,6 +5772,7 @@ tr.drag-over th {
 
 /* --- Notlar sayfası (etkinlik kapsülleri + sağlık barı) ---------------- */
 .notes-page {
+  width: 100%;
   max-width: 980px;
   margin: 0 auto;
   padding: 8px 4px 40px;
@@ -5775,8 +5787,12 @@ tr.drag-over th {
 }
 .hcaps {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+/* Dar ekranda 4 sütun sığmaz: 2 sütuna düş (temel kuraldan SONRA gelmeli) */
+@media (max-width: 760px) {
+  .hcaps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .hcap {
   display: flex;

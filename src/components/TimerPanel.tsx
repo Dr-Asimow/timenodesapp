@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { ActiveTimer, Topic, TimerConfig, TimerSettings, WeekData } from "../types";
 import { isRunning, workTotalMs, phaseProgress } from "../timer";
 import { LiveTimer, TimerSetup, type PopTimerActions } from "./TimerWidget";
-import { TopicPopup } from "./TopicPopup";
 import { HabitIcon } from "./HabitIcon";
 import { IconTarget } from "./Icons";
 import type { Habit } from "../types";
@@ -54,7 +53,8 @@ export function TimerPanel({
   const [showHabitList, setShowHabitList] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [showTopicPopup, setShowTopicPopup] = useState(false);
+  const [showTopicList, setShowTopicList] = useState(false);
+  const [topicText, setTopicText] = useState("");
   // Bir sayaç çalışırken "başka sayaca geç" formu açık mı
   const [showSwitch, setShowSwitch] = useState(false);
   const todayTimers = timers.filter((t) => t.day === todayIndex);
@@ -92,6 +92,12 @@ export function TimerPanel({
       const t = await addTopic(userId, selectedHabitId, name);
       setTopics((cur) => [...cur, t]);
     } catch { /* yoksay */ }
+  }
+  function submitTopic() {
+    const t = topicText.trim();
+    if (!t) return;
+    handleAddTopic(t);
+    setTopicText("");
   }
   function handleDeleteTopic(id: string) {
     if (selectedTopicId === id) setSelectedTopicId("");
@@ -188,20 +194,81 @@ export function TimerPanel({
       {selectedHabitId ? (
         <div className="tp-goal-row">
           <span className="tp-settings-label muted small">Konu</span>
-          <button
-            type="button"
-            className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
-            onClick={() => setShowTopicPopup(true)}
-          >
-            <span className={selectedTopic ? "" : "muted"}>
-              {selectedTopic
-                ? selectedTopic.name
-                : topics.length > 0
-                ? "Konu seç"
-                : "Konusuz"}
-            </span>
-            <span className="tp-goal-caret">▾</span>
-          </button>
+          <div className="tp-topic-selector">
+            <button
+              type="button"
+              className={`tp-goal-select${topicRequired ? " topic-required" : ""}`}
+              onClick={() => setShowTopicList((v) => !v)}
+            >
+              <span className={selectedTopic ? "" : "muted"}>
+                {selectedTopic
+                  ? selectedTopic.name
+                  : topics.length > 0
+                  ? "Konu seç"
+                  : "Konusuz"}
+              </span>
+              <span className="tp-goal-caret">▾</span>
+            </button>
+            {showTopicList ? (
+              <>
+                <div
+                  className="tp-habit-backdrop"
+                  onClick={() => setShowTopicList(false)}
+                />
+                <div className="tp-habit-menu tp-topic-menu">
+                  <button
+                    type="button"
+                    className={`tp-habit-option${selectedTopicId ? "" : " sel"}`}
+                    onClick={() => {
+                      setSelectedTopicId("");
+                      setShowTopicList(false);
+                    }}
+                  >
+                    <span className="muted">Konusuz</span>
+                  </button>
+                  {topics.map((t) => (
+                    <div key={t.id} className="tp-topic-item">
+                      <button
+                        type="button"
+                        className={`tp-habit-option${selectedTopicId === t.id ? " sel" : ""}`}
+                        onClick={() => {
+                          setSelectedTopicId(t.id);
+                          setShowTopicList(false);
+                        }}
+                      >
+                        <span>{t.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="tp-topic-del"
+                        onClick={() => handleDeleteTopic(t.id)}
+                        aria-label="Sil"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <form
+                    className="tp-topic-add"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      submitTopic();
+                    }}
+                  >
+                    <input
+                      className="rtab-input"
+                      value={topicText}
+                      onChange={(e) => setTopicText(e.target.value)}
+                      placeholder="Yeni konu…"
+                    />
+                    <button type="submit" className="rtab-add-btn">
+                      +
+                    </button>
+                  </form>
+                </div>
+              </>
+            ) : null}
+          </div>
           {topicRequired ? (
             <span className="topic-required-hint">
               Başlatmak için bir konu seç (ya da yeni konu ekle).
@@ -336,17 +403,6 @@ export function TimerPanel({
         </div>
       ) : null}
 
-      {/* Konu seç/ekle popup */}
-      {showTopicPopup ? (
-        <TopicPopup
-          topics={topics}
-          selectedId={selectedTopicId}
-          onSelect={setSelectedTopicId}
-          onAdd={handleAddTopic}
-          onDelete={handleDeleteTopic}
-          onClose={() => setShowTopicPopup(false)}
-        />
-      ) : null}
     </aside>
   );
 }
