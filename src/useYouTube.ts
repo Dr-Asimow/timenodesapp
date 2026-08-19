@@ -199,6 +199,14 @@ export function useYouTube() {
     const p = playerRef.current;
     if (!p) return;
     if (t.listId) {
+      // Yeni bir playlist linki: önceki kuyruğu (örn. favori/özel liste) TEMİZLE.
+      // Aksi halde ileri/geri, çalan playlist yerine bayat kuyruğa dönerdi.
+      playlistItemsRef.current = [];
+      playOrderRef.current = [];
+      playlistIndexRef.current = -1;
+      setPlaylistItems([]);
+      setPlayOrder([]);
+      setPlaylistIndex(-1);
       p.loadPlaylist({ list: t.listId, listType: "playlist" });
       // API key varsa playlist detaylarını çek
       if (API_KEY) {

@@ -81,7 +81,7 @@ import { NotePage } from "./components/note/NotePage";
 import { HabitDetailPage } from "./components/HabitDetailPage";
 import { HabitsPage } from "./components/HabitsPage";
 import { MusicFloating } from "./components/AmbientPlayer";
-import { useMusicFavorites } from "./useMusicFavorites";
+import { useMusicPlaylists } from "./useMusicPlaylists";
 import Dock from "./components/Dock";
 import { IconCoin, IconWarning, IconBell } from "./components/Icons";
 import type { DockItemData } from "./components/Dock";
@@ -296,7 +296,7 @@ export function App() {
 
   const userId = session?.user?.id ?? null;
   // Favori müzik kütüphanesi (Supabase'e kaydedilir)
-  const musicFavs = useMusicFavorites(userId);
+  const musicFavs = useMusicPlaylists(userId);
   const username =
     (session?.user?.user_metadata?.username as string) ??
     session?.user?.email?.split("@")[0] ??

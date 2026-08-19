@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { SOUNDS, type AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
-import type { MusicFavoritesApi } from "../useMusicFavorites";
+import type { MusicPlaylistsApi } from "../useMusicPlaylists";
+import type { YTPlaylistItem } from "../youtubeApi";
 import { MusicSearch } from "./MusicSearch";
-import { MusicFavoritesPopup } from "./MusicFavorites";
+import { MusicPlaylistsPopup, SongListMenu } from "./MusicPlaylists";
 import { Collapse } from "./Collapse";
 
 // Ortak ambient ses butonları. compact=true daha küçük yerleşim.
@@ -108,12 +109,19 @@ function PlaylistView({ yt }: { yt: YouTubeApi }) {
   );
 }
 
+const ACTIVE_LIST_KEY = "tn.music.activeList";
+
 // YouTube kontrolleri (link kutusu + oynatıcı). Hem kart hem floating kullanır.
-// favs verilirse çalan şarkının yanında yıldız + Favoriler bölümü görünür.
-function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicFavoritesApi }) {
+// favs verilirse çalan şarkının yanında yıldız + Listeler bölümü görünür.
+function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicPlaylistsApi }) {
   const [input, setInput] = useState("");
   const [err, setErr] = useState(false);
-  const [showFavs, setShowFavs] = useState(false);
+  const [showLists, setShowLists] = useState(false);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [starAnchor, setStarAnchor] = useState<HTMLElement | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(
+    () => localStorage.getItem(ACTIVE_LIST_KEY)
+  );
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,18 +133,79 @@ function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicFavoritesAp
     }
   }
 
+  // Seçili liste (yoksa ilk liste)
+  const activeList =
+    favs?.playlists.find((p) => p.id === activeId) ?? favs?.playlists[0] ?? null;
+
+  function playList(playlistId: string) {
+    if (!favs) return;
+    const items: YTPlaylistItem[] = favs.itemsOf(playlistId).map((s, i) => ({
+      videoId: s.videoId,
+      title: s.title,
+      thumbnail: `https://img.youtube.com/vi/${s.videoId}/default.jpg`,
+      position: i,
+    }));
+    if (items.length === 0) return;
+    yt.playList(items, 0);
+  }
+
+  function chooseList(playlistId: string) {
+    setActiveId(playlistId);
+    localStorage.setItem(ACTIVE_LIST_KEY, playlistId);
+    setPickOpen(false);
+    playList(playlistId);
+  }
+
   const hasPlaylist = yt.playlistItems.length > 0;
 
   return (
     <div className="yt-block">
-      {/* Favori müzik kütüphanesi */}
+      {/* Listeler seçici */}
       {favs ? (
-        <button className="fav-open-btn" onClick={() => setShowFavs(true)}>
-          <span className="fav-open-star">★</span> Favoriler
-          {favs.favorites.length > 0 ? (
-            <span className="fav-open-count">{favs.favorites.length}</span>
-          ) : null}
-        </button>
+        <div className="mlist-bar">
+          <div className="mlist-select-wrap">
+            <button
+              className="mlist-select"
+              onClick={() => setPickOpen((v) => !v)}
+              title="Liste seç ve çal"
+            >
+              <span className="fav-open-star">★</span>
+              <span className="mlist-name">{activeList?.name ?? "Liste yok"}</span>
+              {activeList ? (
+                <span className="fav-open-count">{favs.itemsOf(activeList.id).length}</span>
+              ) : null}
+              <span className="mlist-caret">▾</span>
+            </button>
+            {pickOpen ? (
+              <>
+                <div className="menu-backdrop" onClick={() => setPickOpen(false)} />
+                <div className="mlist-menu">
+                  {favs.playlists.length === 0 ? (
+                    <p className="slm-empty muted small">Henüz liste yok.</p>
+                  ) : (
+                    favs.playlists.map((p) => (
+                      <button
+                        key={p.id}
+                        className={`mlist-opt${p.id === activeList?.id ? " active" : ""}`}
+                        onClick={() => chooseList(p.id)}
+                      >
+                        <span className="mlist-opt-name">{p.name}</span>
+                        <span className="mlist-opt-count">{favs.itemsOf(p.id).length}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : null}
+          </div>
+          <button
+            className="mlist-manage"
+            onClick={() => setShowLists(true)}
+            title="Listeleri yönet"
+          >
+            🎛
+          </button>
+        </div>
       ) : null}
 
       {/* Arama (API key varsa) */}
@@ -158,17 +227,26 @@ function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicFavoritesAp
             {yt.title || "Yükleniyor…"}
           </div>
           {favs && yt.videoId ? (
-            <button
-              className={`yt-fav-star${favs.isFav(yt.videoId) ? " on" : ""}`}
-              onClick={() => favs.toggleFav(yt.videoId, yt.title)}
-              title={
-                favs.isFav(yt.videoId)
-                  ? "Favorilerden çıkar"
-                  : "Favorilere ekle (sadece bu şarkı)"
-              }
-            >
-              {favs.isFav(yt.videoId) ? "★" : "☆"}
-            </button>
+            <span className="yt-fav-wrap">
+              <button
+                className={`yt-fav-star${favs.isFav(yt.videoId) ? " on" : ""}`}
+                onClick={(e) =>
+                  setStarAnchor((cur) => (cur ? null : e.currentTarget))
+                }
+                title="Listelere ekle / çıkar"
+              >
+                {favs.isFav(yt.videoId) ? "★" : "☆"}
+              </button>
+              {starAnchor ? (
+                <SongListMenu
+                  favs={favs}
+                  videoId={yt.videoId}
+                  title={yt.title}
+                  anchorEl={starAnchor}
+                  onClose={() => setStarAnchor(null)}
+                />
+              ) : null}
+            </span>
           ) : null}
           <div className="yt-controls">
             {hasPlaylist && (
@@ -218,11 +296,11 @@ function YouTubeControls({ yt, favs }: { yt: YouTubeApi; favs?: MusicFavoritesAp
         <button className="yt-add" type="submit" title="Yükle">+</button>
       </form>
 
-      {favs && showFavs ? (
-        <MusicFavoritesPopup
+      {favs && showLists ? (
+        <MusicPlaylistsPopup
           yt={yt}
           favs={favs}
-          onClose={() => setShowFavs(false)}
+          onClose={() => setShowLists(false)}
         />
       ) : null}
     </div>
@@ -241,7 +319,7 @@ export function MusicCard({
   onVolume,
 }: {
   yt: YouTubeApi;
-  favs: MusicFavoritesApi;
+  favs: MusicPlaylistsApi;
   current: AmbientId | null;
   playing: boolean;
   volume: number;
@@ -306,7 +384,7 @@ export function MusicFloating({
   onToggleCollapse,
 }: {
   yt: YouTubeApi;
-  favs: MusicFavoritesApi;
+  favs: MusicPlaylistsApi;
   current: AmbientId | null;
   playing: boolean;
   collapsed: boolean;

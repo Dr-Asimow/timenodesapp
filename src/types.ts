@@ -123,11 +123,20 @@ export type Reminder = {
   target_at: string; // ISO timestamp
 };
 
-// Favori müzik (music_favorites tablosu — tek YouTube videosu)
-export type MusicFavorite = {
+// Müzik listesi (music_playlists tablosu — isimli, sıralı)
+export type MusicPlaylist = {
   id: string;
+  name: string;
+  position: number;
+};
+
+// Bir listedeki şarkı (music_playlist_items — aynı şarkı birden çok listede olabilir)
+export type MusicPlaylistItem = {
+  id: string;
+  playlistId: string;
   videoId: string;
   title: string;
+  position: number;
 };
 
 // Cihaz-yerel sayaç tercihleri (localStorage)

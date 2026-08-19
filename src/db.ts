@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Goal, Habit, MusicFavorite, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
+import type { Goal, Habit, MusicPlaylist, MusicPlaylistItem, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -922,41 +922,126 @@ export async function deleteReminder(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// ── Favori müzikler (music_favorites) ──────────────────────────────
+// ── Müzik listeleri (music_playlists + music_playlist_items) ────────
 
-export async function loadMusicFavorites(userId: string): Promise<MusicFavorite[]> {
+export async function loadMusicPlaylists(userId: string): Promise<MusicPlaylist[]> {
   const { data, error } = await supabase
-    .from("music_favorites")
-    .select("id,video_id,title")
+    .from("music_playlists")
+    .select("id,name,position")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) throw error;
-  return ((data ?? []) as { id: string; video_id: string; title: string }[]).map(
-    (r) => ({ id: r.id, videoId: r.video_id, title: r.title })
+  return ((data ?? []) as { id: string; name: string; position: number }[]).map(
+    (r) => ({ id: r.id, name: r.name, position: r.position })
   );
 }
 
-export async function addMusicFavorite(
-  userId: string,
-  videoId: string,
-  title: string
-): Promise<MusicFavorite> {
-  // Aynı video ikinci kez eklenirse üzerine yazılır (unique user_id+video_id)
+export async function loadMusicPlaylistItems(
+  userId: string
+): Promise<MusicPlaylistItem[]> {
   const { data, error } = await supabase
-    .from("music_favorites")
-    .upsert(
-      { user_id: userId, video_id: videoId, title },
-      { onConflict: "user_id,video_id" }
-    )
-    .select("id,video_id,title")
-    .single();
+    .from("music_playlist_items")
+    .select("id,playlist_id,video_id,title,position")
+    .eq("user_id", userId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) throw error;
-  const r = data as { id: string; video_id: string; title: string };
-  return { id: r.id, videoId: r.video_id, title: r.title };
+  return (
+    (data ?? []) as {
+      id: string;
+      playlist_id: string;
+      video_id: string;
+      title: string;
+      position: number;
+    }[]
+  ).map((r) => ({
+    id: r.id,
+    playlistId: r.playlist_id,
+    videoId: r.video_id,
+    title: r.title,
+    position: r.position,
+  }));
 }
 
-export async function deleteMusicFavorite(id: string): Promise<void> {
-  const { error } = await supabase.from("music_favorites").delete().eq("id", id);
+export async function createMusicPlaylist(
+  userId: string,
+  name: string,
+  position: number
+): Promise<MusicPlaylist> {
+  const { data, error } = await supabase
+    .from("music_playlists")
+    .insert({ user_id: userId, name, position })
+    .select("id,name,position")
+    .single();
+  if (error) throw error;
+  const r = data as { id: string; name: string; position: number };
+  return { id: r.id, name: r.name, position: r.position };
+}
+
+export async function renameMusicPlaylist(id: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from("music_playlists")
+    .update({ name })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteMusicPlaylist(id: string): Promise<void> {
+  // Liste silinince şarkıları da (on delete cascade) silinir
+  const { error } = await supabase.from("music_playlists").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function addMusicPlaylistItem(
+  userId: string,
+  playlistId: string,
+  videoId: string,
+  title: string,
+  position: number
+): Promise<MusicPlaylistItem> {
+  // Aynı şarkı aynı listeye ikinci kez eklenirse üzerine yazılır
+  const { data, error } = await supabase
+    .from("music_playlist_items")
+    .upsert(
+      { playlist_id: playlistId, user_id: userId, video_id: videoId, title, position },
+      { onConflict: "playlist_id,video_id" }
+    )
+    .select("id,playlist_id,video_id,title,position")
+    .single();
+  if (error) throw error;
+  const r = data as {
+    id: string;
+    playlist_id: string;
+    video_id: string;
+    title: string;
+    position: number;
+  };
+  return {
+    id: r.id,
+    playlistId: r.playlist_id,
+    videoId: r.video_id,
+    title: r.title,
+    position: r.position,
+  };
+}
+
+export async function removeMusicPlaylistItem(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("music_playlist_items")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateMusicItemPosition(
+  id: string,
+  position: number
+): Promise<void> {
+  const { error } = await supabase
+    .from("music_playlist_items")
+    .update({ position })
+    .eq("id", id);
   if (error) throw error;
 }
 

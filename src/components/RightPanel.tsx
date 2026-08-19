@@ -4,7 +4,7 @@ import type { Goal, Reminder, TodoItem, TodoDifficulty } from "../types";
 import type { TodoExtra } from "../db";
 import type { AmbientId } from "../ambient";
 import type { YouTubeApi } from "../useYouTube";
-import type { MusicFavoritesApi } from "../useMusicFavorites";
+import type { MusicPlaylistsApi } from "../useMusicPlaylists";
 import { MusicCard } from "./AmbientPlayer";
 import { Collapse } from "./Collapse";
 import { IconBell, IconCheck } from "./Icons";
@@ -64,7 +64,7 @@ export function RightPanel({
   onCompleteOverdue: (id: string) => void;
   onDeleteOverdue: (id: string) => void;
   yt: YouTubeApi;
-  favs: MusicFavoritesApi;
+  favs: MusicPlaylistsApi;
   ambientId: AmbientId | null;
   ambientPlaying: boolean;
   ambientVol: number;
