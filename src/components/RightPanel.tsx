@@ -7,7 +7,7 @@ import type { YouTubeApi } from "../useYouTube";
 import type { MusicPlaylistsApi } from "../useMusicPlaylists";
 import { MusicCard } from "./AmbientPlayer";
 import { Collapse } from "./Collapse";
-import { IconBell, IconCheck } from "./Icons";
+import { IconBell, IconCheck, IconPlan } from "./Icons";
 
 type RightTab = "hatirlatici" | "todo";
 
@@ -46,6 +46,7 @@ export function RightPanel({
   ambientVol,
   onToggleAmbient,
   onAmbientVol,
+  onOpenPlan,
 }: {
   todos: TodoItem[];
   // Günü geçmiş, yapılmamış to-do'lar ("Geciken" bölümü)
@@ -70,6 +71,8 @@ export function RightPanel({
   ambientVol: number;
   onToggleAmbient: (id: AmbientId) => void;
   onAmbientVol: (v: number) => void;
+  // Günlük plan (gündem) modalını açar
+  onOpenPlan: () => void;
 }) {
   const [tab, setTab] = useState<RightTab>("hatirlatici");
 
@@ -91,6 +94,10 @@ export function RightPanel({
             title="Yapılacaklar"
           >
             <IconCheck size={14} /> To-do
+          </button>
+          {/* Sekme değil: günlük plan modalını açar */}
+          <button className="rtab-btn" onClick={onOpenPlan} title="Günlük plan">
+            <IconPlan size={14} /> Gündem
           </button>
         </div>
 
@@ -704,7 +711,7 @@ function TodoTab({
 
 // --- To-do ekleme popup'ı (zorluk + opsiyonel deadline) ---
 
-function TodoPopup({
+export function TodoPopup({
   onAdd,
   onClose,
 }: {

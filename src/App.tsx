@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { ActiveTimer, Goal, Habit, Reminder, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
+import type { ActiveTimer, Goal, Habit, Reminder, TimeBall, TimerConfig, TimerSettings, TopicMinute, WeekData } from "./types";
 import { supabase } from "./supabase";
 import {
   loadWeek,
@@ -31,6 +31,7 @@ import {
   loadReminders,
   addReminder,
   deleteReminder,
+  loadDailyPlan,
   loadTopics,
   addTopic,
   deleteTopic,
@@ -76,6 +77,7 @@ import { WeeksPage } from "./components/WeeksPage";
 import { Stats } from "./components/Stats";
 import { TimerPanel } from "./components/TimerPanel";
 import { RightPanel } from "./components/RightPanel";
+import { DailyPlanModal } from "./components/DailyPlanModal";
 import { ShopPage } from "./components/ShopPage";
 import { NotePage } from "./components/note/NotePage";
 import { HabitDetailPage } from "./components/HabitDetailPage";
@@ -83,7 +85,7 @@ import { HabitsPage } from "./components/HabitsPage";
 import { MusicFloating } from "./components/AmbientPlayer";
 import { useMusicPlaylists } from "./useMusicPlaylists";
 import Dock from "./components/Dock";
-import { IconCoin, IconWarning, IconBell } from "./components/Icons";
+import { IconCoin, IconWarning, IconBell, IconPlan } from "./components/Icons";
 import type { DockItemData } from "./components/Dock";
 import {
   playAmbient,
@@ -215,6 +217,8 @@ export function App() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [firedReminder, setFiredReminder] = useState<Reminder | null>(null);
+  // Günlük plan modalı (açıkken yüklenmiş toplar); null = kapalı
+  const [dailyPlan, setDailyPlan] = useState<{ balls: TimeBall[] } | null>(null);
   const firedIdsRef = useRef<Set<string>>(new Set());
   const [timerSettings, setTimerSettings] = useState<TimerSettings>(() => {
     try {
@@ -574,6 +578,20 @@ export function App() {
     const todayISO = toISODate(new Date());
     loadGoals(todayISO).then(setGoals).catch(() => {});
     loadReminders(userId).then(setReminders).catch(() => {});
+  }, [userId]);
+
+  // Günün ilk girişinde günlük plan modalını aç (satır yoksa bugün hiç açılmamış)
+  useEffect(() => {
+    if (!userId) { setDailyPlan(null); return; }
+    let cancel = false;
+    loadDailyPlan(toISODate(new Date()))
+      .then((p) => {
+        if (!cancel && !p) setDailyPlan({ balls: [] });
+      })
+      .catch((e) => console.warn("Günlük plan okunamadı:", e));
+    return () => {
+      cancel = true;
+    };
   }, [userId]);
 
   // Hatırlatıcı alarm kontrolü — her 15 saniyede zamanı gelen hatırlatıcıyı tetikle
@@ -1115,7 +1133,8 @@ export function App() {
   finishTimerRef.current = finishTimer;
   autoAdvanceRef.current = autoAdvance;
   timerSettingsRef.current = timerSettings;
-  reloadBlockedRef.current = noteTarget !== null || habitPageTarget !== null;
+  reloadBlockedRef.current =
+    noteTarget !== null || habitPageTarget !== null || dailyPlan !== null;
 
   // --- Render ---
   if (!authReady) return <LoadingScreen />;
@@ -1217,6 +1236,12 @@ export function App() {
       console.error("Hatırlatıcı eklenemedi:", msg, e);
       setErr("Hatırlatıcı eklenemedi: " + msg);
     }
+  };
+  // Günlük planı elle aç (kayıtlı toplar kaldığı yerden gelir)
+  const openDailyPlan = () => {
+    loadDailyPlan(todayISO)
+      .then((p) => setDailyPlan({ balls: p?.balls ?? [] }))
+      .catch(() => setErr("Günlük plan açılamadı"));
   };
   // Takvim popup'ından gün notu kaydet; gün açık haftadaysa state'i de tazele
   const saveCalDayNote = (dayISO: string, note: string) => {
@@ -1393,6 +1418,7 @@ export function App() {
                   ambientVol={ambientVol}
                   onToggleAmbient={toggleAmbient}
                   onAmbientVol={changeAmbientVol}
+                  onOpenPlan={openDailyPlan}
                 />
               </div>
             );
@@ -1493,6 +1519,7 @@ export function App() {
               className: "dock-profile",
             },
             { icon: <WeekIcon />, label: "Dashboard", onClick: () => navigate("week"), active: view === "week" },
+            { icon: <IconPlan size={18} />, label: "Günlük plan", onClick: openDailyPlan, active: dailyPlan !== null },
             { icon: <NotesIcon />, label: "Notlar", onClick: () => navigate("notes"), active: view === "notes" },
             { icon: <WeeksIcon />, label: "Takvim", onClick: () => navigate("weeks"), active: view === "weeks" },
             { icon: <StatsIcon />, label: "İstatistikler", onClick: () => navigate("stats"), active: view === "stats" },
@@ -1543,6 +1570,24 @@ export function App() {
             setHabitHealthSnooze(habitPageTarget.habitId, snoozeUntil, muted)
           }
           onClose={() => setHabitPageTarget(null)}
+        />
+      ) : null}
+
+      {dailyPlan && userId ? (
+        <DailyPlanModal
+          userId={userId}
+          todayISO={todayISO}
+          displayName={displayName || username}
+          habits={week.habits}
+          initialBalls={dailyPlan.balls}
+          initialNote={todayInWeek ? week.dayNotes[todayIndex] ?? "" : ""}
+          todos={todos}
+          reminders={reminders}
+          onSaveNote={(note) => saveCalDayNote(todayISO, note)}
+          onToggleTodo={toggleTodo}
+          onAddTodo={addTodoItem}
+          onAddReminder={addReminderItem}
+          onClose={() => setDailyPlan(null)}
         />
       ) : null}
 

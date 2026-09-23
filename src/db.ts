@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Goal, Habit, MusicPlaylist, MusicPlaylistItem, Reminder, TodoItem, Topic, TopicMinute, WeekData } from "./types";
+import type { DailyPlan, Goal, Habit, MusicPlaylist, MusicPlaylistItem, Reminder, TimeBall, TodoItem, Topic, TopicMinute, WeekData } from "./types";
 import {
   isoWeekNumber,
   toISODate,
@@ -919,6 +919,40 @@ export async function addReminder(
 
 export async function deleteReminder(id: string): Promise<void> {
   const { error } = await supabase.from("reminders").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// --- Günlük plan (daily_plans) ----------------------------------------
+
+// Bir günün planı; o gün hiç açılmamışsa null
+export async function loadDailyPlan(dayISO: string): Promise<DailyPlan | null> {
+  const { data, error } = await supabase
+    .from("daily_plans")
+    .select("day,balls,opened")
+    .eq("day", dayISO)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const r = data as { day: string; balls: TimeBall[] | null; opened: boolean };
+  return { day: r.day, balls: r.balls ?? [], opened: r.opened };
+}
+
+// Planı yaz (satır yoksa oluşturur → o gün "açıldı" sayılır)
+export async function saveDailyPlan(
+  userId: string,
+  dayISO: string,
+  balls: TimeBall[]
+): Promise<void> {
+  const { error } = await supabase.from("daily_plans").upsert(
+    {
+      user_id: userId,
+      day: dayISO,
+      balls,
+      opened: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,day" }
+  );
   if (error) throw error;
 }
 

@@ -144,3 +144,17 @@ export type TimerSettings = {
   alarmEnabled: boolean;
   autoBreak: boolean; // true = mola otomatik başlar
 };
+
+// Günlük plan zaman topu: her top ayrı bir nesne. habitId null = havuzda.
+export type TimeBall = {
+  id: string;
+  duration: 10 | 30 | 60; // dakika
+  habitId: string | null;
+};
+
+// Günlük plan (daily_plans tablosu). Gün notu day_notes'tan gelir.
+export type DailyPlan = {
+  day: string; // ISO tarih (YYYY-MM-DD)
+  balls: TimeBall[];
+  opened: boolean;
+};

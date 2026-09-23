@@ -19,6 +19,17 @@ export function IconBell({ size = 16 }: { size?: number }) {
   );
 }
 
+// Günlük plan (zaman topları)
+export function IconPlan({ size = 16 }: { size?: number }) {
+  return (
+    <svg {...S} width={size} height={size}>
+      <circle cx="4.5" cy="4.5" r="2.2" />
+      <circle cx="11.5" cy="5.5" r="2.2" />
+      <circle cx="7" cy="11.5" r="2.2" />
+    </svg>
+  );
+}
+
 export function IconCheck({ size = 16 }: { size?: number }) {
   return (
     <svg {...S} width={size} height={size} strokeWidth={2}>
