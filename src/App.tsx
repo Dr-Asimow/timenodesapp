@@ -66,7 +66,7 @@ import {
   targetReached,
   phaseAcked,
 } from "./timer";
-import { playAlarm } from "./alarm";
+import { playAlarm, playChime } from "./alarm";
 import { Login } from "./components/Login";
 import { WeekGrid } from "./components/WeekGrid";
 import { Brand, LoadingScreen } from "./components/Brand";
@@ -478,21 +478,43 @@ export function App() {
     if (userId) saveTimers(userId, timers);
   }, [timers, userId]);
 
-  // Gün dönümü + 8 saat sınırı (tek interval, ref'lerle güncel değerler):
-  // - Çalışan sayaç 8 saati aşarsa otomatik bitir.
+  // Gün dönümü + süre sınırı (tek interval, ref'lerle güncel değerler):
+  // - Çalışan sayaç sınırı aşarsa (serbest 4 sa, pomodoro 8 sa) otomatik bitir.
+  // - Serbest sayaç çalışırken her 30 dakikada bir hafif hatırlatma sesi çal.
   // - Yeni güne geçildiyse: çalışan sayaç VARSA ertele (başladığı güne yazsın),
   //   çalışan sayaç YOKSA sayfayı yenile → sonraki sayaçlar yeni günde başlar.
   useEffect(() => {
     if (!userId) return;
-    const EIGHT_H = 8 * 3600 * 1000;
+    const H = 3600 * 1000;
+    const capOf = (t: ActiveTimer) => (t.workTargetMs == null ? 4 * H : 8 * H);
+    const CHIME_MS = 30 * 60 * 1000;
+    // Sayaç başına en son ses çalınan 30 dk dilimi ("habitId:day" → dilim no)
+    const chimeSlots = new Map<string, number>();
     const id = setInterval(() => {
       const ts = timersRef.current;
-      const capped = ts.find(
-        (t) => isRunning(t) && workTotalMs(t) + breakTotalMs(t) >= EIGHT_H
-      );
+      const total = (t: ActiveTimer) => workTotalMs(t) + breakTotalMs(t);
+      const capped = ts.find((t) => isRunning(t) && total(t) >= capOf(t));
       if (capped) {
-        finishTimerRef.current(capped);
+        // Sekme uyuyup sınır çok aşıldıysa fazlasını kırp → en fazla sınır kadar yazılsın
+        const s = settle(capped);
+        const over = Math.max(0, s.workMs + s.breakMs - capOf(capped));
+        finishTimerRef.current(
+          s.phase === "work"
+            ? { ...s, workMs: Math.max(0, s.workMs - over) }
+            : { ...s, breakMs: Math.max(0, s.breakMs - over) }
+        );
         return;
+      }
+      for (const t of ts) {
+        if (!isRunning(t) || t.workTargetMs != null) continue;
+        const key = `${t.habitId}:${t.day}`;
+        const slot = Math.floor(total(t) / CHIME_MS);
+        const prev = chimeSlots.get(key);
+        chimeSlots.set(key, slot);
+        // İlk görüşte (ör. sayfa yenilendi) sessizce kaydet; yeni dilime geçince çal
+        if (prev != null && slot > prev && timerSettingsRef.current.alarmEnabled) {
+          playChime();
+        }
       }
       if (
         toISODate(new Date()) !== dayRef.current &&
